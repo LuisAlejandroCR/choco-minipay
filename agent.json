@@ -1,0 +1,11 @@
+{
+  "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
+  "name": "Choco",
+  "description": "Conversational remittance concierge for diaspora users. Choco schedules USDC to KESm family transfers on Celo, retries failures, notifies recipients, and files onchain receipts.",
+  "image": "https://choco-remit.vercel.app/icon.png",
+  "services": [
+    { "name": "web", "endpoint": "https://choco-remit.vercel.app" },
+    { "name": "wallet", "endpoint": "eip155:11142220:0xb7b265d61aa687d3b920eeD57b9ea05DD3D0426d" }
+  ],
+  "supportedTrust": ["reputation"]
+}

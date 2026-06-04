@@ -1,0 +1,650 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Choco · El agente que envía remesas sin que pienses.</title>
+<meta name="description" content="Choco es un agente onchain en MiniPay que envía USDm a tu familia cuando se cumple una condición — un horario, un saldo bajo, un tipo de cambio favorable. Construido en Celo." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1d1d1f;
+    --ink-soft:#6e6e73;
+    --bg:#fff;
+    --bg-soft:#faf6f0;
+    --bg-dark:#000;
+    --line:#e6dfd3;
+    --link:#0066cc;
+    --choco:#6b4226;
+    --choco-2:#d9a679;
+    --choco-3:#3a2415;
+    --cream:#f5e6d3;
+    --pink:#ff5e7e;
+    --mp-bg:#0c1116;
+    --mp-card:#181f27;
+    --mp-line:rgba(255,255,255,0.08);
+    --mp-text-dim:#8b95a4;
+    --mp-accent:#3f7aff;
+    --mp-green:#27c46b;
+    --mp-amber:#ffb86b;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:'Inter',-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  a{color:inherit;text-decoration:none}
+  .wrap-wide{max-width:1200px;margin:0 auto;padding:0 22px}
+
+  /* nav */
+  nav{position:sticky;top:0;z-index:50;background:rgba(0,0,0,0.85);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.08);color:#f5f5f7}
+  nav .row{display:flex;align-items:center;justify-content:space-between;height:44px;max-width:1024px;margin:0 auto;padding:0 22px;font-size:13px}
+  .brand{display:flex;align-items:center;gap:6px;font-weight:500;letter-spacing:-0.01em}
+  .brand .glyph{font-size:16px}
+  .brand .for{color:#a1a1a6;font-weight:400;margin-left:2px}
+  .brand .mp{color:var(--choco-2);font-weight:500}
+  .nav-links{display:flex;gap:24px;color:#f5f5f7;opacity:0.92}
+  .nav-links a{opacity:0.85;transition:opacity .15s}
+  .nav-links a:hover{opacity:1}
+  @media (max-width:760px){.nav-links{display:none}}
+  .lang{display:inline-flex;font-size:11px;font-weight:500;letter-spacing:0.04em}
+  .lang button{background:transparent;border:0;color:#a1a1a6;padding:4px 8px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:500}
+  .lang button.active{color:#fff;background:rgba(255,255,255,0.12)}
+
+  /* sections */
+  section{padding:96px 0;text-align:center}
+  section.dark{background:var(--bg-dark);color:#f5f5f7}
+  section.soft{background:var(--bg-soft)}
+  h1,h2,h3,h4{margin:0;font-weight:600;letter-spacing:-0.022em}
+  .display{font-size:clamp(48px,8vw,96px);line-height:1.05;letter-spacing:-0.04em;font-weight:600}
+  .display .light{font-weight:300}
+  h2.head{font-size:clamp(36px,5.5vw,64px);line-height:1.08;letter-spacing:-0.032em}
+  .eyebrow{font-size:14px;font-weight:500;letter-spacing:-0.01em;color:var(--choco);margin-bottom:10px}
+  section.dark .eyebrow{color:var(--choco-2)}
+  .sub{font-size:17px;line-height:1.5;color:var(--ink-soft);max-width:640px;margin:14px auto 0;font-weight:400}
+  section.dark .sub{color:#a1a1a6}
+  .actions{margin-top:22px;display:flex;gap:24px;justify-content:center;flex-wrap:wrap;font-size:17px;font-weight:400}
+  .actions a{color:var(--link);display:inline-flex;align-items:center;gap:4px}
+  section.dark .actions a{color:#2997ff}
+  .actions a:hover{text-decoration:underline}
+  .actions a .arr{transition:transform .2s}
+  .actions a:hover .arr{transform:translateX(2px)}
+
+  /* hero */
+  .hero{padding:80px 0 0;text-align:center;background:var(--bg)}
+  .hero-tag{font-size:clamp(20px,2.4vw,28px);font-weight:500;color:var(--ink-soft);letter-spacing:-0.012em;margin:0 0 18px}
+  .hero-actions{font-size:19px}
+  .hero-phone{margin:54px auto 0;position:relative;display:flex;justify-content:center}
+  .badge-pill{display:inline-flex;gap:8px;align-items:center;padding:6px 14px;border-radius:999px;background:linear-gradient(135deg,rgba(107,66,38,0.10),rgba(217,166,121,0.08));border:1px solid rgba(107,66,38,0.28);font-size:13px;font-weight:500;color:var(--choco);margin-bottom:24px}
+  .badge-pill .dot{width:7px;height:7px;border-radius:50%;background:var(--choco);animation:pulse 1.6s infinite}
+
+  /* phone */
+  .phone{width:300px;height:600px;background:#000;border-radius:42px;border:1.5px solid #25252a;box-shadow:0 30px 80px rgba(0,0,0,0.25);position:relative;overflow:hidden}
+  .notch{position:absolute;top:14px;left:50%;transform:translateX(-50%);width:100px;height:26px;background:#000;border-radius:14px;z-index:5}
+  .screen{position:absolute;inset:8px;border-radius:34px;background:var(--mp-bg);overflow:hidden;display:flex;flex-direction:column;color:#f5f5f7}
+  .mp-status{height:34px;display:flex;justify-content:space-between;align-items:flex-end;padding:0 18px 4px;font-size:11px;color:#cdd5e0;font-weight:600}
+  .mp-top{padding:6px 14px 8px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--mp-line)}
+  .mp-back{width:24px;height:24px;display:grid;place-items:center;color:#cdd5e0;font-size:18px}
+  .mp-title{font-size:13.5px;font-weight:600;flex:1;display:flex;align-items:center;gap:6px}
+  .mp-title .logo{width:18px;height:18px;border-radius:5px;background:linear-gradient(135deg,var(--choco),var(--choco-2));display:grid;place-items:center;font-size:11px;color:var(--cream);font-weight:700}
+  .mp-by{font-size:9.5px;color:var(--mp-text-dim);padding:8px 14px 2px;text-align:center}
+  .mp-by b{color:#cdd5e0;font-weight:600}
+  .mp-body{flex:1;padding:10px 12px;overflow:hidden;display:flex;flex-direction:column;gap:9px;position:relative}
+
+  /* plan-active card (Choco-specific) */
+  .mp-plan{background:linear-gradient(135deg,rgba(107,66,38,0.14),rgba(217,166,121,0.04));border:1px solid rgba(217,166,121,0.22);border-radius:14px;padding:11px 13px;text-align:left}
+  .mp-plan-label{font-size:9.5px;color:var(--choco-2);text-transform:uppercase;letter-spacing:0.12em;font-weight:600;margin-bottom:4px;display:flex;align-items:center;gap:5px}
+  .mp-plan-label .pulse{width:6px;height:6px;border-radius:50%;background:var(--mp-green);animation:pulse 1.6s infinite}
+  .mp-plan-who{font-size:14px;font-weight:600;color:#f5f5f7;margin-bottom:1px}
+  .mp-plan-amt{font-size:18px;font-weight:600;letter-spacing:-0.015em;color:#fff}
+  .mp-plan-amt .ccy{font-size:10px;color:var(--mp-text-dim);font-weight:500;letter-spacing:0.04em;margin-left:3px}
+  .mp-plan-rule{font-size:10.5px;color:var(--mp-text-dim);margin-top:3px}
+  .mp-plan-next{font-size:10px;color:var(--choco-2);font-weight:500;margin-top:6px;padding-top:6px;border-top:1px dashed rgba(217,166,121,0.18)}
+
+  /* plan-list card */
+  .mp-list{background:var(--mp-card);border:1px solid var(--mp-line);border-radius:14px;padding:11px 13px;text-align:left}
+  .mp-list .title{font-size:10px;color:var(--mp-text-dim);text-transform:uppercase;letter-spacing:0.1em;font-weight:600;margin-bottom:9px}
+  .mp-list .row{display:flex;align-items:center;gap:9px;padding:5px 0;font-size:11px}
+  .mp-list .row + .row{border-top:1px solid var(--mp-line);padding-top:7px;margin-top:2px}
+  .mp-list .icon{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,0.06);display:grid;place-items:center;font-size:11px;flex-shrink:0;color:#a8b3c2}
+  .mp-list .icon.sched{color:var(--choco-2)}
+  .mp-list .icon.bal{color:var(--mp-amber)}
+  .mp-list .icon.fx{color:#a78bfa}
+  .mp-list .who{flex:1;color:#cdd5e0;font-weight:500}
+  .mp-list .who .meta{color:var(--mp-text-dim);font-size:9.5px;display:block;font-weight:400;margin-top:1px}
+  .mp-list .amt{font-weight:600;font-size:11px;color:#cdd5e0}
+
+  /* cta */
+  .mp-cta{padding:10px 12px 12px;display:flex;gap:8px;position:relative;z-index:8}
+  .mp-btn{flex:1;text-align:center;padding:10px;border-radius:11px;font-size:12.5px;font-weight:600;cursor:default;transition:transform .15s ease}
+  .mp-btn.primary{background:linear-gradient(135deg,var(--choco),var(--choco-2));color:var(--cream)}
+  .mp-btn.ghost{background:transparent;border:1px solid var(--mp-line);color:#cdd5e0}
+
+  /* suggest toast */
+  .suggest-toast{
+    position:absolute;left:14px;right:14px;bottom:72px;
+    padding:9px 12px;border-radius:12px;
+    background:linear-gradient(135deg,rgba(107,66,38,0.22),rgba(217,166,121,0.08));
+    border:1px solid rgba(217,166,121,0.35);
+    display:flex;align-items:center;gap:8px;
+    font-size:10.5px;color:#f0d9b8;line-height:1.4;
+    text-align:left;z-index:9;
+    opacity:0;transform:translateY(8px);
+    transition:opacity .4s ease,transform .4s ease;
+    box-shadow:0 10px 24px rgba(0,0,0,0.4);
+  }
+  .suggest-toast.show{opacity:1;transform:translateY(0)}
+  .suggest-toast .dot{width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,var(--choco),var(--choco-2));display:grid;place-items:center;font-size:10px;color:var(--cream);font-weight:700;flex-shrink:0}
+  .suggest-toast b{color:#fff1dc;font-weight:600}
+
+  /* tap animations */
+  @keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.3);opacity:0.5}}
+  @keyframes tap{
+    0%{transform:scale(1);box-shadow:0 0 0 0 rgba(217,166,121,0)}
+    35%{transform:scale(0.93);box-shadow:0 0 0 6px rgba(217,166,121,0.4)}
+    70%{box-shadow:0 0 0 14px rgba(217,166,121,0)}
+    100%{transform:scale(1)}
+  }
+  @keyframes tap-ghost{
+    0%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,255,255,0)}
+    35%{transform:scale(0.93);box-shadow:0 0 0 6px rgba(255,255,255,0.22)}
+    70%{box-shadow:0 0 0 14px rgba(255,255,255,0)}
+    100%{transform:scale(1)}
+  }
+  .mp-btn.primary.tapping{animation:tap .55s ease}
+  .mp-btn.ghost.tapping{animation:tap-ghost .55s ease}
+
+  /* overlay */
+  .phone-overlay{
+    position:absolute;inset:auto 0 0 0;height:0;overflow:hidden;
+    background:linear-gradient(180deg,rgba(12,17,22,0.4),var(--mp-bg) 35%);
+    backdrop-filter:blur(4px);
+    transition:height .55s cubic-bezier(.6,.1,.2,1);
+    z-index:10;display:flex;flex-direction:column;padding:0;
+  }
+  .phone-overlay.show{height:calc(100% - 50px);padding:18px 14px 14px}
+  .phone-overlay .ov-card{
+    background:var(--mp-card);border:1px solid var(--mp-line);border-radius:14px;
+    padding:14px;text-align:left;
+    opacity:0;transform:translateY(10px);transition:all .4s ease;
+  }
+  .phone-overlay.show .ov-card{opacity:1;transform:translateY(0);transition-delay:.2s}
+  .ov-title{font-size:10.5px;color:var(--mp-text-dim);text-transform:uppercase;letter-spacing:0.08em;font-weight:600;margin-bottom:10px;text-align:left}
+  .ov-field{display:flex;justify-content:space-between;align-items:center;font-size:11.5px;color:var(--mp-text-dim);padding:7px 0;border-top:1px solid var(--mp-line)}
+  .ov-field:first-of-type{border-top:0;padding-top:0}
+  .ov-field b{color:#f5f5f7;font-weight:600}
+  .ov-trigger{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:7px;background:linear-gradient(135deg,rgba(107,66,38,0.25),rgba(217,166,121,0.10));border:1px solid rgba(217,166,121,0.3);color:var(--choco-2);font-size:10.5px;font-weight:600}
+
+  /* agent feed */
+  .agent-feed{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+  .agent-msg{
+    display:flex;align-items:flex-start;gap:8px;
+    padding:7px 10px;border-radius:10px;
+    background:linear-gradient(135deg,rgba(107,66,38,0.16),rgba(217,166,121,0.04));
+    border-left:2px solid rgba(217,166,121,0.5);
+    font-size:10.5px;line-height:1.4;color:#cdd5e0;text-align:left;
+    opacity:0;transform:translateY(6px);
+    transition:opacity .4s ease,transform .4s ease;
+  }
+  .agent-msg.show{opacity:1;transform:translateY(0)}
+  .agent-msg.done{background:linear-gradient(135deg,rgba(39,196,107,0.10),rgba(39,196,107,0.02));border-left-color:var(--mp-green)}
+  .agent-msg .ag{
+    width:18px;height:18px;border-radius:50%;
+    background:linear-gradient(135deg,var(--choco),var(--choco-2));
+    display:grid;place-items:center;font-size:10px;color:var(--cream);font-weight:700;
+    flex-shrink:0;margin-top:1px;
+  }
+  .agent-msg.done .ag{background:var(--mp-green);color:#04220f}
+  .agent-msg b{color:#f0d9b8;font-weight:600}
+  .agent-msg.done b{color:#cfeee2}
+
+  /* features grid */
+  .features{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:54px;max-width:1024px;margin-left:auto;margin-right:auto;padding:0 14px}
+  @media (max-width:760px){.features{grid-template-columns:1fr}}
+  .feat{background:var(--bg-soft);border-radius:22px;padding:36px 32px;text-align:left;transition:transform .25s ease;display:flex;flex-direction:column;gap:14px;min-height:240px}
+  .feat:hover{transform:translateY(-2px)}
+  .feat.streams{background:var(--choco-3);color:#f5f5f7}
+  .feat-icon{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,rgba(107,66,38,0.14),rgba(217,166,121,0.08));border:1px solid rgba(107,66,38,0.28);display:grid;place-items:center;font-size:24px}
+  .feat.streams .feat-icon{background:linear-gradient(135deg,rgba(217,166,121,0.22),rgba(245,230,211,0.10));border-color:rgba(217,166,121,0.5)}
+  .feat h3{font-size:22px;font-weight:600;letter-spacing:-0.018em;line-height:1.2}
+  .feat p{font-size:15px;line-height:1.5;color:var(--ink-soft);margin:0;font-weight:400}
+  .feat.streams p{color:#c8b8a0}
+  .feat .badge{margin-top:auto;display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:rgba(107,66,38,0.12);color:var(--choco);font-size:11px;font-weight:500;align-self:flex-start}
+  .feat.streams .badge{background:rgba(217,166,121,0.18);color:var(--choco-2)}
+  .feat .badge.soon{background:transparent;color:var(--choco);border:1px dashed rgba(107,66,38,0.4);padding:4px 12px}
+  .feat.streams .badge.soon{color:var(--cream);border-color:rgba(217,166,121,0.5)}
+  .compare-row .soon{color:var(--choco);margin-right:4px;font-weight:700}
+
+  /* rails */
+  .rails{padding:40px 0;overflow:hidden;background:var(--bg-soft)}
+  .rails-head{text-align:center;color:var(--ink-soft);font-size:13px;text-transform:uppercase;letter-spacing:0.15em;margin-bottom:24px;font-weight:500}
+  .marquee{display:flex;gap:36px;animation:scroll 30s linear infinite;width:max-content}
+  .marquee .chip{display:flex;align-items:center;gap:8px;padding:10px 18px;background:#fff;border:1px solid var(--line);border-radius:999px;font-weight:500;font-size:13.5px;color:var(--ink);white-space:nowrap}
+  .marquee .chip .dot{width:7px;height:7px;border-radius:50%}
+  .marquee .chip.stable{border-color:rgba(217,166,121,0.5)}
+  @keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+  /* compare */
+  .compare{max-width:980px;margin:48px auto 0;background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;text-align:left}
+  .compare-row{display:grid;grid-template-columns:1.4fr 1fr 1fr;padding:18px 24px;border-top:1px solid var(--line);font-size:15px;align-items:center;gap:12px}
+  .compare-row:first-child{border-top:0;background:var(--bg-soft);font-size:12px;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-soft);font-weight:600}
+  .compare-row b{color:var(--ink);font-weight:600}
+  .check{color:#0a8a4c;margin-right:4px}
+  .cross{color:#a1a1a6}
+  .col-mp{color:var(--ink-soft)}
+  .col-choco{color:var(--ink);font-weight:500}
+
+  /* timeline */
+  .timeline{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:48px;max-width:1024px;margin-left:auto;margin-right:auto;padding:0 14px}
+  @media (max-width:780px){.timeline{grid-template-columns:1fr 1fr}}
+  .ts{background:#1d1d1f;color:#f5f5f7;border-radius:18px;padding:30px 24px;text-align:left;min-height:200px;display:flex;flex-direction:column}
+  .ts .y{font-size:44px;letter-spacing:-0.035em;font-weight:600;background:linear-gradient(135deg,var(--choco-2),var(--pink));-webkit-background-clip:text;background-clip:text;color:transparent;line-height:1}
+  .ts .n{font-weight:600;margin-top:18px;font-size:17px}
+  .ts .d{color:#a1a1a6;font-size:14px;line-height:1.5;margin-top:8px}
+
+  /* checklist */
+  .checklist{max-width:880px;margin:48px auto 0;background:#fff;border:1px solid var(--line);border-radius:18px;padding:36px 40px;text-align:left}
+  .checklist h3{font-size:18px;font-weight:600;margin-bottom:18px;color:var(--ink)}
+  .checklist ul{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:1fr 1fr;gap:8px 28px;font-size:14px;line-height:1.55;color:var(--ink-soft)}
+  @media (max-width:680px){.checklist ul{grid-template-columns:1fr}}
+  .checklist li{position:relative;padding-left:22px}
+  .checklist li::before{content:"✓";position:absolute;left:0;color:#0a8a4c;font-weight:700}
+
+  /* final */
+  .final{padding:120px 0;text-align:center;background:#000;color:#f5f5f7}
+  .final h2{font-size:clamp(40px,6vw,72px);letter-spacing:-0.035em;line-height:1.05;font-weight:600}
+  .final h2 .light{font-weight:300}
+  .final p{color:#a1a1a6;font-size:19px;max-width:560px;margin:18px auto 24px;line-height:1.45}
+  .final .actions a{color:#2997ff;font-size:19px}
+
+  /* footer */
+  footer{background:var(--bg-soft);color:var(--ink-soft);font-size:12px;padding:32px 0;border-top:1px solid var(--line)}
+  footer .wrap-wide{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:18px;line-height:1.6}
+  footer a{color:var(--ink);text-decoration:underline}
+  footer .legal{max-width:560px;font-size:11px;line-height:1.55}
+  footer .sibling{font-size:11px;color:var(--ink-soft);margin-top:6px}
+  footer .sibling b{color:var(--choco)}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="row">
+    <div class="brand"><span class="glyph">🍫</span><span>Choco</span><span class="for"> para </span><span class="mp">MiniPay</span></div>
+    <div class="nav-links">
+      <a href="#features" data-i18n="nav.feat">Disparadores</a>
+      <a href="#why" data-i18n="nav.why">Por qué Choco</a>
+      <a href="#story" data-i18n="nav.story">Historia</a>
+      <a href="#submit" data-i18n="nav.submit">Listar</a>
+    </div>
+    <div class="lang">
+      <button id="lang-en" onclick="setLang('en')">EN</button>
+      <button id="lang-es" class="active" onclick="setLang('es')">ES</button>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero" style="padding-top:64px;padding-bottom:0">
+  <div class="badge-pill"><span class="dot"></span><span data-i18n="hero.pill">Onchain Agents Hackathon · Construido en Celo</span></div>
+  <h1 class="display"><span data-i18n="hero.h1">Choco.</span></h1>
+  <p class="hero-tag" data-i18n="hero.tag">El agente que envía remesas sin que pienses.</p>
+  <p class="sub" data-i18n="hero.sub">Programa un envío, define una condición, y olvídate. Choco vigila el calendario, el saldo de tu familia y el peso colombiano — y dispara la transferencia en USDm cuando toca.</p>
+  <div class="actions hero-actions">
+    <a href="#features"><span data-i18n="hero.cta1">Ver los 3 disparadores</span> <span class="arr">›</span></a>
+    <a href="#submit"><span data-i18n="hero.cta2">Listar en MiniPay</span> <span class="arr">›</span></a>
+  </div>
+
+  <!-- HERO PHONE -->
+  <div class="hero-phone">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="mp-status"><span>9:41</span><span>● ● ● 100%</span></div>
+        <div class="mp-top">
+          <div class="mp-back">‹</div>
+          <div class="mp-title"><span class="logo">🍫</span><span>Choco</span></div>
+        </div>
+        <div class="mp-by"><span data-i18n="phone.by">por</span> <b>Choco Labs</b> · <span data-i18n="phone.celo">en Celo</span></div>
+
+        <div class="mp-body">
+          <!-- Plan activo card -->
+          <div class="mp-plan">
+            <div class="mp-plan-label"><span class="pulse"></span><span data-i18n="phone.plan.label">Plan activo</span></div>
+            <div class="mp-plan-who" data-i18n="phone.plan.who">Para Mamá</div>
+            <div class="mp-plan-amt">$50.00<span class="ccy">USDm</span></div>
+            <div class="mp-plan-rule" data-i18n="phone.plan.rule">cada lunes · 9:00 AM</div>
+            <div class="mp-plan-next" data-i18n="phone.plan.next">próximo envío en 2 días</div>
+          </div>
+
+          <!-- Plan historial -->
+          <div class="mp-list">
+            <div class="title" data-i18n="phone.list.title">Disparadores activos</div>
+            <div class="row">
+              <div class="icon sched">🗓</div>
+              <div class="who"><span data-i18n="phone.list.r1.who">Mamá</span><span class="meta" data-i18n="phone.list.r1.meta">cada lunes · ejecutado 7 veces</span></div>
+              <div class="amt">$50</div>
+            </div>
+            <div class="row">
+              <div class="icon bal">↘</div>
+              <div class="who"><span data-i18n="phone.list.r2.who">Hermana</span><span class="meta" data-i18n="phone.list.r2.meta">si saldo &lt; $20 · vigilando</span></div>
+              <div class="amt">$30</div>
+            </div>
+            <div class="row">
+              <div class="icon fx">💱</div>
+              <div class="who"><span data-i18n="phone.list.r3.who">Tía</span><span class="meta" data-i18n="phone.list.r3.meta">si COP &gt; 4 500 · vigilando</span></div>
+              <div class="amt">$25</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Suggest toast (auto-appears) -->
+        <div class="suggest-toast" id="suggest-toast">
+          <span class="dot">🍫</span>
+          <span><b data-i18n="suggest.name">Choco</b> · <span data-i18n="suggest.text">3 planes activos · próximo envío lunes 9 AM</span></span>
+        </div>
+
+        <div class="mp-cta">
+          <div class="mp-btn primary" id="hero-btn-new" data-i18n="phone.btn1">Nuevo plan</div>
+          <div class="mp-btn ghost" id="hero-btn-list" data-i18n="phone.btn2">Ver planes</div>
+        </div>
+
+        <!-- NEW PLAN overlay -->
+        <div class="phone-overlay" id="overlay-new">
+          <div class="ov-card">
+            <div class="ov-title" data-i18n="ov.new.t">Nuevo plan</div>
+            <div class="ov-field"><span data-i18n="ov.new.f1">Para</span><b>+57 318 ••• 47 12</b></div>
+            <div class="ov-field"><span data-i18n="ov.new.f2">Monto</span><b>$50.00 USDm</b></div>
+            <div class="ov-field"><span data-i18n="ov.new.f3">Disparador</span><span class="ov-trigger">🗓 <span data-i18n="ov.new.trig">Cada lunes 9 AM</span></span></div>
+          </div>
+          <div class="agent-feed">
+            <div class="agent-msg" id="onc-1"><span class="ag">🍫</span><span><b data-i18n="onc.1.name">Choco</b> · <span data-i18n="onc.1">creando plan para Mamá</span></span></div>
+            <div class="agent-msg" id="onc-2"><span class="ag">🍫</span><span><b data-i18n="onc.2.name">Choco</b> · <span data-i18n="onc.2">50 USDm en custodia · sin gas para ti</span></span></div>
+            <div class="agent-msg" id="onc-3"><span class="ag">🍫</span><span><b data-i18n="onc.3.name">Choco</b> · <span data-i18n="onc.3">vigilando · próximo en 2 días</span></span></div>
+            <div class="agent-msg done" id="onc-4"><span class="ag">✓</span><span><b data-i18n="onc.4.name">Plan activo</b> · <span data-i18n="onc.4">agente onchain vigilando 24/7</span></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="padding-bottom:96px"></div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="eyebrow" data-i18n="feat.eyebrow">Tres disparadores. Un agente.</div>
+  <h2 class="head"><span data-i18n="feat.h2a">Programa una vez.</span><br/><span class="light" data-i18n="feat.h2b">El agente decide cuándo enviar.</span></h2>
+  <p class="sub" data-i18n="feat.sub">Choco no interpreta intención — Choco ejecuta condiciones. Tres formas de decirle "envía cuando…" y el contrato hace lo demás, sin que abras la app.</p>
+
+  <div class="features">
+    <div class="feat">
+      <div class="feat-icon">🗓</div>
+      <h3 data-i18n="feat.1.h">Calendario</h3>
+      <p data-i18n="feat.1.p">"Cada lunes $50 a Mamá." El agente dispara la transferencia el día y la hora exactos. Recurrente, semanal o mensual — un cron onchain.</p>
+      <span class="badge" data-i18n="feat.1.b">Disparador SCHEDULE</span>
+    </div>
+
+    <div class="feat">
+      <div class="feat-icon">↘</div>
+      <h3 data-i18n="feat.2.h">Saldo bajo</h3>
+      <p data-i18n="feat.2.p">"Si el saldo de mi hermana cae bajo $20, recárgale $30." El agente lee la billetera de la destinataria en cada bloque y recarga cuando hace falta.</p>
+      <span class="badge" data-i18n="feat.2.b">Disparador TOP_UP</span>
+    </div>
+
+    <div class="feat">
+      <div class="feat-icon">💱</div>
+      <h3 data-i18n="feat.3.h">Peso débil</h3>
+      <p data-i18n="feat.3.p">"Envía cuando el peso colombiano se debilite a 4 500." El agente lee el oráculo Mento de COPm/USDm y envía USDm en el momento óptimo para cuando se convierta a pesos.</p>
+      <span class="badge" data-i18n="feat.3.b">Disparador FX_TARGET</span>
+    </div>
+
+    <div class="feat streams">
+      <div class="feat-icon">🌊</div>
+      <h3 data-i18n="feat.4.h">Choco Streams · en roadmap</h3>
+      <p data-i18n="feat.4.p">Próxima fase. Un solo plan que divide automáticamente entre varios destinatarios — útil para nóminas distribuidas, cuotas escolares de varios hijos, o rondas comunitarias. Mismos rieles que Choco usa hoy.</p>
+      <span class="badge soon" data-i18n="feat.4.b">Próxima fase · 2026 Q3</span>
+    </div>
+  </div>
+</section>
+
+<!-- RAILS -->
+<div class="rails">
+  <div class="rails-head" data-i18n="rails.head">USDm de entrada y salida. Inteligencia desde Mento. Custodia tuya.</div>
+  <div class="marquee">
+    <div class="chip stable"><span class="dot" style="background:var(--choco)"></span>USDm · Mento Dollar</div>
+    <div class="chip stable"><span class="dot" style="background:var(--choco-2)"></span>USDC · Celo</div>
+    <div class="chip stable"><span class="dot" style="background:var(--choco)"></span>USDT · Celo</div>
+    <div class="chip"><span class="dot" style="background:#a78bfa"></span><span data-i18n="rails.c1">Oráculo Mento COPm/USDm</span></div>
+    <div class="chip"><span class="dot" style="background:var(--mp-green)"></span><span data-i18n="rails.c2">Comisión pagada en stablecoins</span></div>
+    <div class="chip"><span class="dot" style="background:var(--mp-accent)"></span><span data-i18n="rails.c3">Identidad por teléfono</span></div>
+    <div class="chip stable"><span class="dot" style="background:var(--choco)"></span>USDm · Mento Dollar</div>
+    <div class="chip stable"><span class="dot" style="background:var(--choco-2)"></span>USDC · Celo</div>
+    <div class="chip stable"><span class="dot" style="background:var(--choco)"></span>USDT · Celo</div>
+    <div class="chip"><span class="dot" style="background:#a78bfa"></span><span data-i18n="rails.c1b">Oráculo Mento COPm/USDm</span></div>
+    <div class="chip"><span class="dot" style="background:var(--mp-green)"></span><span data-i18n="rails.c2b">Comisión pagada en stablecoins</span></div>
+    <div class="chip"><span class="dot" style="background:var(--mp-accent)"></span><span data-i18n="rails.c3b">Identidad por teléfono</span></div>
+  </div>
+</div>
+
+<!-- COMPARE -->
+<section id="why">
+  <div class="eyebrow" data-i18n="cmp.eyebrow">Por qué Choco en MiniPay</div>
+  <h2 class="head"><span data-i18n="cmp.h2a">MiniPay envía cuando le dices.</span><br/><span class="light" data-i18n="cmp.h2b">Choco envía cuando deja de tener sentido pensarlo.</span></h2>
+  <p class="sub" data-i18n="cmp.sub">MiniPay ya es la mejor billetera de stablecoins del Sur Global. Choco le agrega la capa que falta: ejecución autónoma basada en condiciones del mundo real.</p>
+  <div class="compare">
+    <div class="compare-row"><div data-i18n="cmp.col0">Capacidad</div><div class="col-mp" data-i18n="cmp.col1">MiniPay solo</div><div class="col-choco" data-i18n="cmp.col2">MiniPay + Choco</div></div>
+    <div class="compare-row"><div><b data-i18n="cmp.r1">Envío manual de stablecoins</b></div><div class="col-mp"><span class="check">✓</span> <span data-i18n="cmp.yes">sí</span></div><div class="col-choco"><span class="check">✓</span> <span data-i18n="cmp.inh">sí — heredado</span></div></div>
+    <div class="compare-row"><div><b data-i18n="cmp.r2">USDm · USDC · USDT en Celo</b></div><div class="col-mp"><span class="check">✓</span> <span data-i18n="cmp.yes2">sí</span></div><div class="col-choco"><span class="check">✓</span> <span data-i18n="cmp.inh2">sí — heredado</span></div></div>
+    <div class="compare-row"><div><b data-i18n="cmp.r3">Comisión en stablecoins (CIP-64)</b></div><div class="col-mp"><span class="check">✓</span> <span data-i18n="cmp.yes3">sí</span></div><div class="col-choco"><span class="check">✓</span> <span data-i18n="cmp.inh3">sí — heredado</span></div></div>
+    <div class="compare-row"><div><b data-i18n="cmp.r4">Envíos programados (cron onchain)</b></div><div class="col-mp"><span class="cross" data-i18n="cmp.no">— no</span></div><div class="col-choco"><span class="check">✓</span> <span data-i18n="cmp.auto1">SCHEDULE</span></div></div>
+    <div class="compare-row"><div><b data-i18n="cmp.r5">Top-up por saldo bajo del destinatario</b></div><div class="col-mp"><span class="cross" data-i18n="cmp.no2">— no</span></div><div class="col-choco"><span class="check">✓</span> <span data-i18n="cmp.auto2">TOP_UP</span></div></div>
+    <div class="compare-row"><div><b data-i18n="cmp.r6">Disparador por tasa Mento (FX inteligente)</b></div><div class="col-mp"><span class="cross" data-i18n="cmp.no3">— no</span></div><div class="col-choco"><span class="check">✓</span> <span data-i18n="cmp.auto3">FX_TARGET</span></div></div>
+    <div class="compare-row"><div><b data-i18n="cmp.r7">Multi-destinatario en un plan</b></div><div class="col-mp"><span class="cross" data-i18n="cmp.oos">— fuera de alcance</span></div><div class="col-choco"><span class="soon">→</span> <span data-i18n="cmp.streams">Choco Streams · próxima fase</span></div></div>
+    <div class="compare-row"><div><b data-i18n="cmp.r8">No-custodial · fondos siempre tuyos</b></div><div class="col-mp"><span class="check">✓</span> <span data-i18n="cmp.yes4">sí</span></div><div class="col-choco"><span class="check">✓</span> <span data-i18n="cmp.nc">sí — Choco nunca tiene las llaves; retiras tu escrow cuando quieras</span></div></div>
+  </div>
+</section>
+
+<!-- TIMELINE -->
+<section class="dark" id="story">
+  <div class="eyebrow" data-i18n="line.eyebrow">La historia de los pagos onchain</div>
+  <h2 class="head"><span data-i18n="line.h2a">2022. 2024. </span><span class="light" data-i18n="line.h2b">2026.</span></h2>
+  <p class="sub" data-i18n="line.sub">Cada año el stack se vuelve más invisible. MiniPay desapareció las direcciones hex. Choco desaparece el envío.</p>
+  <div class="timeline">
+    <div class="ts"><div class="y">2022</div><div class="n" data-i18n="line.t1.n">MiniPay nace</div><div class="d" data-i18n="line.t1.d">Opera + Celo · billetera stablecoin con identidad por teléfono dentro del navegador Opera Mini.</div></div>
+    <div class="ts"><div class="y">2024</div><div class="n" data-i18n="line.t2.n">App independiente</div><div class="d" data-i18n="line.t2.d">Lanzamiento standalone para Android e iOS. 14M+ usuarios. Stablecoins locales: cKES, cNGN, cCOP.</div></div>
+    <div class="ts"><div class="y">2025</div><div class="n" data-i18n="line.t3.n">Mini Apps abren</div><div class="d" data-i18n="line.t3.d">Catálogo de descubrimiento dentro de la billetera. Builders externos alcanzan 60+ países sin fricción.</div></div>
+    <div class="ts"><div class="y">2026</div><div class="n" data-i18n="line.t4.n">Choco</div><div class="d" data-i18n="line.t4.d">Un agente onchain ejecuta planes de pago bajo condiciones. La remesa deja de ser una decisión semanal.</div></div>
+  </div>
+</section>
+
+<!-- CHECKLIST -->
+<section class="soft" id="checklist">
+  <div class="eyebrow" data-i18n="ck.eyebrow">Construido al spec de MiniPay</div>
+  <h2 class="head"><span data-i18n="ck.h2">El checklist de submission, satisfecho por defecto.</span></h2>
+  <p class="sub" data-i18n="ck.sub">Choco sigue los 8 puntos del spec oficial "Build for MiniPay: Developer Requirements" al pie de la letra. Sin sorpresas en revisión.</p>
+  <div class="checklist">
+    <h3 data-i18n="ck.h3">Lo que Choco trae de fábrica</h3>
+    <ul>
+      <li data-i18n="ck.l1">Conexión sin clic (sin botón Conectar)</li>
+      <li data-i18n="ck.l2">Sin <code>personal_sign</code> ni typed-data</li>
+      <li data-i18n="ck.l3">Teléfonos mostrados, nunca direcciones 0x</li>
+      <li data-i18n="ck.l4">USDm · USDC · USDT solamente — CELO oculto</li>
+      <li data-i18n="ck.l5">Copy: "Comisión de red", "Depositar", "Retirar"</li>
+      <li data-i18n="ck.l6">Elige el stablecoin de mayor saldo</li>
+      <li data-i18n="ck.l7">Probado a 360 × 640</li>
+      <li data-i18n="ck.l8">Solo SVG / WebP</li>
+      <li data-i18n="ck.l9">Contratos verificados en Celoscan</li>
+      <li data-i18n="ck.l10">Deeplink Depositar en saldo bajo</li>
+      <li data-i18n="ck.l11">Soporte en-app · SLA 24h en bugs críticos</li>
+      <li data-i18n="ck.l12">Términos + Privacidad enlazados</li>
+      <li data-i18n="ck.l13">Página /stats con métricas onchain</li>
+      <li data-i18n="ck.l14">Agente de soporte en Telegram</li>
+    </ul>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="final" id="submit">
+  <h2><span data-i18n="final.h2a">Lista Choco.</span><br/><span class="light" data-i18n="final.h2b">En el catálogo de MiniPay.</span></h2>
+  <p data-i18n="final.p">Demo de 10 minutos. Vemos los tres disparadores ejecutándose en vivo en Celo Sepolia, presentamos Choco Streams en roadmap, y revisamos el checklist de submission punto por punto.</p>
+  <div class="actions">
+    <a href="https://celopedia.celo.org/" target="_blank"><span data-i18n="final.cta1">Submission via Celopedia</span> <span class="arr">›</span></a>
+    <a href="https://minipay.to/mini-apps" target="_blank"><span data-i18n="final.cta2">Formulario MiniPay</span> <span class="arr">›</span></a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap-wide">
+    <div class="legal" data-i18n="footer.l">Choco es una Mini App no-custodial para <a href="https://minipay.to" target="_blank">MiniPay</a>, construida en <a href="https://celo.org" target="_blank">Celo</a>. MiniPay maneja la custodia del usuario; Choco orquesta la capa de ejecución agéntica vía contratos verificados. Los fondos viven en escrow controlado por el usuario — Choco nunca tiene las llaves. Considera el riesgo cambiario antes de programar disparadores FX.</div>
+    <div>
+      <div><b style="color:var(--ink)">Choco Labs</b></div>
+      <div data-i18n="footer.r">Distribución vía MiniPay · Construido en Celo · oráculos por Mento</div>
+      <div class="sibling" data-i18n="footer.sib">Hermano de <b>🥭 Mango</b> — mismos rieles, distinto verbo.</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+// i18n strings (ES default, EN translation)
+const I18N = {
+  es: {}, // ES is default in HTML, no override needed
+  en: {
+    "nav.feat":"Triggers", "nav.why":"Why Choco", "nav.story":"Story", "nav.submit":"Submit",
+    "hero.pill":"Onchain Agents Hackathon · Built on Celo",
+    "hero.h1":"Choco.",
+    "hero.tag":"The agent that sends remittances so you don't have to think.",
+    "hero.sub":"Schedule one transfer, set a condition, and forget. Choco watches the calendar, your family's balance, and the Colombian peso — then fires the USDm transfer when it should.",
+    "hero.cta1":"See the 3 triggers", "hero.cta2":"List on MiniPay",
+    "phone.by":"by", "phone.celo":"on Celo",
+    "phone.plan.label":"Active plan",
+    "phone.plan.who":"For Mom",
+    "phone.plan.rule":"every Monday · 9:00 AM",
+    "phone.plan.next":"next transfer in 2 days",
+    "phone.list.title":"Active triggers",
+    "phone.list.r1.who":"Mom",
+    "phone.list.r1.meta":"every Monday · fired 7 times",
+    "phone.list.r2.who":"Sister",
+    "phone.list.r2.meta":"if balance < $20 · watching",
+    "phone.list.r3.who":"Aunt",
+    "phone.list.r3.meta":"if COP > 4,500 · watching",
+    "suggest.name":"Choco",
+    "suggest.text":"3 active plans · next transfer Monday 9 AM",
+    "phone.btn1":"New plan", "phone.btn2":"View plans",
+    "ov.new.t":"New plan",
+    "ov.new.f1":"To", "ov.new.f2":"Amount", "ov.new.f3":"Trigger",
+    "ov.new.trig":"Every Monday 9 AM",
+    "onc.1.name":"Choco", "onc.1":"creating plan for Mom",
+    "onc.2.name":"Choco", "onc.2":"50 USDm in escrow · no gas for you",
+    "onc.3.name":"Choco", "onc.3":"watching · next in 2 days",
+    "onc.4.name":"Plan active", "onc.4":"onchain agent watching 24/7",
+    "feat.eyebrow":"Three triggers. One agent.",
+    "feat.h2a":"Program it once.", "feat.h2b":"The agent decides when to send.",
+    "feat.sub":"Choco doesn't interpret intent — Choco executes conditions. Three ways to say \"send when…\" and the contract does the rest, without you opening the app.",
+    "feat.1.h":"Calendar",
+    "feat.1.p":"\"Every Monday $50 to Mom.\" The agent fires the transfer on the exact day and time. Recurring, weekly or monthly — an onchain cron.",
+    "feat.1.b":"SCHEDULE trigger",
+    "feat.2.h":"Low balance",
+    "feat.2.p":"\"If my sister's balance falls below $20, top her up $30.\" The agent reads the recipient's wallet each block and refills when needed.",
+    "feat.2.b":"TOP_UP trigger",
+    "feat.3.h":"Weak peso",
+    "feat.3.p":"\"Send when the Colombian peso weakens to 4,500.\" The agent reads the Mento COPm/USDm oracle and sends USDm at the optimal moment for local conversion.",
+    "feat.3.b":"FX_TARGET trigger",
+    "feat.4.h":"Choco Streams · roadmap",
+    "feat.4.p":"Next phase. One plan that auto-splits across multiple recipients — useful for distributed payroll, school fees for several kids, or community pools. Same rails Choco uses today.",
+    "feat.4.b":"Next phase · 2026 Q3",
+    "rails.head":"USDm in and out. Intelligence from Mento. Custody stays yours.",
+    "rails.c1":"Mento COPm/USDm oracle", "rails.c2":"Network fee paid in stablecoins", "rails.c3":"Identity by phone",
+    "rails.c1b":"Mento COPm/USDm oracle", "rails.c2b":"Network fee paid in stablecoins", "rails.c3b":"Identity by phone",
+    "cmp.eyebrow":"Why Choco on MiniPay",
+    "cmp.h2a":"MiniPay sends when you tell it to.", "cmp.h2b":"Choco sends when thinking about it stops making sense.",
+    "cmp.sub":"MiniPay is already the best stablecoin wallet in the Global South. Choco adds the layer it's missing: autonomous execution based on real-world conditions.",
+    "cmp.col0":"Capability", "cmp.col1":"MiniPay alone", "cmp.col2":"MiniPay + Choco",
+    "cmp.r1":"Manual stablecoin transfers", "cmp.r2":"USDm · USDC · USDT on Celo", "cmp.r3":"Network fee in stablecoins (CIP-64)",
+    "cmp.r4":"Scheduled transfers (onchain cron)", "cmp.r5":"Top-up on recipient low balance", "cmp.r6":"Mento rate trigger (smart FX)",
+    "cmp.r7":"Multi-recipient in one plan", "cmp.r8":"Non-custodial · funds stay yours",
+    "cmp.yes":"yes", "cmp.inh":"yes — inherited", "cmp.yes2":"yes", "cmp.inh2":"yes — inherited", "cmp.yes3":"yes", "cmp.inh3":"yes — inherited",
+    "cmp.no":"— no", "cmp.auto1":"SCHEDULE", "cmp.no2":"— no", "cmp.auto2":"TOP_UP", "cmp.no3":"— no", "cmp.auto3":"FX_TARGET",
+    "cmp.oos":"— out of scope", "cmp.streams":"Choco Streams · next phase",
+    "cmp.yes4":"yes", "cmp.nc":"yes — Choco never holds keys; withdraw your escrow anytime",
+    "line.eyebrow":"The story of onchain payments",
+    "line.h2a":"2022. 2024. ", "line.h2b":"2026.",
+    "line.sub":"Each year the stack gets more invisible. MiniPay erased hex addresses. Choco erases the act of sending.",
+    "line.t1.n":"MiniPay is born", "line.t1.d":"Opera + Celo · phone-identity stablecoin wallet inside the Opera Mini browser.",
+    "line.t2.n":"Standalone app", "line.t2.d":"Standalone Android and iOS launch. 14M+ users. Local stablecoins: cKES, cNGN, cCOP.",
+    "line.t3.n":"Mini Apps open", "line.t3.d":"Discovery catalog inside the wallet. External builders reach 60+ countries with zero friction.",
+    "line.t4.n":"Choco", "line.t4.d":"An onchain agent executes payment plans under conditions. Remittance stops being a weekly decision.",
+    "ck.eyebrow":"Built to the MiniPay spec",
+    "ck.h2":"The submission checklist, met by default.",
+    "ck.sub":"Choco follows the 8 sections of the official \"Build for MiniPay: Developer Requirements\" spec to the letter. No surprises at review.",
+    "ck.h3":"What Choco ships with",
+    "ck.l1":"Zero-click connect (no Connect button)", "ck.l2":"No <code>personal_sign</code> / typed-data",
+    "ck.l3":"Phones shown, never 0x addresses", "ck.l4":"USDm · USDC · USDT only — CELO hidden",
+    "ck.l5":"Copy: \"Network fee\", \"Deposit\", \"Withdraw\"", "ck.l6":"Picks highest-balance stablecoin",
+    "ck.l7":"Tested at 360 × 640", "ck.l8":"SVG / WebP only",
+    "ck.l9":"Contracts verified on Celoscan", "ck.l10":"Deposit deeplink on low balance",
+    "ck.l11":"In-app support · 24h critical SLA", "ck.l12":"ToS + Privacy linked",
+    "ck.l13":"/stats page with onchain metrics", "ck.l14":"Telegram AI support agent",
+    "final.h2a":"List Choco.", "final.h2b":"In the MiniPay catalog.",
+    "final.p":"10-minute demo. We watch the three triggers fire live on Celo Sepolia, present Choco Streams on the roadmap, and walk through the submission checklist line by line.",
+    "final.cta1":"Submission via Celopedia", "final.cta2":"MiniPay form",
+    "footer.l":"Choco is a non-custodial Mini App for <a href=\"https://minipay.to\" target=\"_blank\">MiniPay</a>, built on <a href=\"https://celo.org\" target=\"_blank\">Celo</a>. MiniPay handles user custody; Choco orchestrates the agentic execution layer via verified contracts. Funds live in user-controlled escrow — Choco never holds the keys. Consider FX risk before scheduling FX triggers.",
+    "footer.r":"Distribution via MiniPay · Built on Celo · oracles by Mento",
+    "footer.sib":"Sibling of <b>🥭 Mango</b> — same rails, different verb."
+  }
+};
+
+function setLang(lang){
+  document.querySelectorAll('.lang button').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('lang-' + lang);
+  if(btn) btn.classList.add('active');
+  document.documentElement.lang = lang;
+  const dict = I18N[lang];
+  if(!dict || Object.keys(dict).length === 0){
+    // ES is default; reload to restore
+    if(lang === 'es') location.reload();
+    return;
+  }
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if(dict[key] !== undefined) el.innerHTML = dict[key];
+  });
+}
+
+// Self-running phone demo loop
+(function demoLoop(){
+  const toast = document.getElementById('suggest-toast');
+  const btn = document.getElementById('hero-btn-new');
+  const overlay = document.getElementById('overlay-new');
+  const msgs = ['onc-1','onc-2','onc-3','onc-4'].map(id => document.getElementById(id));
+
+  function reset(){
+    toast.classList.remove('show');
+    btn.classList.remove('tapping');
+    overlay.classList.remove('show');
+    msgs.forEach(m => m.classList.remove('show'));
+  }
+
+  function cycle(){
+    reset();
+    // 1. Show suggest toast at 1.5s
+    setTimeout(() => toast.classList.add('show'), 1500);
+    // 2. Tap "New plan" button at 4s
+    setTimeout(() => btn.classList.add('tapping'), 4000);
+    // 3. Open overlay at 4.4s
+    setTimeout(() => overlay.classList.add('show'), 4400);
+    // 4. Stream agent messages
+    msgs.forEach((m, i) => {
+      setTimeout(() => m.classList.add('show'), 5200 + i * 700);
+    });
+    // 5. Restart cycle at 14s
+    setTimeout(cycle, 14000);
+  }
+
+  // Start after a brief delay
+  setTimeout(cycle, 800);
+})();
+</script>
+
+</body>
+</html>
