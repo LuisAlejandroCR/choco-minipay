@@ -1,0 +1,27 @@
+{
+  "name": "choco-minipay",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LuisAlejandroCR/choco-minipay.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/LuisAlejandroCR/choco-minipay/issues"
+  },
+  "homepage": "https://github.com/LuisAlejandroCR/choco-minipay#readme",
+  "dependencies": {
+    "viem": "^2.52.2"
+  },
+  "devDependencies": {
+    "tsx": "^4.22.4"
+  }
+}

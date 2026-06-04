@@ -112,14 +112,14 @@ async function main() {
 
   // ─── Phase 1: build the registration file (chainId always correct for this network) ───
   const agentJson = {
-    type: "Agent",
+    type: "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
     name: "Choco",
     description:
-      'Remittance concierge agent on Celo. A diaspora user says "send my mum 50k KES on the 1st of every month" in the wallet chat; Choco escrows USDC, swaps to cKES via Mento, off-ramps to M-Pesa via a local partner, retries on failure, notifies the recipient, and files an on-chain receipt. Three trigger types: schedule, low-balance top-up, and FX target.",
+      'Conversational remittance concierge for diaspora users. Choco schedules USDC to KESm family transfers on Celo, retries failures, notifies recipients, and files onchain receipts.',
     image: `${appUrl}/icon.png`,
-    endpoints: [
-      { type: "wallet", address: account.address, chainId: chain.id },
-      { type: "https", url: appUrl },
+    services: [
+      { name: "web", endpoint: appUrl, version: "1.0" },
+      { name: "wallet", endpoint: `eip155:${chain.id}:${account.address}` },
     ],
     supportedTrust: ["reputation"],
   };
