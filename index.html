@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Choco · El agente que envía remesas sin que pienses.</title>
-<meta name="description" content="Choco es un agente onchain en MiniPay que envía USDm a tu familia cuando se cumple una condición — un horario, un saldo bajo, un tipo de cambio favorable. Construido en Celo." />
+<title>Choco · Remittance concierge on Celo.</title>
+<meta name="description" content="Choco is a conversational remittance concierge that schedules USDC to KESm family transfers on Celo with retries, recipient notifications, and onchain receipts." />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -46,10 +46,6 @@
   .nav-links a{opacity:0.85;transition:opacity .15s}
   .nav-links a:hover{opacity:1}
   @media (max-width:760px){.nav-links{display:none}}
-  .lang{display:inline-flex;font-size:11px;font-weight:500;letter-spacing:0.04em}
-  .lang button{background:transparent;border:0;color:#a1a1a6;padding:4px 8px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:500}
-  .lang button.active{color:#fff;background:rgba(255,255,255,0.12)}
-
   /* sections */
   section{padding:96px 0;text-align:center}
   section.dark{background:var(--bg-dark);color:#f5f5f7}
@@ -89,6 +85,9 @@
   .mp-by{font-size:9.5px;color:var(--mp-text-dim);padding:8px 14px 2px;text-align:center}
   .mp-by b{color:#cdd5e0;font-weight:600}
   .mp-body{flex:1;padding:10px 12px;overflow:hidden;display:flex;flex-direction:column;gap:9px;position:relative}
+  .chat-card{background:rgba(255,255,255,0.055);border:1px solid var(--mp-line);border-radius:14px;padding:10px 12px;text-align:left}
+  .chat-card .label{font-size:9.5px;color:var(--mp-text-dim);text-transform:uppercase;letter-spacing:0.1em;font-weight:600;margin-bottom:6px}
+  .chat-card .bubble{font-size:11.5px;line-height:1.35;color:#f5f5f7;background:linear-gradient(135deg,rgba(107,66,38,0.24),rgba(217,166,121,0.08));border:1px solid rgba(217,166,121,0.20);border-radius:12px;padding:8px 10px}
 
   /* plan-active card (Choco-specific) */
   .mp-plan{background:linear-gradient(135deg,rgba(107,66,38,0.14),rgba(217,166,121,0.04));border:1px solid rgba(217,166,121,0.22);border-radius:14px;padding:11px 13px;text-align:left}
@@ -203,6 +202,7 @@
   .feat{background:var(--bg-soft);border-radius:22px;padding:36px 32px;text-align:left;transition:transform .25s ease;display:flex;flex-direction:column;gap:14px;min-height:240px}
   .feat:hover{transform:translateY(-2px)}
   .feat.streams{background:var(--choco-3);color:#f5f5f7}
+  .feat.future{grid-column:1 / -1;min-height:210px}
   .feat-icon{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,rgba(107,66,38,0.14),rgba(217,166,121,0.08));border:1px solid rgba(107,66,38,0.28);display:grid;place-items:center;font-size:24px}
   .feat.streams .feat-icon{background:linear-gradient(135deg,rgba(217,166,121,0.22),rgba(245,230,211,0.10));border-color:rgba(217,166,121,0.5)}
   .feat h3{font-size:22px;font-weight:600;letter-spacing:-0.018em;line-height:1.2}
@@ -270,29 +270,25 @@
 <!-- NAV -->
 <nav>
   <div class="row">
-    <div class="brand"><span class="glyph">🍫</span><span>Choco</span><span class="for"> para </span><span class="mp">MiniPay</span></div>
+    <div class="brand"><span class="glyph">🍫</span><span>Choco</span><span class="for"> for </span><span class="mp">MiniPay</span></div>
     <div class="nav-links">
-      <a href="#features" data-i18n="nav.feat">Disparadores</a>
-      <a href="#why" data-i18n="nav.why">Por qué Choco</a>
-      <a href="#story" data-i18n="nav.story">Historia</a>
-      <a href="#submit" data-i18n="nav.submit">Listar</a>
-    </div>
-    <div class="lang">
-      <button id="lang-en" onclick="setLang('en')">EN</button>
-      <button id="lang-es" class="active" onclick="setLang('es')">ES</button>
+      <a href="#features" data-i18n="nav.feat">Flow</a>
+      <a href="#why" data-i18n="nav.why">Why</a>
+      <a href="#story" data-i18n="nav.story">Demo</a>
+      <a href="#submit" data-i18n="nav.submit">Registry</a>
     </div>
   </div>
 </nav>
 
 <!-- HERO -->
 <section class="hero" style="padding-top:64px;padding-bottom:0">
-  <div class="badge-pill"><span class="dot"></span><span data-i18n="hero.pill">Onchain Agents Hackathon · Construido en Celo</span></div>
+  <div class="badge-pill"><span class="dot"></span><span data-i18n="hero.pill">Onchain Agents Hackathon · Built on Celo</span></div>
   <h1 class="display"><span data-i18n="hero.h1">Choco.</span></h1>
-  <p class="hero-tag" data-i18n="hero.tag">El agente que envía remesas sin que pienses.</p>
-  <p class="sub" data-i18n="hero.sub">Programa un envío, define una condición, y olvídate. Choco vigila el calendario, el saldo de tu familia y el peso colombiano — y dispara la transferencia en USDm cuando toca.</p>
+  <p class="hero-tag" data-i18n="hero.tag">The remittance concierge living inside Mini Apps.</p>
+  <p class="sub" data-i18n="hero.sub">Send a text or voice message like "send my mum 50k KES every 1st." Choco converts USDC to KESm on Celo, schedules the transfer, retries failures, and stores an onchain receipt.</p>
   <div class="actions hero-actions">
-    <a href="#features"><span data-i18n="hero.cta1">Ver los 3 disparadores</span> <span class="arr">›</span></a>
-    <a href="#submit"><span data-i18n="hero.cta2">Listar en MiniPay</span> <span class="arr">›</span></a>
+    <a href="#features"><span data-i18n="hero.cta1">See the flow</span> <span class="arr">›</span></a>
+    <a href="#submit"><span data-i18n="hero.cta2">View registry</span> <span class="arr">›</span></a>
   </div>
 
   <!-- HERO PHONE -->
@@ -305,35 +301,40 @@
           <div class="mp-back">‹</div>
           <div class="mp-title"><span class="logo">🍫</span><span>Choco</span></div>
         </div>
-        <div class="mp-by"><span data-i18n="phone.by">por</span> <b>Choco Labs</b> · <span data-i18n="phone.celo">en Celo</span></div>
+        <div class="mp-by"><span data-i18n="phone.by">by</span> <b>Choco Labs</b> · <span data-i18n="phone.celo">on Celo</span></div>
 
         <div class="mp-body">
-          <!-- Plan activo card -->
-          <div class="mp-plan">
-            <div class="mp-plan-label"><span class="pulse"></span><span data-i18n="phone.plan.label">Plan activo</span></div>
-            <div class="mp-plan-who" data-i18n="phone.plan.who">Para Mamá</div>
-            <div class="mp-plan-amt">$50.00<span class="ccy">USDm</span></div>
-            <div class="mp-plan-rule" data-i18n="phone.plan.rule">cada lunes · 9:00 AM</div>
-            <div class="mp-plan-next" data-i18n="phone.plan.next">próximo envío en 2 días</div>
+          <div class="chat-card">
+            <div class="label" data-i18n="chat.label">Text or voice</div>
+            <div class="bubble" data-i18n="chat.text">send my mum 50k KES every 1st</div>
           </div>
 
-          <!-- Plan historial -->
+          <!-- Active plan card -->
+          <div class="mp-plan">
+            <div class="mp-plan-label"><span class="pulse"></span><span data-i18n="phone.plan.label">Active plan</span></div>
+            <div class="mp-plan-who" data-i18n="phone.plan.who">For Mom · Kenya</div>
+            <div class="mp-plan-amt">50,000<span class="ccy">KESm</span></div>
+            <div class="mp-plan-rule" data-i18n="phone.plan.rule">every 1st · 9:00 AM</div>
+            <div class="mp-plan-next" data-i18n="phone.plan.next">next execution: July 1</div>
+          </div>
+
+          <!-- Plan details -->
           <div class="mp-list">
-            <div class="title" data-i18n="phone.list.title">Disparadores activos</div>
+            <div class="title" data-i18n="phone.list.title">Remittance plan</div>
             <div class="row">
               <div class="icon sched">🗓</div>
-              <div class="who"><span data-i18n="phone.list.r1.who">Mamá</span><span class="meta" data-i18n="phone.list.r1.meta">cada lunes · ejecutado 7 veces</span></div>
-              <div class="amt">$50</div>
+              <div class="who"><span data-i18n="phone.list.r1.who">Schedule</span><span class="meta" data-i18n="phone.list.r1.meta">monthly · day 1 · 9:00 AM</span></div>
+              <div class="amt">active</div>
             </div>
             <div class="row">
               <div class="icon bal">↘</div>
-              <div class="who"><span data-i18n="phone.list.r2.who">Hermana</span><span class="meta" data-i18n="phone.list.r2.meta">si saldo &lt; $20 · vigilando</span></div>
-              <div class="amt">$30</div>
+              <div class="who"><span data-i18n="phone.list.r2.who">Route</span><span class="meta" data-i18n="phone.list.r2.meta">USDC to KESm · Celo</span></div>
+              <div class="amt">quote</div>
             </div>
             <div class="row">
               <div class="icon fx">💱</div>
-              <div class="who"><span data-i18n="phone.list.r3.who">Tía</span><span class="meta" data-i18n="phone.list.r3.meta">si COP &gt; 4 500 · vigilando</span></div>
-              <div class="amt">$25</div>
+              <div class="who"><span data-i18n="phone.list.r3.who">Receipt</span><span class="meta" data-i18n="phone.list.r3.meta">hash + recipient notice</span></div>
+              <div class="amt">onchain</div>
             </div>
           </div>
         </div>
@@ -341,27 +342,27 @@
         <!-- Suggest toast (auto-appears) -->
         <div class="suggest-toast" id="suggest-toast">
           <span class="dot">🍫</span>
-          <span><b data-i18n="suggest.name">Choco</b> · <span data-i18n="suggest.text">3 planes activos · próximo envío lunes 9 AM</span></span>
+          <span><b data-i18n="suggest.name">Choco</b> · <span data-i18n="suggest.text">Parsed: 50k KES to mom every month</span></span>
         </div>
 
         <div class="mp-cta">
-          <div class="mp-btn primary" id="hero-btn-new" data-i18n="phone.btn1">Nuevo plan</div>
-          <div class="mp-btn ghost" id="hero-btn-list" data-i18n="phone.btn2">Ver planes</div>
+          <div class="mp-btn primary" id="hero-btn-new" data-i18n="phone.btn1">Review plan</div>
+          <div class="mp-btn ghost" id="hero-btn-list" data-i18n="phone.btn2">Receipts</div>
         </div>
 
         <!-- NEW PLAN overlay -->
         <div class="phone-overlay" id="overlay-new">
           <div class="ov-card">
-            <div class="ov-title" data-i18n="ov.new.t">Nuevo plan</div>
-            <div class="ov-field"><span data-i18n="ov.new.f1">Para</span><b>+57 318 ••• 47 12</b></div>
-            <div class="ov-field"><span data-i18n="ov.new.f2">Monto</span><b>$50.00 USDm</b></div>
-            <div class="ov-field"><span data-i18n="ov.new.f3">Disparador</span><span class="ov-trigger">🗓 <span data-i18n="ov.new.trig">Cada lunes 9 AM</span></span></div>
+            <div class="ov-title" data-i18n="ov.new.t">Detected plan</div>
+            <div class="ov-field"><span data-i18n="ov.new.f1">To</span><b>+254 7•• ••• 214</b></div>
+            <div class="ov-field"><span data-i18n="ov.new.f2">Amount</span><b>50,000 KESm</b></div>
+            <div class="ov-field"><span data-i18n="ov.new.f3">Schedule</span><span class="ov-trigger">🗓 <span data-i18n="ov.new.trig">Day 1 · monthly</span></span></div>
           </div>
           <div class="agent-feed">
-            <div class="agent-msg" id="onc-1"><span class="ag">🍫</span><span><b data-i18n="onc.1.name">Choco</b> · <span data-i18n="onc.1">creando plan para Mamá</span></span></div>
-            <div class="agent-msg" id="onc-2"><span class="ag">🍫</span><span><b data-i18n="onc.2.name">Choco</b> · <span data-i18n="onc.2">50 USDm en custodia · sin gas para ti</span></span></div>
-            <div class="agent-msg" id="onc-3"><span class="ag">🍫</span><span><b data-i18n="onc.3.name">Choco</b> · <span data-i18n="onc.3">vigilando · próximo en 2 días</span></span></div>
-            <div class="agent-msg done" id="onc-4"><span class="ag">✓</span><span><b data-i18n="onc.4.name">Plan activo</b> · <span data-i18n="onc.4">agente onchain vigilando 24/7</span></span></div>
+            <div class="agent-msg" id="onc-1"><span class="ag">🍫</span><span><b data-i18n="onc.1.name">Choco</b> · <span data-i18n="onc.1">parsing the instruction</span></span></div>
+            <div class="agent-msg" id="onc-2"><span class="ag">🍫</span><span><b data-i18n="onc.2.name">Choco</b> · <span data-i18n="onc.2">quoting USDC to KESm</span></span></div>
+            <div class="agent-msg" id="onc-3"><span class="ag">🍫</span><span><b data-i18n="onc.3.name">Choco</b> · <span data-i18n="onc.3">scheduling monthly execution</span></span></div>
+            <div class="agent-msg done" id="onc-4"><span class="ag">✓</span><span><b data-i18n="onc.4.name">Plan active</b> · <span data-i18n="onc.4">onchain receipt ready</span></span></div>
           </div>
         </div>
       </div>
@@ -372,245 +373,138 @@
 
 <!-- FEATURES -->
 <section id="features">
-  <div class="eyebrow" data-i18n="feat.eyebrow">Tres disparadores. Un agente.</div>
-  <h2 class="head"><span data-i18n="feat.h2a">Programa una vez.</span><br/><span class="light" data-i18n="feat.h2b">El agente decide cuándo enviar.</span></h2>
-  <p class="sub" data-i18n="feat.sub">Choco no interpreta intención — Choco ejecuta condiciones. Tres formas de decirle "envía cuando…" y el contrato hace lo demás, sin que abras la app.</p>
+  <div class="eyebrow" data-i18n="feat.eyebrow">One corridor. One scheduled action.</div>
+  <h2 class="head"><span data-i18n="feat.h2a">From Mini App message to receipt.</span><br/><span class="light" data-i18n="feat.h2b">Text or voice, then Choco handles the plan.</span></h2>
+  <p class="sub" data-i18n="feat.sub">Choco lives inside Mini Apps for now. The MVP focuses on US to Kenya: one text or voice instruction, one USDC to KESm quote, one monthly execution, and one verifiable receipt.</p>
 
   <div class="features">
     <div class="feat">
       <div class="feat-icon">🗓</div>
-      <h3 data-i18n="feat.1.h">Calendario</h3>
-      <p data-i18n="feat.1.p">"Cada lunes $50 a Mamá." El agente dispara la transferencia el día y la hora exactos. Recurrente, semanal o mensual — un cron onchain.</p>
-      <span class="badge" data-i18n="feat.1.b">Disparador SCHEDULE</span>
+      <h3 data-i18n="feat.1.h">Chat</h3>
+      <p data-i18n="feat.1.p">The user sends text or voice inside the Mini App: "send my mum 50k KES every 1st."</p>
+      <span class="badge" data-i18n="feat.1.b">Intent parser</span>
     </div>
 
     <div class="feat">
       <div class="feat-icon">↘</div>
-      <h3 data-i18n="feat.2.h">Saldo bajo</h3>
-      <p data-i18n="feat.2.p">"Si el saldo de mi hermana cae bajo $20, recárgale $30." El agente lee la billetera de la destinataria en cada bloque y recarga cuando hace falta.</p>
-      <span class="badge" data-i18n="feat.2.b">Disparador TOP_UP</span>
+      <h3 data-i18n="feat.2.h">Quote</h3>
+      <p data-i18n="feat.2.p">Choco calculates how much USDC is needed to deliver 50,000 KESm and shows route, fee, and date before confirmation.</p>
+      <span class="badge" data-i18n="feat.2.b">USDC to KESm</span>
     </div>
 
     <div class="feat">
       <div class="feat-icon">💱</div>
-      <h3 data-i18n="feat.3.h">Peso débil</h3>
-      <p data-i18n="feat.3.p">"Envía cuando el peso colombiano se debilite a 4 500." El agente lee el oráculo Mento de COPm/USDm y envía USDm en el momento óptimo para cuando se convierta a pesos.</p>
-      <span class="badge" data-i18n="feat.3.b">Disparador FX_TARGET</span>
+      <h3 data-i18n="feat.3.h">Execution</h3>
+      <p data-i18n="feat.3.p">On the 1st, the agent executes the plan on Celo. If a call fails, it retries and marks status for support.</p>
+      <span class="badge" data-i18n="feat.3.b">Schedule worker</span>
     </div>
 
-    <div class="feat streams">
-      <div class="feat-icon">🌊</div>
-      <h3 data-i18n="feat.4.h">Choco Streams · en roadmap</h3>
-      <p data-i18n="feat.4.p">Próxima fase. Un solo plan que divide automáticamente entre varios destinatarios — útil para nóminas distribuidas, cuotas escolares de varios hijos, o rondas comunitarias. Mismos rieles que Choco usa hoy.</p>
-      <span class="badge soon" data-i18n="feat.4.b">Próxima fase · 2026 Q3</span>
+    <div class="feat">
+      <div class="feat-icon">✓</div>
+      <h3 data-i18n="feat.4.h">Receipt</h3>
+      <p data-i18n="feat.4.p">The user and recipient get a summary with amount, date, hash, and status. The proof is ready for support.</p>
+      <span class="badge soon" data-i18n="feat.4.b">Onchain receipt</span>
+    </div>
+
+    <div class="feat streams future">
+      <div class="feat-icon">↗</div>
+      <h3 data-i18n="feat.5.h">Future development</h3>
+      <p data-i18n="feat.5.p">Add a UK to NGN corridor and expand beyond Mini Apps into WhatsApp, Telegram, Facebook Messenger, and related social messaging networks.</p>
+      <span class="badge soon" data-i18n="feat.5.b">UK to NGN · Multi-chat</span>
     </div>
   </div>
 </section>
 
 <!-- RAILS -->
 <div class="rails">
-  <div class="rails-head" data-i18n="rails.head">USDm de entrada y salida. Inteligencia desde Mento. Custodia tuya.</div>
+  <div class="rails-head" data-i18n="rails.head">USDC in. KESm for family. Verifiable receipt on Celo.</div>
   <div class="marquee">
-    <div class="chip stable"><span class="dot" style="background:var(--choco)"></span>USDm · Mento Dollar</div>
+    <div class="chip stable"><span class="dot" style="background:var(--choco)"></span>KESm · Mento Kenyan Shilling</div>
     <div class="chip stable"><span class="dot" style="background:var(--choco-2)"></span>USDC · Celo</div>
-    <div class="chip stable"><span class="dot" style="background:var(--choco)"></span>USDT · Celo</div>
-    <div class="chip"><span class="dot" style="background:#a78bfa"></span><span data-i18n="rails.c1">Oráculo Mento COPm/USDm</span></div>
-    <div class="chip"><span class="dot" style="background:var(--mp-green)"></span><span data-i18n="rails.c2">Comisión pagada en stablecoins</span></div>
-    <div class="chip"><span class="dot" style="background:var(--mp-accent)"></span><span data-i18n="rails.c3">Identidad por teléfono</span></div>
-    <div class="chip stable"><span class="dot" style="background:var(--choco)"></span>USDm · Mento Dollar</div>
+    <div class="chip stable"><span class="dot" style="background:var(--choco)"></span>MiniPay · Celo</div>
+    <div class="chip"><span class="dot" style="background:#a78bfa"></span><span data-i18n="rails.c1">Quote USDC/KESm</span></div>
+    <div class="chip"><span class="dot" style="background:var(--mp-green)"></span><span data-i18n="rails.c2">Automatic retries</span></div>
+    <div class="chip"><span class="dot" style="background:var(--mp-accent)"></span><span data-i18n="rails.c3">Recipient notice</span></div>
+    <div class="chip stable"><span class="dot" style="background:var(--choco)"></span>KESm · Mento Kenyan Shilling</div>
     <div class="chip stable"><span class="dot" style="background:var(--choco-2)"></span>USDC · Celo</div>
-    <div class="chip stable"><span class="dot" style="background:var(--choco)"></span>USDT · Celo</div>
-    <div class="chip"><span class="dot" style="background:#a78bfa"></span><span data-i18n="rails.c1b">Oráculo Mento COPm/USDm</span></div>
-    <div class="chip"><span class="dot" style="background:var(--mp-green)"></span><span data-i18n="rails.c2b">Comisión pagada en stablecoins</span></div>
-    <div class="chip"><span class="dot" style="background:var(--mp-accent)"></span><span data-i18n="rails.c3b">Identidad por teléfono</span></div>
+    <div class="chip stable"><span class="dot" style="background:var(--choco)"></span>MiniPay · Celo</div>
+    <div class="chip"><span class="dot" style="background:#a78bfa"></span><span data-i18n="rails.c1b">Quote USDC/KESm</span></div>
+    <div class="chip"><span class="dot" style="background:var(--mp-green)"></span><span data-i18n="rails.c2b">Automatic retries</span></div>
+    <div class="chip"><span class="dot" style="background:var(--mp-accent)"></span><span data-i18n="rails.c3b">Recipient notice</span></div>
   </div>
 </div>
 
 <!-- COMPARE -->
 <section id="why">
-  <div class="eyebrow" data-i18n="cmp.eyebrow">Por qué Choco en MiniPay</div>
-  <h2 class="head"><span data-i18n="cmp.h2a">MiniPay envía cuando le dices.</span><br/><span class="light" data-i18n="cmp.h2b">Choco envía cuando deja de tener sentido pensarlo.</span></h2>
-  <p class="sub" data-i18n="cmp.sub">MiniPay ya es la mejor billetera de stablecoins del Sur Global. Choco le agrega la capa que falta: ejecución autónoma basada en condiciones del mundo real.</p>
+  <div class="eyebrow" data-i18n="cmp.eyebrow">Why it wins</div>
+  <h2 class="head"><span data-i18n="cmp.h2a">Stablecoins lower the cost.</span><br/><span class="light" data-i18n="cmp.h2b">The agent removes the friction.</span></h2>
+  <p class="sub" data-i18n="cmp.sub">Remittances do not fail because people lack intent. They fail because someone forgets, waits for a better rate, cannot prove delivery, or repeats the same process every month.</p>
   <div class="compare">
-    <div class="compare-row"><div data-i18n="cmp.col0">Capacidad</div><div class="col-mp" data-i18n="cmp.col1">MiniPay solo</div><div class="col-choco" data-i18n="cmp.col2">MiniPay + Choco</div></div>
-    <div class="compare-row"><div><b data-i18n="cmp.r1">Envío manual de stablecoins</b></div><div class="col-mp"><span class="check">✓</span> <span data-i18n="cmp.yes">sí</span></div><div class="col-choco"><span class="check">✓</span> <span data-i18n="cmp.inh">sí — heredado</span></div></div>
-    <div class="compare-row"><div><b data-i18n="cmp.r2">USDm · USDC · USDT en Celo</b></div><div class="col-mp"><span class="check">✓</span> <span data-i18n="cmp.yes2">sí</span></div><div class="col-choco"><span class="check">✓</span> <span data-i18n="cmp.inh2">sí — heredado</span></div></div>
-    <div class="compare-row"><div><b data-i18n="cmp.r3">Comisión en stablecoins (CIP-64)</b></div><div class="col-mp"><span class="check">✓</span> <span data-i18n="cmp.yes3">sí</span></div><div class="col-choco"><span class="check">✓</span> <span data-i18n="cmp.inh3">sí — heredado</span></div></div>
-    <div class="compare-row"><div><b data-i18n="cmp.r4">Envíos programados (cron onchain)</b></div><div class="col-mp"><span class="cross" data-i18n="cmp.no">— no</span></div><div class="col-choco"><span class="check">✓</span> <span data-i18n="cmp.auto1">SCHEDULE</span></div></div>
-    <div class="compare-row"><div><b data-i18n="cmp.r5">Top-up por saldo bajo del destinatario</b></div><div class="col-mp"><span class="cross" data-i18n="cmp.no2">— no</span></div><div class="col-choco"><span class="check">✓</span> <span data-i18n="cmp.auto2">TOP_UP</span></div></div>
-    <div class="compare-row"><div><b data-i18n="cmp.r6">Disparador por tasa Mento (FX inteligente)</b></div><div class="col-mp"><span class="cross" data-i18n="cmp.no3">— no</span></div><div class="col-choco"><span class="check">✓</span> <span data-i18n="cmp.auto3">FX_TARGET</span></div></div>
-    <div class="compare-row"><div><b data-i18n="cmp.r7">Multi-destinatario en un plan</b></div><div class="col-mp"><span class="cross" data-i18n="cmp.oos">— fuera de alcance</span></div><div class="col-choco"><span class="soon">→</span> <span data-i18n="cmp.streams">Choco Streams · próxima fase</span></div></div>
-    <div class="compare-row"><div><b data-i18n="cmp.r8">No-custodial · fondos siempre tuyos</b></div><div class="col-mp"><span class="check">✓</span> <span data-i18n="cmp.yes4">sí</span></div><div class="col-choco"><span class="check">✓</span> <span data-i18n="cmp.nc">sí — Choco nunca tiene las llaves; retiras tu escrow cuando quieras</span></div></div>
+    <div class="compare-row"><div data-i18n="cmp.col0">Step</div><div class="col-mp" data-i18n="cmp.col1">Manual</div><div class="col-choco" data-i18n="cmp.col2">With Choco</div></div>
+    <div class="compare-row"><div><b data-i18n="cmp.r1">Remember the send</b></div><div class="col-mp"><span class="cross" data-i18n="cmp.manual1">every month</span></div><div class="col-choco"><span class="check">✓</span> <span data-i18n="cmp.auto1">one instruction</span></div></div>
+    <div class="compare-row"><div><b data-i18n="cmp.r2">Calculate the route</b></div><div class="col-mp"><span class="cross" data-i18n="cmp.manual2">compare rates</span></div><div class="col-choco"><span class="check">✓</span> <span data-i18n="cmp.auto2">USDC to KESm quote</span></div></div>
+    <div class="compare-row"><div><b data-i18n="cmp.r3">Execute on time</b></div><div class="col-mp"><span class="cross" data-i18n="cmp.manual3">open wallet</span></div><div class="col-choco"><span class="check">✓</span> <span data-i18n="cmp.auto3">scheduled worker</span></div></div>
+    <div class="compare-row"><div><b data-i18n="cmp.r4">Recover failures</b></div><div class="col-mp"><span class="cross" data-i18n="cmp.manual4">manual support</span></div><div class="col-choco"><span class="check">✓</span> <span data-i18n="cmp.auto4">retries + status</span></div></div>
+    <div class="compare-row"><div><b data-i18n="cmp.r5">Prove delivery</b></div><div class="col-mp"><span class="cross" data-i18n="cmp.manual5">screenshots</span></div><div class="col-choco"><span class="check">✓</span> <span data-i18n="cmp.auto5">onchain receipt</span></div></div>
   </div>
 </section>
 
 <!-- TIMELINE -->
 <section class="dark" id="story">
-  <div class="eyebrow" data-i18n="line.eyebrow">La historia de los pagos onchain</div>
-  <h2 class="head"><span data-i18n="line.h2a">2022. 2024. </span><span class="light" data-i18n="line.h2b">2026.</span></h2>
-  <p class="sub" data-i18n="line.sub">Cada año el stack se vuelve más invisible. MiniPay desapareció las direcciones hex. Choco desaparece el envío.</p>
+  <div class="eyebrow" data-i18n="line.eyebrow">Demo vertical</div>
+  <h2 class="head"><span data-i18n="line.h2a">One remittance.</span> <span class="light" data-i18n="line.h2b">End to end.</span></h2>
+  <p class="sub" data-i18n="line.sub">The hackathon scope is intentional: one corridor, one Mini App surface, and one scheduled action that can be demonstrated honestly.</p>
   <div class="timeline">
-    <div class="ts"><div class="y">2022</div><div class="n" data-i18n="line.t1.n">MiniPay nace</div><div class="d" data-i18n="line.t1.d">Opera + Celo · billetera stablecoin con identidad por teléfono dentro del navegador Opera Mini.</div></div>
-    <div class="ts"><div class="y">2024</div><div class="n" data-i18n="line.t2.n">App independiente</div><div class="d" data-i18n="line.t2.d">Lanzamiento standalone para Android e iOS. 14M+ usuarios. Stablecoins locales: cKES, cNGN, cCOP.</div></div>
-    <div class="ts"><div class="y">2025</div><div class="n" data-i18n="line.t3.n">Mini Apps abren</div><div class="d" data-i18n="line.t3.d">Catálogo de descubrimiento dentro de la billetera. Builders externos alcanzan 60+ países sin fricción.</div></div>
-    <div class="ts"><div class="y">2026</div><div class="n" data-i18n="line.t4.n">Choco</div><div class="d" data-i18n="line.t4.d">Un agente onchain ejecuta planes de pago bajo condiciones. La remesa deja de ser una decisión semanal.</div></div>
+    <div class="ts"><div class="y">01</div><div class="n" data-i18n="line.t1.n">Message</div><div class="d" data-i18n="line.t1.d">The user sends text or voice: amount, recipient, country, and recurring date.</div></div>
+    <div class="ts"><div class="y">02</div><div class="n" data-i18n="line.t2.n">Confirmation</div><div class="d" data-i18n="line.t2.d">Choco shows quote, fee, recipient, and next send before asking for confirmation.</div></div>
+    <div class="ts"><div class="y">03</div><div class="n" data-i18n="line.t3.n">Execution</div><div class="d" data-i18n="line.t3.d">The agent executes the plan on the 1st, retries if needed, and keeps visible status.</div></div>
+    <div class="ts"><div class="y">04</div><div class="n" data-i18n="line.t4.n">Receipt</div><div class="d" data-i18n="line.t4.d">User and recipient get a summary with hash and final status.</div></div>
   </div>
 </section>
 
 <!-- CHECKLIST -->
 <section class="soft" id="checklist">
-  <div class="eyebrow" data-i18n="ck.eyebrow">Construido al spec de MiniPay</div>
-  <h2 class="head"><span data-i18n="ck.h2">El checklist de submission, satisfecho por defecto.</span></h2>
-  <p class="sub" data-i18n="ck.sub">Choco sigue los 8 puntos del spec oficial "Build for MiniPay: Developer Requirements" al pie de la letra. Sin sorpresas en revisión.</p>
+  <div class="eyebrow" data-i18n="ck.eyebrow">Hackathon MVP</div>
+  <h2 class="head"><span data-i18n="ck.h2">What gets built first.</span></h2>
+  <p class="sub" data-i18n="ck.sub">The first version should prove the real work: understand text or voice, prepare the plan, record status, and show a receipt.</p>
   <div class="checklist">
-    <h3 data-i18n="ck.h3">Lo que Choco trae de fábrica</h3>
+    <h3 data-i18n="ck.h3">Focused scope</h3>
     <ul>
-      <li data-i18n="ck.l1">Conexión sin clic (sin botón Conectar)</li>
-      <li data-i18n="ck.l2">Sin <code>personal_sign</code> ni typed-data</li>
-      <li data-i18n="ck.l3">Teléfonos mostrados, nunca direcciones 0x</li>
-      <li data-i18n="ck.l4">USDm · USDC · USDT solamente — CELO oculto</li>
-      <li data-i18n="ck.l5">Copy: "Comisión de red", "Depositar", "Retirar"</li>
-      <li data-i18n="ck.l6">Elige el stablecoin de mayor saldo</li>
-      <li data-i18n="ck.l7">Probado a 360 × 640</li>
-      <li data-i18n="ck.l8">Solo SVG / WebP</li>
-      <li data-i18n="ck.l9">Contratos verificados en Celoscan</li>
-      <li data-i18n="ck.l10">Deeplink Depositar en saldo bajo</li>
-      <li data-i18n="ck.l11">Soporte en-app · SLA 24h en bugs críticos</li>
-      <li data-i18n="ck.l12">Términos + Privacidad enlazados</li>
-      <li data-i18n="ck.l13">Página /stats con métricas onchain</li>
-      <li data-i18n="ck.l14">Agente de soporte en Telegram</li>
+      <li data-i18n="ck.l1">Lives inside Mini Apps for now</li>
+      <li data-i18n="ck.l2">Accepts text or voice commands</li>
+      <li data-i18n="ck.l3">One corridor: US to Kenya</li>
+      <li data-i18n="ck.l4">One amount: 50,000 KES</li>
+      <li data-i18n="ck.l5">One recurrence: day 1 each month</li>
+      <li data-i18n="ck.l6">USDC to KESm quote</li>
+      <li data-i18n="ck.l7">Retry on failure</li>
+      <li data-i18n="ck.l8">Shareable onchain receipt</li>
     </ul>
   </div>
 </section>
 
 <!-- FINAL CTA -->
 <section class="final" id="submit">
-  <h2><span data-i18n="final.h2a">Lista Choco.</span><br/><span class="light" data-i18n="final.h2b">En el catálogo de MiniPay.</span></h2>
-  <p data-i18n="final.p">Demo de 10 minutos. Vemos los tres disparadores ejecutándose en vivo en Celo Sepolia, presentamos Choco Streams en roadmap, y revisamos el checklist de submission punto por punto.</p>
+  <h2><span data-i18n="final.h2a">Choco is registered.</span><br/><span class="light" data-i18n="final.h2b">Now make it work.</span></h2>
+  <p data-i18n="final.p">The ERC-8004 registry is ready. The next delivery is the functional Mini App demo: text or voice command, monthly plan, USDC to KESm quote, testnet or simulated execution, and receipt.</p>
   <div class="actions">
-    <a href="https://celopedia.celo.org/" target="_blank"><span data-i18n="final.cta1">Submission via Celopedia</span> <span class="arr">›</span></a>
-    <a href="https://minipay.to/mini-apps" target="_blank"><span data-i18n="final.cta2">Formulario MiniPay</span> <span class="arr">›</span></a>
+    <a href="https://testnet.8004scan.io/agents/celo-sepolia/309" target="_blank"><span data-i18n="final.cta1">View ERC-8004 registry</span> <span class="arr">›</span></a>
+    <a href="https://github.com/LuisAlejandroCR/choco-minipay" target="_blank"><span data-i18n="final.cta2">View code</span> <span class="arr">›</span></a>
   </div>
 </section>
 
 <!-- FOOTER -->
 <footer>
   <div class="wrap-wide">
-    <div class="legal" data-i18n="footer.l">Choco es una Mini App no-custodial para <a href="https://minipay.to" target="_blank">MiniPay</a>, construida en <a href="https://celo.org" target="_blank">Celo</a>. MiniPay maneja la custodia del usuario; Choco orquesta la capa de ejecución agéntica vía contratos verificados. Los fondos viven en escrow controlado por el usuario — Choco nunca tiene las llaves. Considera el riesgo cambiario antes de programar disparadores FX.</div>
+    <div class="legal" data-i18n="footer.l">Choco is an experimental Mini App for <a href="https://minipay.to" target="_blank">MiniPay</a>, built on <a href="https://celo.org" target="_blank">Celo</a>. The MVP focuses on one corridor: USDC to KESm for scheduled family remittances. Local payout integration must be verified before production.</div>
     <div>
       <div><b style="color:var(--ink)">Choco Labs</b></div>
-      <div data-i18n="footer.r">Distribución vía MiniPay · Construido en Celo · oráculos por Mento</div>
-      <div class="sibling" data-i18n="footer.sib">Hermano de <b>🥭 Mango</b> — mismos rieles, distinto verbo.</div>
+      <div data-i18n="footer.r">Distribution via MiniPay · Built on Celo · local stablecoins by Mento</div>
+      <div class="sibling" data-i18n="footer.sib">Registered on ERC-8004 · Celo Sepolia agent #309</div>
     </div>
   </div>
 </footer>
 
 <script>
-// i18n strings (ES default, EN translation)
-const I18N = {
-  es: {}, // ES is default in HTML, no override needed
-  en: {
-    "nav.feat":"Triggers", "nav.why":"Why Choco", "nav.story":"Story", "nav.submit":"Submit",
-    "hero.pill":"Onchain Agents Hackathon · Built on Celo",
-    "hero.h1":"Choco.",
-    "hero.tag":"The agent that sends remittances so you don't have to think.",
-    "hero.sub":"Schedule one transfer, set a condition, and forget. Choco watches the calendar, your family's balance, and the Colombian peso — then fires the USDm transfer when it should.",
-    "hero.cta1":"See the 3 triggers", "hero.cta2":"List on MiniPay",
-    "phone.by":"by", "phone.celo":"on Celo",
-    "phone.plan.label":"Active plan",
-    "phone.plan.who":"For Mom",
-    "phone.plan.rule":"every Monday · 9:00 AM",
-    "phone.plan.next":"next transfer in 2 days",
-    "phone.list.title":"Active triggers",
-    "phone.list.r1.who":"Mom",
-    "phone.list.r1.meta":"every Monday · fired 7 times",
-    "phone.list.r2.who":"Sister",
-    "phone.list.r2.meta":"if balance < $20 · watching",
-    "phone.list.r3.who":"Aunt",
-    "phone.list.r3.meta":"if COP > 4,500 · watching",
-    "suggest.name":"Choco",
-    "suggest.text":"3 active plans · next transfer Monday 9 AM",
-    "phone.btn1":"New plan", "phone.btn2":"View plans",
-    "ov.new.t":"New plan",
-    "ov.new.f1":"To", "ov.new.f2":"Amount", "ov.new.f3":"Trigger",
-    "ov.new.trig":"Every Monday 9 AM",
-    "onc.1.name":"Choco", "onc.1":"creating plan for Mom",
-    "onc.2.name":"Choco", "onc.2":"50 USDm in escrow · no gas for you",
-    "onc.3.name":"Choco", "onc.3":"watching · next in 2 days",
-    "onc.4.name":"Plan active", "onc.4":"onchain agent watching 24/7",
-    "feat.eyebrow":"Three triggers. One agent.",
-    "feat.h2a":"Program it once.", "feat.h2b":"The agent decides when to send.",
-    "feat.sub":"Choco doesn't interpret intent — Choco executes conditions. Three ways to say \"send when…\" and the contract does the rest, without you opening the app.",
-    "feat.1.h":"Calendar",
-    "feat.1.p":"\"Every Monday $50 to Mom.\" The agent fires the transfer on the exact day and time. Recurring, weekly or monthly — an onchain cron.",
-    "feat.1.b":"SCHEDULE trigger",
-    "feat.2.h":"Low balance",
-    "feat.2.p":"\"If my sister's balance falls below $20, top her up $30.\" The agent reads the recipient's wallet each block and refills when needed.",
-    "feat.2.b":"TOP_UP trigger",
-    "feat.3.h":"Weak peso",
-    "feat.3.p":"\"Send when the Colombian peso weakens to 4,500.\" The agent reads the Mento COPm/USDm oracle and sends USDm at the optimal moment for local conversion.",
-    "feat.3.b":"FX_TARGET trigger",
-    "feat.4.h":"Choco Streams · roadmap",
-    "feat.4.p":"Next phase. One plan that auto-splits across multiple recipients — useful for distributed payroll, school fees for several kids, or community pools. Same rails Choco uses today.",
-    "feat.4.b":"Next phase · 2026 Q3",
-    "rails.head":"USDm in and out. Intelligence from Mento. Custody stays yours.",
-    "rails.c1":"Mento COPm/USDm oracle", "rails.c2":"Network fee paid in stablecoins", "rails.c3":"Identity by phone",
-    "rails.c1b":"Mento COPm/USDm oracle", "rails.c2b":"Network fee paid in stablecoins", "rails.c3b":"Identity by phone",
-    "cmp.eyebrow":"Why Choco on MiniPay",
-    "cmp.h2a":"MiniPay sends when you tell it to.", "cmp.h2b":"Choco sends when thinking about it stops making sense.",
-    "cmp.sub":"MiniPay is already the best stablecoin wallet in the Global South. Choco adds the layer it's missing: autonomous execution based on real-world conditions.",
-    "cmp.col0":"Capability", "cmp.col1":"MiniPay alone", "cmp.col2":"MiniPay + Choco",
-    "cmp.r1":"Manual stablecoin transfers", "cmp.r2":"USDm · USDC · USDT on Celo", "cmp.r3":"Network fee in stablecoins (CIP-64)",
-    "cmp.r4":"Scheduled transfers (onchain cron)", "cmp.r5":"Top-up on recipient low balance", "cmp.r6":"Mento rate trigger (smart FX)",
-    "cmp.r7":"Multi-recipient in one plan", "cmp.r8":"Non-custodial · funds stay yours",
-    "cmp.yes":"yes", "cmp.inh":"yes — inherited", "cmp.yes2":"yes", "cmp.inh2":"yes — inherited", "cmp.yes3":"yes", "cmp.inh3":"yes — inherited",
-    "cmp.no":"— no", "cmp.auto1":"SCHEDULE", "cmp.no2":"— no", "cmp.auto2":"TOP_UP", "cmp.no3":"— no", "cmp.auto3":"FX_TARGET",
-    "cmp.oos":"— out of scope", "cmp.streams":"Choco Streams · next phase",
-    "cmp.yes4":"yes", "cmp.nc":"yes — Choco never holds keys; withdraw your escrow anytime",
-    "line.eyebrow":"The story of onchain payments",
-    "line.h2a":"2022. 2024. ", "line.h2b":"2026.",
-    "line.sub":"Each year the stack gets more invisible. MiniPay erased hex addresses. Choco erases the act of sending.",
-    "line.t1.n":"MiniPay is born", "line.t1.d":"Opera + Celo · phone-identity stablecoin wallet inside the Opera Mini browser.",
-    "line.t2.n":"Standalone app", "line.t2.d":"Standalone Android and iOS launch. 14M+ users. Local stablecoins: cKES, cNGN, cCOP.",
-    "line.t3.n":"Mini Apps open", "line.t3.d":"Discovery catalog inside the wallet. External builders reach 60+ countries with zero friction.",
-    "line.t4.n":"Choco", "line.t4.d":"An onchain agent executes payment plans under conditions. Remittance stops being a weekly decision.",
-    "ck.eyebrow":"Built to the MiniPay spec",
-    "ck.h2":"The submission checklist, met by default.",
-    "ck.sub":"Choco follows the 8 sections of the official \"Build for MiniPay: Developer Requirements\" spec to the letter. No surprises at review.",
-    "ck.h3":"What Choco ships with",
-    "ck.l1":"Zero-click connect (no Connect button)", "ck.l2":"No <code>personal_sign</code> / typed-data",
-    "ck.l3":"Phones shown, never 0x addresses", "ck.l4":"USDm · USDC · USDT only — CELO hidden",
-    "ck.l5":"Copy: \"Network fee\", \"Deposit\", \"Withdraw\"", "ck.l6":"Picks highest-balance stablecoin",
-    "ck.l7":"Tested at 360 × 640", "ck.l8":"SVG / WebP only",
-    "ck.l9":"Contracts verified on Celoscan", "ck.l10":"Deposit deeplink on low balance",
-    "ck.l11":"In-app support · 24h critical SLA", "ck.l12":"ToS + Privacy linked",
-    "ck.l13":"/stats page with onchain metrics", "ck.l14":"Telegram AI support agent",
-    "final.h2a":"List Choco.", "final.h2b":"In the MiniPay catalog.",
-    "final.p":"10-minute demo. We watch the three triggers fire live on Celo Sepolia, present Choco Streams on the roadmap, and walk through the submission checklist line by line.",
-    "final.cta1":"Submission via Celopedia", "final.cta2":"MiniPay form",
-    "footer.l":"Choco is a non-custodial Mini App for <a href=\"https://minipay.to\" target=\"_blank\">MiniPay</a>, built on <a href=\"https://celo.org\" target=\"_blank\">Celo</a>. MiniPay handles user custody; Choco orchestrates the agentic execution layer via verified contracts. Funds live in user-controlled escrow — Choco never holds the keys. Consider FX risk before scheduling FX triggers.",
-    "footer.r":"Distribution via MiniPay · Built on Celo · oracles by Mento",
-    "footer.sib":"Sibling of <b>🥭 Mango</b> — same rails, different verb."
-  }
-};
-
-function setLang(lang){
-  document.querySelectorAll('.lang button').forEach(b => b.classList.remove('active'));
-  const btn = document.getElementById('lang-' + lang);
-  if(btn) btn.classList.add('active');
-  document.documentElement.lang = lang;
-  const dict = I18N[lang];
-  if(!dict || Object.keys(dict).length === 0){
-    // ES is default; reload to restore
-    if(lang === 'es') location.reload();
-    return;
-  }
-  document.querySelectorAll('[data-i18n]').forEach(el => {
-    const key = el.getAttribute('data-i18n');
-    if(dict[key] !== undefined) el.innerHTML = dict[key];
-  });
-}
-
 // Self-running phone demo loop
 (function demoLoop(){
   const toast = document.getElementById('suggest-toast');
