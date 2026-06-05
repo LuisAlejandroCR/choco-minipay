@@ -5,17 +5,22 @@ import {
   CalendarDays,
   Check,
   CircleDollarSign,
+  ListChecks,
   Mic,
+  Pencil,
+  Plus,
   ReceiptText,
   RefreshCw,
   Send,
   ShieldCheck,
+  Trash2,
   Wallet,
   X,
 } from "lucide-react";
 import "./styles.css";
 
-const plan = {
+const defaultPlan = {
+  id: "mom-monthly",
   amount: "50,000",
   asset: "KESm",
   corridor: "US to Kenya",
@@ -27,13 +32,84 @@ const plan = {
   fee: "0.1%",
   routeEstimate: "$386.42 USDC",
   hash: "0x8f34...celo-sepolia-309",
+  status: "Active",
+  phone: "+254 7xx xxx 214",
+  schedule: "Every 1st - 9:00 AM",
 };
+
+function buildPlanFromCommand(commandText, basePlan = defaultPlan) {
+  const text = commandText.toLowerCase();
+  const recipient = text.includes("sister")
+    ? "Sister"
+    : text.includes("aunt")
+      ? "Auntie"
+      : text.includes("dad")
+        ? "Dad"
+        : "Mom";
+  const amount = text.includes("75")
+    ? "75,000"
+    : text.includes("25")
+      ? "25,000"
+      : text.includes("20")
+        ? "20,000"
+        : "50,000";
+  const day = text.includes("15") ? "15th" : text.includes("monday") ? "Monday" : "1st";
+  const schedule = day === "Monday" ? "Every Monday - 9:00 AM" : `Every ${day} - 9:00 AM`;
+  const nextDate = day === "15th" ? "July 15" : day === "Monday" ? "Next Monday" : "July 1";
+  const routeEstimate = {
+    "20,000": "$154.57 USDC",
+    "25,000": "$193.21 USDC",
+    "50,000": "$386.42 USDC",
+    "75,000": "$579.63 USDC",
+  }[amount];
+
+  return {
+    ...basePlan,
+    amount,
+    recipient,
+    schedule,
+    nextDate,
+    routeEstimate,
+    status: "Active",
+  };
+}
+
+function shouldShowDemoPrompt() {
+  try {
+    return window.localStorage.getItem("choco-demo-seen") !== "yes";
+  } catch {
+    return true;
+  }
+}
+
+function rememberDemoChoice() {
+  try {
+    window.localStorage.setItem("choco-demo-seen", "yes");
+  } catch {
+    // Local storage is optional in embedded browsers.
+  }
+}
 
 function App() {
   const [screen, setScreen] = useState("splash");
   const [command, setCommand] = useState("send my mum 50k KES every 1st");
   const [voiceState, setVoiceState] = useState("Text or voice");
   const [runStep, setRunStep] = useState(0);
+  const [plans, setPlans] = useState([defaultPlan]);
+  const [selectedPlanId, setSelectedPlanId] = useState(defaultPlan.id);
+  const [reviewMode, setReviewMode] = useState("create");
+  const [lastReceiptPlan, setLastReceiptPlan] = useState(defaultPlan);
+  const [showDemoPrompt, setShowDemoPrompt] = useState(shouldShowDemoPrompt);
+
+  const activePlan = useMemo(
+    () => plans.find((item) => item.id === selectedPlanId) || plans[0] || null,
+    [plans, selectedPlanId],
+  );
+  const previewPlan = useMemo(
+    () => buildPlanFromCommand(command, activePlan || defaultPlan),
+    [activePlan, command],
+  );
+  const receiptPlan = lastReceiptPlan || activePlan || defaultPlan;
 
   useEffect(() => {
     if (screen !== "splash") return undefined;
@@ -58,14 +134,84 @@ function App() {
     window.setTimeout(() => setVoiceState("Text or voice"), 1400);
   }
 
+  function closeDemoPrompt() {
+    rememberDemoChoice();
+    setShowDemoPrompt(false);
+  }
+
+  function runDemo() {
+    closeDemoPrompt();
+    setReviewMode("demo");
+    setCommand("send my mum 50k KES every 1st");
+    setScreen("processing");
+  }
+
+  function openNewPlan() {
+    setReviewMode("create");
+    setCommand("send my mum 50k KES every 1st");
+    setScreen("planEditor");
+  }
+
+  function openEditPlan() {
+    const targetPlan = activePlan || defaultPlan;
+    setReviewMode("update");
+    setCommand(`change ${targetPlan.recipient}'s plan to 75k KES every 15th`);
+    setScreen("planEditor");
+  }
+
+  function buildPlan() {
+    setScreen("processing");
+  }
+
+  function confirmPlan() {
+    let committedPlan;
+
+    if (reviewMode === "update" && activePlan) {
+      committedPlan = {
+        ...activePlan,
+        ...previewPlan,
+        id: activePlan.id,
+        hash: "0x43b2...celo-sepolia-309",
+      };
+      setPlans((items) => items.map((item) => (item.id === activePlan.id ? committedPlan : item)));
+    } else {
+      committedPlan = {
+        ...previewPlan,
+        id: `plan-${Date.now()}`,
+        hash: "0x8f34...celo-sepolia-309",
+      };
+      setPlans((items) => [committedPlan, ...items]);
+    }
+
+    setSelectedPlanId(committedPlan.id);
+    setLastReceiptPlan(committedPlan);
+    setScreen("receipt");
+  }
+
+  function confirmDeletePlan() {
+    if (!activePlan) {
+      setScreen("plans");
+      return;
+    }
+
+    const remainingPlans = plans.filter((item) => item.id !== activePlan.id);
+    setPlans(remainingPlans);
+    setSelectedPlanId(remainingPlans[0]?.id || "");
+    setLastReceiptPlan(remainingPlans[0] || defaultPlan);
+    setScreen("plans");
+  }
+
   const screenTitle = useMemo(() => {
     if (screen === "splash") return "Choco";
-    if (screen === "details") return "Plan";
+    if (screen === "plans") return "Plans";
+    if (screen === "planDetail") return "Plan";
+    if (screen === "planEditor") return reviewMode === "update" ? "Edit plan" : "New plan";
+    if (screen === "deletePlan") return "Delete";
     if (screen === "processing") return "Planning";
     if (screen === "receipt") return "Receipt";
     if (screen === "review") return "Quote";
     return "Home";
-  }, [screen]);
+  }, [reviewMode, screen]);
 
   return (
     <main className="stage">
@@ -88,16 +234,65 @@ function App() {
               command={command}
               setCommand={setCommand}
               voiceState={voiceState}
+              activePlan={activePlan}
+              plansCount={plans.length}
+              showDemoPrompt={showDemoPrompt}
               onVoice={captureVoice}
-              onDetails={() => setScreen("details")}
-              onReview={() => setScreen("processing")}
+              onPlans={() => setScreen("plans")}
+              onBuild={() => {
+                setReviewMode("create");
+                buildPlan();
+              }}
+              onRunDemo={runDemo}
+              onSkipDemo={closeDemoPrompt}
               onReceipt={() => setScreen("receipt")}
             />
           )}
-          {screen === "details" && <DetailsScreen onHome={() => setScreen("plan")} onReview={() => setScreen("processing")} onReceipt={() => setScreen("receipt")} />}
-          {screen === "processing" && <ProcessingScreen step={runStep} />}
-          {screen === "review" && <ReviewScreen onEdit={() => setScreen("plan")} onConfirm={() => setScreen("receipt")} />}
-          {screen === "receipt" && <ReceiptScreen onHome={() => setScreen("plan")} />}
+          {screen === "plans" && (
+            <PlansScreen
+              plans={plans}
+              onHome={() => setScreen("plan")}
+              onNewPlan={openNewPlan}
+              onReceipt={() => setScreen("receipt")}
+              onSelectPlan={(planId) => {
+                setSelectedPlanId(planId);
+                setScreen("planDetail");
+              }}
+            />
+          )}
+          {screen === "planDetail" && activePlan && (
+            <PlanDetailScreen
+              plan={activePlan}
+              onBack={() => setScreen("plans")}
+              onEdit={openEditPlan}
+              onDelete={() => setScreen("deletePlan")}
+              onReceipt={() => setScreen("receipt")}
+            />
+          )}
+          {screen === "planEditor" && (
+            <PlanEditorScreen
+              mode={reviewMode}
+              command={command}
+              setCommand={setCommand}
+              voiceState={voiceState}
+              onVoice={captureVoice}
+              onCancel={() => setScreen(reviewMode === "update" ? "planDetail" : "plans")}
+              onBuild={buildPlan}
+            />
+          )}
+          {screen === "deletePlan" && activePlan && (
+            <DeletePlanScreen plan={activePlan} onCancel={() => setScreen("planDetail")} onDelete={confirmDeletePlan} />
+          )}
+          {screen === "processing" && <ProcessingScreen step={runStep} plan={previewPlan} command={command} />}
+          {screen === "review" && (
+            <ReviewScreen
+              plan={previewPlan}
+              mode={reviewMode}
+              onEdit={() => setScreen(reviewMode === "update" ? "planEditor" : "plan")}
+              onConfirm={confirmPlan}
+            />
+          )}
+          {screen === "receipt" && <ReceiptScreen plan={receiptPlan} onHome={() => setScreen("plan")} onPlans={() => setScreen("plans")} />}
         </div>
       </section>
 
@@ -150,23 +345,38 @@ function SplashScreen({ onStart }) {
   );
 }
 
-function PlanScreen({ command, setCommand, voiceState, onVoice, onDetails, onReview, onReceipt }) {
+function PlanScreen({
+  command,
+  setCommand,
+  voiceState,
+  activePlan,
+  plansCount,
+  showDemoPrompt,
+  onVoice,
+  onPlans,
+  onBuild,
+  onRunDemo,
+  onSkipDemo,
+  onReceipt,
+}) {
+  const plan = activePlan || defaultPlan;
+
   return (
     <div className="screen plan-screen">
       <div className="home-hero">
         <div className="home-actions">
           <button type="button" aria-label="Profile"><ChocoMark size="tiny" /></button>
-          <button type="button" onClick={onDetails}>Active plan</button>
+          <button type="button" onClick={onPlans}>Plans {plansCount}</button>
           <button type="button" aria-label="Support"><ShieldCheck size={20} /></button>
         </div>
         <div className="balance-copy">
           <span>{plan.corridor}</span>
           <strong>{plan.amount}</strong>
-          <p>{plan.asset} to {plan.recipient} · {plan.schedule}</p>
+          <p>{plan.asset} to {plan.recipient} - {plan.schedule}</p>
         </div>
         <div className="hero-buttons">
-          <button type="button" onClick={onReview}>Review quote</button>
-          <button type="button" onClick={onDetails}>Details</button>
+          <button type="button" onClick={onBuild}>New plan</button>
+          <button type="button" onClick={onPlans}>Plans</button>
         </div>
       </div>
 
@@ -180,37 +390,92 @@ function PlanScreen({ command, setCommand, voiceState, onVoice, onDetails, onRev
           <button className="pill-button" type="button" aria-label="Record voice command" onClick={onVoice}>
             <Mic size={20} strokeWidth={2.6} />
           </button>
-          <button className="pill-button send" type="button" aria-label="Send instruction" onClick={onReview}>
+          <button className="pill-button send" type="button" aria-label="Send instruction" onClick={onBuild}>
             <ArrowRight size={24} strokeWidth={3} />
           </button>
         </div>
       </section>
 
-      <button className="primary-cta" type="button" onClick={onReview}>
-        Continue
+      <button className="primary-cta" type="button" onClick={onBuild}>
+        Build plan
       </button>
-      <BottomNav active="home" onHome={() => {}} onDetails={onDetails} onReceipt={onReceipt} />
+      <BottomNav active="home" onHome={() => {}} onPlans={onPlans} onReceipt={onReceipt} />
+      {showDemoPrompt && <DemoPrompt onRunDemo={onRunDemo} onSkipDemo={onSkipDemo} />}
     </div>
   );
 }
 
-function DetailsScreen({ onHome, onReview, onReceipt }) {
+function DemoPrompt({ onRunDemo, onSkipDemo }) {
+  return (
+    <div className="demo-overlay" role="dialog" aria-label="Choco demo">
+      <div className="demo-card">
+        <ChocoMark size="small" />
+        <h2>Try Choco in 30 seconds</h2>
+        <p>Watch one text or voice instruction become a quote, receipt, and saved plan.</p>
+        <div className="demo-actions">
+          <button type="button" onClick={onRunDemo}>Run demo</button>
+          <button type="button" onClick={onSkipDemo}>Skip</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PlansScreen({ plans, onSelectPlan, onNewPlan, onHome, onReceipt }) {
+  return (
+    <div className="screen plans-screen">
+      <div className="layer-heading">
+        <div>
+          <span>Manage</span>
+          <h2>Plans</h2>
+        </div>
+        <button type="button" onClick={onNewPlan}><Plus size={18} />New</button>
+      </div>
+
+      {plans.length > 0 ? (
+        <div className="plans-list" aria-label="Plans list">
+          {plans.map((item) => (
+            <button className="plan-row" type="button" key={item.id} onClick={() => onSelectPlan(item.id)}>
+              <div className="plan-row-icon"><ChocoMark size="tiny" /></div>
+              <div>
+                <b>{item.recipient}</b>
+                <span>{item.amount} {item.asset} - {item.schedule}</span>
+              </div>
+              <small>{item.status}</small>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="empty-plans">
+          <ChocoMark size="small" />
+          <h2>No plans yet</h2>
+          <p>Create one with a text or voice instruction. Choco will show a quote before anything is activated.</p>
+          <button type="button" onClick={onNewPlan}>New plan</button>
+        </div>
+      )}
+
+      <BottomNav active="plans" onHome={onHome} onPlans={() => {}} onReceipt={onReceipt} />
+    </div>
+  );
+}
+
+function PlanDetailScreen({ plan, onBack, onEdit, onDelete, onReceipt }) {
   return (
     <div className="screen details-screen">
       <section className="asset-card compact" aria-label="Plan summary">
         <div className="asset-row">
           <div className="asset-icon"><ChocoMark size="small" /></div>
           <div>
-            <h2>Family transfer</h2>
-            <p>{plan.routeEstimate} · {plan.fee} network fee</p>
+            <h2>{plan.recipient}</h2>
+            <p>{plan.routeEstimate} - {plan.fee} network fee</p>
           </div>
-          <span className="status-chip">Ready</span>
+          <span className="status-chip">{plan.status}</span>
         </div>
 
         <div className="pay-row">
           <Wallet size={26} strokeWidth={2.5} />
-          <strong>Pay {plan.payAsset}</strong>
-          <span>on Celo</span>
+          <strong>{plan.amount} {plan.asset}</strong>
+          <span>{plan.nextDate}</span>
         </div>
       </section>
 
@@ -223,17 +488,78 @@ function DetailsScreen({ onHome, onReview, onReceipt }) {
       <div className="detail-grid" aria-label="Plan details">
         <SummaryTile label="Route" value={`${plan.payAsset} to ${plan.asset}`} />
         <SummaryTile label="Retry" value="3 attempts" />
-        <SummaryTile label="Fee" value={plan.fee} />
+        <SummaryTile label="Schedule" value={plan.schedule} />
         <SummaryTile label="Receipt" value="Onchain" />
       </div>
 
-      <button className="primary-cta" type="button" onClick={onReview}>Review quote</button>
-      <BottomNav active="details" onHome={onHome} onDetails={() => {}} onReceipt={onReceipt} />
+      <div className="plan-actions">
+        <button type="button" onClick={onEdit}><Pencil size={18} />Edit</button>
+        <button className="danger-action" type="button" onClick={onDelete}><Trash2 size={18} />Delete</button>
+      </div>
+
+      <button className="secondary-dark" type="button" onClick={onBack}>Back to plans</button>
+      <BottomNav active="plans" onHome={onBack} onPlans={onBack} onReceipt={onReceipt} />
     </div>
   );
 }
 
-function ProcessingScreen({ step }) {
+function PlanEditorScreen({ mode, command, setCommand, voiceState, onVoice, onCancel, onBuild }) {
+  const title = mode === "update" ? "Update with one message" : "Create with one message";
+
+  return (
+    <div className="screen editor-screen">
+      <section className="editor-card">
+        <ChocoMark size="small" />
+        <div>
+          <span>{mode === "update" ? "Edit plan" : "New plan"}</span>
+          <h2>{title}</h2>
+          <p>Type or speak the instruction. Choco turns it into a quote before saving.</p>
+        </div>
+      </section>
+
+      <section className="composer" aria-label="Command composer">
+        <div className="composer-label">
+          <span>{voiceState}</span>
+          <span></span>
+        </div>
+        <div className="composer-box">
+          <input value={command} onChange={(event) => setCommand(event.target.value)} aria-label="Plan instruction" />
+          <button className="pill-button" type="button" aria-label="Record voice command" onClick={onVoice}>
+            <Mic size={20} strokeWidth={2.6} />
+          </button>
+          <button className="pill-button send" type="button" aria-label="Build plan" onClick={onBuild}>
+            <ArrowRight size={24} strokeWidth={3} />
+          </button>
+        </div>
+      </section>
+
+      <button className="primary-cta" type="button" onClick={onBuild}>
+        {mode === "update" ? "Update plan" : "Build plan"}
+      </button>
+      <button className="secondary-dark" type="button" onClick={onCancel}>Cancel</button>
+    </div>
+  );
+}
+
+function DeletePlanScreen({ plan, onCancel, onDelete }) {
+  return (
+    <LightSheet>
+      <div className="sheet-top">
+        <div className="sheet-icon"><Trash2 size={24} /></div>
+        <h2>Delete this plan?</h2>
+      </div>
+
+      <div className="notice">
+        {plan.recipient} will no longer have the {plan.amount} {plan.asset} scheduled transfer in this Mini App demo.
+      </div>
+
+      <button className="danger-cta" type="button" onClick={onDelete}>Delete plan</button>
+      <button className="secondary-cta" type="button" onClick={onCancel}>Keep plan</button>
+    </LightSheet>
+  );
+}
+
+function ProcessingScreen({ step, plan, command }) {
   const feed = [
     {
       icon: <Check size={15} />,
@@ -263,7 +589,7 @@ function ProcessingScreen({ step }) {
           </div>
         </div>
 
-        <div className="agent-bubble user">send my mum 50k KES every 1st</div>
+        <div className="agent-bubble user">{command}</div>
 
         <div className={`agent-toast ${step >= 1 ? "show" : ""}`}>
           <ChocoMark size="tiny" />
@@ -294,13 +620,15 @@ function ProcessingScreen({ step }) {
   );
 }
 
-function ReviewScreen({ onEdit, onConfirm }) {
+function ReviewScreen({ plan, mode, onEdit, onConfirm }) {
+  const chip = mode === "update" ? "UPDATE" : mode === "demo" ? "DEMO" : "NEW";
+
   return (
     <LightSheet>
       <div className="sheet-top">
         <div className="sheet-icon"><ChocoMark size="small" /></div>
         <h2>Choco monthly plan</h2>
-        <span className="sheet-chip">NEW</span>
+        <span className="sheet-chip">{chip}</span>
       </div>
 
       <div className="sheet-tabs">
@@ -317,13 +645,13 @@ function ReviewScreen({ onEdit, onConfirm }) {
         <div className="route-arrow"><ArrowRight size={22} /></div>
         <div className="route-node">
           <b>{plan.asset}</b>
-          <small>{plan.recipient} · Kenya</small>
+          <small>{plan.recipient} - Kenya</small>
         </div>
       </div>
 
       <div className="summary-grid">
         <SummaryCard label="Amount" value={`${plan.amount} ${plan.asset}`} />
-        <SummaryCard label="Schedule" value="Every 1st" />
+        <SummaryCard label="Schedule" value={plan.schedule.replace(" - 9:00 AM", "")} />
         <SummaryCard label="Fee" value={plan.fee} />
         <SummaryCard label="Retries" value="3 attempts" />
       </div>
@@ -336,7 +664,7 @@ function ReviewScreen({ onEdit, onConfirm }) {
   );
 }
 
-function ReceiptScreen({ onHome }) {
+function ReceiptScreen({ plan, onHome, onPlans }) {
   return (
     <LightSheet>
       <div className="sheet-top">
@@ -356,15 +684,16 @@ function ReceiptScreen({ onHome }) {
       <div className="notice future">Future development: add UK to NGN and expand beyond Mini Apps into WhatsApp, Telegram, Facebook Messenger, and related social messaging networks.</div>
 
       <button className="primary-cta" type="button" onClick={onHome}>Return home</button>
+      <button className="secondary-cta" type="button" onClick={onPlans}>View plans</button>
     </LightSheet>
   );
 }
 
-function BottomNav({ active, onHome, onDetails, onReceipt }) {
+function BottomNav({ active, onHome, onPlans, onReceipt }) {
   return (
     <nav className="bottom-nav" aria-label="Mini App navigation">
       <button className={active === "home" ? "active" : ""} type="button" onClick={onHome}><Wallet size={20} />Home</button>
-      <button className={active === "details" ? "active" : ""} type="button" onClick={onDetails}><CalendarDays size={20} />Details</button>
+      <button className={active === "plans" ? "active" : ""} type="button" onClick={onPlans}><ListChecks size={20} />Plans</button>
       <button type="button" onClick={onReceipt}><ReceiptText size={20} />Receipt</button>
     </nav>
   );

@@ -204,7 +204,8 @@ a {
     linear-gradient(135deg, rgba(217, 166, 121, 0.07) 25%, transparent 25%) 0 0 / 44px 44px,
     linear-gradient(225deg, rgba(217, 166, 121, 0.045) 25%, transparent 25%) 0 0 / 44px 44px,
     linear-gradient(180deg, var(--cocoa-850), var(--cocoa-900));
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   position: relative;
 }
 
@@ -673,8 +674,15 @@ a {
 
 .primary-cta:active,
 .secondary-cta:active,
+.secondary-dark:active,
+.danger-cta:active,
 .pill-button:active,
 .hero-buttons button:active,
+.demo-actions button:active,
+.layer-heading button:active,
+.plan-row:active,
+.plan-actions button:active,
+.empty-plans button:active,
 .panel-actions button:active {
   transform: scale(0.985);
 }
@@ -703,6 +711,253 @@ a {
 .bottom-nav button.active {
   background: rgba(246, 232, 212, 0.12);
   color: var(--cream);
+}
+
+.demo-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: grid;
+  align-items: end;
+  padding: 18px;
+  background: linear-gradient(180deg, rgba(5, 3, 2, 0.08), rgba(5, 3, 2, 0.72));
+}
+
+.demo-card {
+  width: 100%;
+  padding: 18px;
+  border: 1px solid rgba(58, 36, 21, 0.14);
+  border-radius: 24px;
+  background: var(--cream);
+  color: var(--cocoa-900);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.36);
+}
+
+.demo-card h2,
+.empty-plans h2,
+.editor-card h2,
+.layer-heading h2 {
+  margin: 0;
+  letter-spacing: -0.04em;
+}
+
+.demo-card h2 {
+  margin-top: 12px;
+  font-size: 24px;
+}
+
+.demo-card p {
+  margin: 8px 0 16px;
+  color: var(--cocoa-500);
+  line-height: 1.45;
+}
+
+.demo-actions {
+  display: grid;
+  grid-template-columns: 1fr 0.7fr;
+  gap: 10px;
+}
+
+.demo-actions button,
+.layer-heading button,
+.empty-plans button,
+.plan-actions button,
+.secondary-dark,
+.danger-cta {
+  min-height: 48px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 850;
+  transition: transform 0.12s ease;
+}
+
+.demo-actions button:first-child,
+.layer-heading button,
+.empty-plans button {
+  background: var(--cocoa-900);
+  color: var(--cream);
+}
+
+.demo-actions button:last-child {
+  border: 1px solid rgba(58, 36, 21, 0.16);
+  background: transparent;
+  color: var(--cocoa-700);
+}
+
+.plans-screen,
+.editor-screen {
+  gap: 14px;
+}
+
+.layer-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 2px 0 4px;
+}
+
+.layer-heading span,
+.editor-card span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.layer-heading h2,
+.editor-card h2 {
+  color: var(--cream);
+  font-size: 30px;
+}
+
+.layer-heading button {
+  min-width: 96px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.plans-list {
+  display: grid;
+  gap: 10px;
+}
+
+.plan-row {
+  width: 100%;
+  min-height: 86px;
+  padding: 13px;
+  display: grid;
+  grid-template-columns: 46px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--line-soft);
+  border-radius: 22px;
+  background: rgba(16, 9, 6, 0.58);
+  color: var(--cream);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+
+.plan-row-icon {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: rgba(246, 232, 212, 0.1);
+}
+
+.plan-row b,
+.plan-row span {
+  display: block;
+}
+
+.plan-row b {
+  font-size: 17px;
+}
+
+.plan-row span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.plan-row small {
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: rgba(246, 232, 212, 0.1);
+  color: var(--latte-300);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.empty-plans {
+  min-height: 430px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 12px;
+  padding: 24px;
+  border: 1px solid var(--line-soft);
+  border-radius: 28px;
+  background: rgba(16, 9, 6, 0.48);
+  text-align: center;
+}
+
+.empty-plans h2 {
+  color: var(--cream);
+  font-size: 25px;
+}
+
+.empty-plans p {
+  max-width: 280px;
+  margin: 0 0 8px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.empty-plans button {
+  min-width: 150px;
+}
+
+.plan-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.plan-actions button,
+.secondary-dark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--line-soft);
+  background: rgba(16, 9, 6, 0.58);
+  color: var(--cream);
+}
+
+.plan-actions .danger-action,
+.danger-cta {
+  background: var(--cocoa-700);
+  color: var(--cream);
+}
+
+.secondary-dark {
+  width: 100%;
+  margin-top: 0;
+}
+
+.editor-card {
+  min-height: 188px;
+  padding: 20px;
+  display: grid;
+  align-content: end;
+  gap: 16px;
+  border: 1px solid var(--line-soft);
+  border-radius: 28px;
+  background:
+    linear-gradient(135deg, rgba(246, 232, 212, 0.07) 25%, transparent 25%) 0 0 / 36px 36px,
+    rgba(16, 9, 6, 0.58);
+}
+
+.editor-card p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.danger-cta {
+  width: 100%;
+  margin-bottom: 10px;
 }
 
 .processing-screen {
