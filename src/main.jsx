@@ -238,7 +238,7 @@ function App() {
     if (screen !== "demoTour") return undefined;
     const timer = window.setTimeout(() => {
       if (demoStep === demoSteps.length - 1) {
-        setScreen("history");
+        setScreen("plan");
         return;
       }
 
@@ -297,7 +297,7 @@ function App() {
   }
 
   function finishDemo() {
-    setScreen("history");
+    setScreen("plan");
   }
 
   function confirmPlan() {
