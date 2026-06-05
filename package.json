@@ -4,7 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "npm run build"
   },
   "repository": {
     "type": "git",
@@ -19,7 +22,13 @@
   },
   "homepage": "https://github.com/LuisAlejandroCR/choco-minipay#readme",
   "dependencies": {
-    "viem": "^2.52.2"
+    "@vitejs/plugin-react": "^6.0.2",
+    "lucide-react": "^1.17.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "typescript": "^6.0.3",
+    "viem": "^2.52.2",
+    "vite": "^8.0.16"
   },
   "devDependencies": {
     "tsx": "^4.22.4"
