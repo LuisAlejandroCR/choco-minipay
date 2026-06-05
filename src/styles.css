@@ -71,7 +71,8 @@ a {
   min-height: min(900px, 100dvh);
   background: #000;
   border: 1px solid rgba(246, 232, 212, 0.08);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   box-shadow: 0 34px 90px rgba(0, 0, 0, 0.42);
 }
 
@@ -249,66 +250,113 @@ a {
 .choco-mark {
   width: 116px;
   height: 116px;
-  border-radius: 30px;
-  display: grid;
-  place-items: center;
+  display: block;
   position: relative;
-  overflow: hidden;
-  background: linear-gradient(145deg, var(--cream), var(--latte-300));
-  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.3);
+  overflow: visible;
+  background: transparent;
+  box-shadow: none;
+  animation: cacaoFloat 3.6s ease-in-out infinite;
 }
 
 .choco-mark.small {
   width: 36px;
   height: 36px;
-  border-radius: 12px;
-  box-shadow: none;
 }
 
 .choco-mark.tiny {
   width: 36px;
   height: 36px;
-  border-radius: 50%;
-  box-shadow: none;
 }
 
-.mark-bean {
+.cacao-shadow {
   width: 64%;
-  height: 72%;
-  border-radius: 58% 46% 54% 48%;
-  background: var(--cocoa-700);
-  transform: rotate(-26deg);
-  position: absolute;
-}
-
-.mark-path {
-  width: 18%;
-  height: 68%;
+  height: 10%;
   border-radius: 999px;
-  background: var(--latte-500);
-  transform: rotate(28deg);
+  background: rgba(0, 0, 0, 0.28);
+  filter: blur(3px);
   position: absolute;
+  left: 18%;
+  bottom: 3%;
+  animation: cacaoShadow 3.6s ease-in-out infinite;
 }
 
-.mark-seed {
-  width: 18%;
-  height: 18%;
+.cacao-pod {
+  width: 62%;
+  height: 78%;
+  border-radius: 58% 42% 54% 46%;
+  background:
+    radial-gradient(circle at 62% 24%, rgba(246, 232, 212, 0.42), transparent 13%),
+    linear-gradient(145deg, var(--latte-500), var(--cocoa-600) 52%, var(--cocoa-800));
+  box-shadow:
+    inset 8px -12px 20px rgba(16, 9, 6, 0.26),
+    0 18px 42px rgba(0, 0, 0, 0.28);
+  position: absolute;
+  left: 19%;
+  top: 7%;
+  transform: rotate(-18deg);
+}
+
+.cacao-ridge {
+  width: 5%;
+  height: 62%;
+  border-radius: 999px;
+  background: rgba(246, 232, 212, 0.34);
+  position: absolute;
+  top: 15%;
+  transform: rotate(-18deg);
+}
+
+.ridge-a { left: 39%; }
+.ridge-b { left: 49%; opacity: 0.72; }
+.ridge-c { left: 59%; opacity: 0.46; }
+
+.cacao-nib {
+  width: 16%;
+  height: 16%;
   border-radius: 50%;
-  background: var(--cocoa-900);
+  background: var(--cream);
+  border: 3px solid var(--cocoa-900);
   position: absolute;
-  right: 27%;
-  top: 24%;
+  animation: nibPulse 3.6s ease-in-out infinite;
 }
 
-.choco-mark.small .mark-seed,
-.choco-mark.tiny .mark-seed {
+.nib-a {
+  right: 20%;
+  top: 18%;
+}
+
+.nib-b {
+  left: 20%;
+  bottom: 20%;
+  animation-delay: 0.45s;
+}
+
+.choco-mark.small .cacao-nib,
+.choco-mark.tiny .cacao-nib,
+.choco-mark.small .cacao-shadow,
+.choco-mark.tiny .cacao-shadow {
   display: none;
+}
+
+@keyframes cacaoFloat {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-8px) rotate(2deg); }
+}
+
+@keyframes cacaoShadow {
+  0%, 100% { transform: scaleX(1); opacity: 0.55; }
+  50% { transform: scaleX(0.72); opacity: 0.28; }
+}
+
+@keyframes nibPulse {
+  0%, 100% { transform: scale(1); opacity: 0.95; }
+  50% { transform: scale(0.82); opacity: 0.68; }
 }
 
 .home-hero {
   margin: -6px -4px 18px;
   padding: 18px 14px 22px;
-  min-height: 286px;
+  min-height: 390px;
   border-radius: 28px;
   background:
     linear-gradient(135deg, rgba(246, 232, 212, 0.08) 25%, transparent 25%) 0 0 / 36px 36px,
@@ -341,7 +389,7 @@ a {
 }
 
 .balance-copy {
-  margin-top: 64px;
+  margin-top: 88px;
 }
 
 .balance-copy span {
@@ -370,7 +418,7 @@ a {
 }
 
 .hero-buttons {
-  margin-top: 36px;
+  margin-top: 70px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
@@ -391,31 +439,6 @@ a {
   color: var(--cocoa-900);
 }
 
-.segmented {
-  width: min(320px, 100%);
-  margin: 0 auto 14px;
-  padding: 4px;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: rgba(16, 9, 6, 0.42);
-}
-
-.segmented button {
-  min-height: 40px;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--muted);
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.segmented button.active {
-  background: var(--cream);
-  color: var(--cocoa-900);
-}
-
 .asset-card,
 .composer,
 .schedule-bar,
@@ -428,6 +451,10 @@ a {
   margin-bottom: 12px;
   padding: 16px;
   border-radius: 24px;
+}
+
+.asset-card.compact {
+  margin-top: 6px;
 }
 
 .asset-row,
@@ -511,6 +538,43 @@ a {
   font-size: 12px;
   font-weight: 800;
   text-transform: uppercase;
+}
+
+.details-screen {
+  gap: 12px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.summary-tile {
+  min-height: 98px;
+  padding: 16px;
+  border: 1px solid var(--line-soft);
+  border-radius: 22px;
+  background: rgba(16, 9, 6, 0.58);
+}
+
+.summary-tile span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.summary-tile b {
+  display: block;
+  margin-top: 16px;
+  color: var(--cream);
+  font-size: 18px;
+  line-height: 1.18;
+  letter-spacing: -0.035em;
 }
 
 .track {

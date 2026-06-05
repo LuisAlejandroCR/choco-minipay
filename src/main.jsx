@@ -53,8 +53,10 @@ function App() {
 
   const screenTitle = useMemo(() => {
     if (screen === "splash") return "Choco";
+    if (screen === "details") return "Plan";
     if (screen === "processing") return "Planning";
     if (screen === "receipt") return "Receipt";
+    if (screen === "review") return "Quote";
     return "Home";
   }, [screen]);
 
@@ -80,10 +82,12 @@ function App() {
               setCommand={setCommand}
               voiceState={voiceState}
               onVoice={captureVoice}
+              onDetails={() => setScreen("details")}
               onReview={() => setScreen("processing")}
               onReceipt={() => setScreen("receipt")}
             />
           )}
+          {screen === "details" && <DetailsScreen onHome={() => setScreen("plan")} onReview={() => setScreen("processing")} onReceipt={() => setScreen("receipt")} />}
           {screen === "processing" && <ProcessingScreen />}
           {screen === "review" && <ReviewScreen onEdit={() => setScreen("plan")} onConfirm={() => setScreen("receipt")} />}
           {screen === "receipt" && <ReceiptScreen onNewPlan={() => setScreen("plan")} />}
@@ -116,9 +120,13 @@ function StatusBar() {
 function ChocoMark({ size = "large" }) {
   return (
     <div className={`choco-mark ${size}`} aria-label="Choco logo">
-      <span className="mark-bean" />
-      <span className="mark-path" />
-      <span className="mark-seed" />
+      <span className="cacao-shadow" />
+      <span className="cacao-pod" />
+      <span className="cacao-ridge ridge-a" />
+      <span className="cacao-ridge ridge-b" />
+      <span className="cacao-ridge ridge-c" />
+      <span className="cacao-nib nib-a" />
+      <span className="cacao-nib nib-b" />
     </div>
   );
 }
@@ -135,33 +143,54 @@ function SplashScreen({ onStart }) {
   );
 }
 
-function PlanScreen({ command, setCommand, voiceState, onVoice, onReview, onReceipt }) {
+function PlanScreen({ command, setCommand, voiceState, onVoice, onDetails, onReview, onReceipt }) {
   return (
     <div className="screen plan-screen">
       <div className="home-hero">
         <div className="home-actions">
           <button type="button" aria-label="Profile"><ChocoMark size="tiny" /></button>
-          <button type="button">Agent</button>
+          <button type="button" onClick={onDetails}>Active plan</button>
           <button type="button" aria-label="Support"><ShieldCheck size={20} /></button>
         </div>
         <div className="balance-copy">
-          <span>Active plan</span>
+          <span>{plan.corridor}</span>
           <strong>{plan.amount}</strong>
           <p>{plan.asset} to {plan.recipient} · {plan.schedule}</p>
         </div>
         <div className="hero-buttons">
-          <button type="button" onClick={onReview}>Review</button>
-          <button type="button" onClick={onReceipt}>Receipt</button>
+          <button type="button" onClick={onReview}>Review quote</button>
+          <button type="button" onClick={onDetails}>Details</button>
         </div>
       </div>
 
-      <div className="segmented" role="tablist" aria-label="Choco app sections">
-        <button className="active" type="button">Plan</button>
-        <button type="button" onClick={onReview}>Quote</button>
-        <button type="button" onClick={onReceipt}>Receipt</button>
-      </div>
+      <section className="composer" aria-label="Command composer">
+        <div className="composer-label">
+          <span>{voiceState}</span>
+          <span>v1</span>
+        </div>
+        <div className="composer-box">
+          <input value={command} onChange={(event) => setCommand(event.target.value)} aria-label="Remittance instruction" />
+          <button className="pill-button" type="button" aria-label="Record voice command" onClick={onVoice}>
+            <Mic size={20} strokeWidth={2.6} />
+          </button>
+          <button className="pill-button send" type="button" aria-label="Send instruction" onClick={onReview}>
+            <ArrowRight size={24} strokeWidth={3} />
+          </button>
+        </div>
+      </section>
 
-      <section className="asset-card" aria-label="Remittance plan">
+      <button className="primary-cta" type="button" onClick={onReview}>
+        Continue
+      </button>
+      <BottomNav active="home" onHome={() => {}} onDetails={onDetails} onReceipt={onReceipt} />
+    </div>
+  );
+}
+
+function DetailsScreen({ onHome, onReview, onReceipt }) {
+  return (
+    <div className="screen details-screen">
+      <section className="asset-card compact" aria-label="Plan summary">
         <div className="asset-row">
           <div className="asset-icon"><ChocoMark size="small" /></div>
           <div>
@@ -184,26 +213,15 @@ function PlanScreen({ command, setCommand, voiceState, onVoice, onReview, onRece
         <span>{plan.nextDate}</span>
       </div>
 
-      <section className="composer" aria-label="Command composer">
-        <div className="composer-label">
-          <span>{voiceState}</span>
-          <span>v1</span>
-        </div>
-        <div className="composer-box">
-          <input value={command} onChange={(event) => setCommand(event.target.value)} aria-label="Remittance instruction" />
-          <button className="pill-button" type="button" aria-label="Record voice command" onClick={onVoice}>
-            <Mic size={20} strokeWidth={2.6} />
-          </button>
-          <button className="pill-button send" type="button" aria-label="Send instruction" onClick={onReview}>
-            <ArrowRight size={24} strokeWidth={3} />
-          </button>
-        </div>
-      </section>
+      <div className="detail-grid" aria-label="Plan details">
+        <SummaryTile label="Route" value={`${plan.payAsset} to ${plan.asset}`} />
+        <SummaryTile label="Retry" value="3 attempts" />
+        <SummaryTile label="Fee" value={plan.fee} />
+        <SummaryTile label="Receipt" value="Onchain" />
+      </div>
 
-      <button className="primary-cta" type="button" onClick={onReview}>
-        Review plan
-      </button>
-      <BottomNav />
+      <button className="primary-cta" type="button" onClick={onReview}>Review quote</button>
+      <BottomNav active="details" onHome={onHome} onDetails={() => {}} onReceipt={onReceipt} />
     </div>
   );
 }
@@ -292,12 +310,12 @@ function ReceiptScreen({ onNewPlan }) {
   );
 }
 
-function BottomNav() {
+function BottomNav({ active, onHome, onDetails, onReceipt }) {
   return (
     <nav className="bottom-nav" aria-label="Mini App navigation">
-      <button className="active" type="button"><Wallet size={20} />Home</button>
-      <button type="button"><CalendarDays size={20} />Plans</button>
-      <button type="button"><ReceiptText size={20} />Receipts</button>
+      <button className={active === "home" ? "active" : ""} type="button" onClick={onHome}><Wallet size={20} />Home</button>
+      <button className={active === "details" ? "active" : ""} type="button" onClick={onDetails}><CalendarDays size={20} />Details</button>
+      <button type="button" onClick={onReceipt}><ReceiptText size={20} />Receipt</button>
     </nav>
   );
 }
@@ -309,6 +327,15 @@ function LightSheet({ children }) {
 function SummaryCard({ label, value }) {
   return (
     <div className="summary-card">
+      <span>{label}</span>
+      <b>{value}</b>
+    </div>
+  );
+}
+
+function SummaryTile({ label, value }) {
+  return (
+    <div className="summary-tile">
       <span>{label}</span>
       <b>{value}</b>
     </div>
