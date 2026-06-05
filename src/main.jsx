@@ -4,15 +4,12 @@ import {
   ArrowRight,
   CalendarDays,
   Check,
-  ChevronRight,
   CircleDollarSign,
-  Headphones,
   Mic,
   ReceiptText,
   RefreshCw,
   Send,
   ShieldCheck,
-  Sparkles,
   Wallet,
   X,
 } from "lucide-react";
@@ -33,9 +30,15 @@ const plan = {
 };
 
 function App() {
-  const [screen, setScreen] = useState("intro");
+  const [screen, setScreen] = useState("splash");
   const [command, setCommand] = useState("send my mum 50k KES every 1st");
   const [voiceState, setVoiceState] = useState("Text or voice");
+
+  useEffect(() => {
+    if (screen !== "splash") return undefined;
+    const timer = window.setTimeout(() => setScreen("plan"), 1250);
+    return () => window.clearTimeout(timer);
+  }, [screen]);
 
   useEffect(() => {
     if (screen !== "processing") return undefined;
@@ -49,10 +52,10 @@ function App() {
   }
 
   const screenTitle = useMemo(() => {
-    if (screen === "intro") return "Choco";
+    if (screen === "splash") return "Choco";
     if (screen === "processing") return "Planning";
     if (screen === "receipt") return "Receipt";
-    return "Send KES";
+    return "Home";
   }, [screen]);
 
   return (
@@ -60,7 +63,7 @@ function App() {
       <section className="miniapp" aria-label="Choco Mini App">
         <StatusBar />
         <div className="topbar">
-          <button className="icon-button" type="button" aria-label="Back to start" onClick={() => setScreen("intro")}>
+          <button className="icon-button" type="button" aria-label="Back to home" onClick={() => setScreen("plan")}>
             <X size={34} strokeWidth={2.4} />
           </button>
           <div className="app-title">{screenTitle}</div>
@@ -70,7 +73,7 @@ function App() {
         </div>
 
         <div className={`app-panel tone-${screen}`}>
-          {screen === "intro" && <IntroScreen onStart={() => setScreen("plan")} />}
+          {screen === "splash" && <SplashScreen onStart={() => setScreen("plan")} />}
           {screen === "plan" && (
             <PlanScreen
               command={command}
@@ -110,47 +113,46 @@ function StatusBar() {
   );
 }
 
-function IntroScreen({ onStart }) {
+function ChocoMark({ size = "large" }) {
   return (
-    <div className="screen intro-screen">
-      <div className="intro-copy">
-        <div className="eyebrow">Mini App remittance concierge</div>
-        <h1>Send home without repeating yourself</h1>
-        <p>Tell Choco once by text or voice. It plans the USDC to KESm transfer, retries failures, and files the receipt.</p>
-      </div>
-
-      <ChocoWalletArt />
-
-      <button className="primary-cta" type="button" onClick={onStart}>
-        Let's go
-      </button>
+    <div className={`choco-mark ${size}`} aria-label="Choco logo">
+      <span className="mark-bean" />
+      <span className="mark-path" />
+      <span className="mark-seed" />
     </div>
   );
 }
 
-function ChocoWalletArt() {
+function SplashScreen({ onStart }) {
   return (
-    <div className="choco-art" aria-hidden="true">
-      <div className="coin small" />
-      <div className="coin medium" />
-      <div className="coin big">C</div>
-      <Sparkles className="spark spark-one" size={48} strokeWidth={2.8} />
-      <Sparkles className="spark spark-two" size={38} strokeWidth={2.8} />
-      <div className="wallet-art">
-        <Send className="wallet-plane" size={32} strokeWidth={3} />
-        <div className="wallet-label">Mini<br />Pay</div>
-        <div className="wallet-dot" />
+    <button className="screen splash-screen" type="button" onClick={onStart} aria-label="Open Choco">
+      <ChocoMark />
+      <div className="splash-footer">
+        <b>Built by Choco</b>
+        <span>Remittance concierge for MiniPay</span>
       </div>
-    </div>
+    </button>
   );
 }
 
 function PlanScreen({ command, setCommand, voiceState, onVoice, onReview, onReceipt }) {
   return (
     <div className="screen plan-screen">
-      <div className="promo-banner">
-        <b>Plan 50k KES for Mom</b>
-        <span>{plan.corridor} · monthly on the 1st</span>
+      <div className="home-hero">
+        <div className="home-actions">
+          <button type="button" aria-label="Profile"><ChocoMark size="tiny" /></button>
+          <button type="button">Agent</button>
+          <button type="button" aria-label="Support"><ShieldCheck size={20} /></button>
+        </div>
+        <div className="balance-copy">
+          <span>Active plan</span>
+          <strong>{plan.amount}</strong>
+          <p>{plan.asset} to {plan.recipient} · {plan.schedule}</p>
+        </div>
+        <div className="hero-buttons">
+          <button type="button" onClick={onReview}>Review</button>
+          <button type="button" onClick={onReceipt}>Receipt</button>
+        </div>
       </div>
 
       <div className="segmented" role="tablist" aria-label="Choco app sections">
@@ -161,21 +163,16 @@ function PlanScreen({ command, setCommand, voiceState, onVoice, onReview, onRece
 
       <section className="asset-card" aria-label="Remittance plan">
         <div className="asset-row">
-          <div className="asset-icon"><Wallet size={26} strokeWidth={2.7} /></div>
+          <div className="asset-icon"><ChocoMark size="small" /></div>
           <div>
             <h2>Family transfer</h2>
-            <p>{plan.routeEstimate} · {plan.fee} fee</p>
+            <p>{plan.routeEstimate} · {plan.fee} network fee</p>
           </div>
           <span className="status-chip">Ready</span>
         </div>
 
-        <div className="amount-block">
-          <strong>{plan.amount}</strong>
-          <span>{plan.asset} for {plan.recipient}</span>
-        </div>
-
         <div className="pay-row">
-          <CircleDollarSign size={28} strokeWidth={2.5} />
+          <Wallet size={26} strokeWidth={2.5} />
           <strong>Pay {plan.payAsset}</strong>
           <span>on Celo</span>
         </div>
@@ -206,7 +203,7 @@ function PlanScreen({ command, setCommand, voiceState, onVoice, onReview, onRece
       <button className="primary-cta" type="button" onClick={onReview}>
         Review plan
       </button>
-      <p className="microcopy">Text and voice are included in the first version. Choco lives inside Mini Apps for now.</p>
+      <BottomNav />
     </div>
   );
 }
@@ -215,9 +212,7 @@ function ProcessingScreen() {
   return (
     <div className="screen processing-screen">
       <div className="spinner" aria-hidden="true" />
-      <div className="loader-logo" aria-hidden="true">
-        <span />
-      </div>
+      <ChocoMark />
       <div className="processing-copy">
         <h2>Choco is building your plan</h2>
         <p>Parsing the instruction, quoting USDC to KESm, and preparing the monthly execution.</p>
@@ -235,7 +230,7 @@ function ReviewScreen({ onEdit, onConfirm }) {
   return (
     <LightSheet>
       <div className="sheet-top">
-        <div className="sheet-icon"><ShieldCheck size={27} strokeWidth={2.6} /></div>
+        <div className="sheet-icon"><ChocoMark size="small" /></div>
         <h2>Choco monthly plan</h2>
         <span className="sheet-chip">NEW</span>
       </div>
@@ -297,6 +292,16 @@ function ReceiptScreen({ onNewPlan }) {
   );
 }
 
+function BottomNav() {
+  return (
+    <nav className="bottom-nav" aria-label="Mini App navigation">
+      <button className="active" type="button"><Wallet size={20} />Home</button>
+      <button type="button"><CalendarDays size={20} />Plans</button>
+      <button type="button"><ReceiptText size={20} />Receipts</button>
+    </nav>
+  );
+}
+
 function LightSheet({ children }) {
   return <div className="screen light-sheet">{children}</div>;
 }
@@ -340,7 +345,7 @@ function ProjectPanel({ setScreen }) {
       </div>
 
       <div className="panel-actions">
-        <button type="button" onClick={() => setScreen("plan")}>Open app flow</button>
+        <button type="button" onClick={() => setScreen("plan")}>Open app</button>
         <a href="https://testnet.8004scan.io/agents/celo-sepolia/309" target="_blank" rel="noreferrer">Registry</a>
       </div>
     </aside>
