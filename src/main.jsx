@@ -33,6 +33,7 @@ function App() {
   const [screen, setScreen] = useState("splash");
   const [command, setCommand] = useState("send my mum 50k KES every 1st");
   const [voiceState, setVoiceState] = useState("Text or voice");
+  const [runStep, setRunStep] = useState(0);
 
   useEffect(() => {
     if (screen !== "splash") return undefined;
@@ -42,8 +43,14 @@ function App() {
 
   useEffect(() => {
     if (screen !== "processing") return undefined;
-    const timer = window.setTimeout(() => setScreen("review"), 1400);
-    return () => window.clearTimeout(timer);
+    setRunStep(0);
+    const timers = [
+      window.setTimeout(() => setRunStep(1), 320),
+      window.setTimeout(() => setRunStep(2), 860),
+      window.setTimeout(() => setRunStep(3), 1400),
+      window.setTimeout(() => setScreen("review"), 2450),
+    ];
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
   }, [screen]);
 
   function captureVoice() {
@@ -88,9 +95,9 @@ function App() {
             />
           )}
           {screen === "details" && <DetailsScreen onHome={() => setScreen("plan")} onReview={() => setScreen("processing")} onReceipt={() => setScreen("receipt")} />}
-          {screen === "processing" && <ProcessingScreen />}
+          {screen === "processing" && <ProcessingScreen step={runStep} />}
           {screen === "review" && <ReviewScreen onEdit={() => setScreen("plan")} onConfirm={() => setScreen("receipt")} />}
-          {screen === "receipt" && <ReceiptScreen onNewPlan={() => setScreen("plan")} />}
+          {screen === "receipt" && <ReceiptScreen onHome={() => setScreen("plan")} />}
         </div>
       </section>
 
@@ -166,7 +173,7 @@ function PlanScreen({ command, setCommand, voiceState, onVoice, onDetails, onRev
       <section className="composer" aria-label="Command composer">
         <div className="composer-label">
           <span>{voiceState}</span>
-          <span>v1</span>
+          <span></span>
         </div>
         <div className="composer-box">
           <input value={command} onChange={(event) => setCommand(event.target.value)} aria-label="Remittance instruction" />
@@ -226,19 +233,62 @@ function DetailsScreen({ onHome, onReview, onReceipt }) {
   );
 }
 
-function ProcessingScreen() {
+function ProcessingScreen({ step }) {
+  const feed = [
+    {
+      icon: <Check size={15} />,
+      title: "Intent detected",
+      copy: "Text or voice becomes one monthly transfer plan.",
+    },
+    {
+      icon: <RefreshCw size={15} />,
+      title: "Route prepared",
+      copy: "USDC is quoted into KESm on Celo.",
+    },
+    {
+      icon: <ReceiptText size={15} />,
+      title: "Guardrails attached",
+      copy: "Retries, recipient notice, and receipt are ready.",
+    },
+  ];
+
   return (
     <div className="screen processing-screen">
-      <div className="spinner" aria-hidden="true" />
-      <ChocoMark />
-      <div className="processing-copy">
-        <h2>Choco is building your plan</h2>
-        <p>Parsing the instruction, quoting USDC to KESm, and preparing the monthly execution.</p>
-      </div>
-      <div className="steps" aria-live="polite">
-        <div className="step"><Check size={15} />Text or voice intent detected</div>
-        <div className="step"><RefreshCw size={15} />USDC to KESm route prepared</div>
-        <div className="step"><ReceiptText size={15} />Receipt and retry policy attached</div>
+      <div className="agent-phone-card" aria-live="polite">
+        <div className="agent-phone-head">
+          <ChocoMark size="small" />
+          <div>
+            <span>Choco agent run</span>
+            <b>Mini App</b>
+          </div>
+        </div>
+
+        <div className="agent-bubble user">send my mum 50k KES every 1st</div>
+
+        <div className={`agent-toast ${step >= 1 ? "show" : ""}`}>
+          <ChocoMark size="tiny" />
+          <span>Plan detected</span>
+        </div>
+
+        <div className={`agent-plan ${step >= 1 ? "lift" : ""}`}>
+          <span>Monthly transfer</span>
+          <strong>{plan.amount} {plan.asset}</strong>
+          <small>To {plan.recipient} - {plan.schedule}</small>
+        </div>
+
+        <div className="agent-feed">
+          {feed.map((item, index) => (
+            <div className={`agent-line ${step > index ? "show" : ""}`} key={item.title}>
+              <div className="agent-line-icon">{item.icon}</div>
+              <div>
+                <b>{item.title}</b>
+                <span>{item.copy}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="agent-next">Opening quote review</div>
       </div>
     </div>
   );
@@ -286,7 +336,7 @@ function ReviewScreen({ onEdit, onConfirm }) {
   );
 }
 
-function ReceiptScreen({ onNewPlan }) {
+function ReceiptScreen({ onHome }) {
   return (
     <LightSheet>
       <div className="sheet-top">
@@ -305,7 +355,7 @@ function ReceiptScreen({ onNewPlan }) {
 
       <div className="notice future">Future development: add UK to NGN and expand beyond Mini Apps into WhatsApp, Telegram, Facebook Messenger, and related social messaging networks.</div>
 
-      <button className="primary-cta" type="button" onClick={onNewPlan}>Create another plan</button>
+      <button className="primary-cta" type="button" onClick={onHome}>Return home</button>
     </LightSheet>
   );
 }
