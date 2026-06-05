@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
+  ArrowLeft,
   ArrowRight,
   Bell,
   CalendarDays,
@@ -21,6 +22,9 @@ import {
   X,
 } from "lucide-react";
 import "./styles.css";
+
+const SPLASH_DURATION_MS = 2600;
+const DEMO_STEP_MS = 6000;
 
 const defaultPlan = {
   id: "mom-monthly",
@@ -144,6 +148,14 @@ const demoSteps = [
   },
 ];
 
+const DEMO_TOTAL_SECONDS = Math.round((demoSteps.length * DEMO_STEP_MS) / 1000);
+
+function formatDemoTime(totalSeconds) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = String(totalSeconds % 60).padStart(2, "0");
+  return `${minutes}:${seconds}`;
+}
+
 const infoPanels = {
   future: {
     eyebrow: "Future development",
@@ -167,6 +179,7 @@ function App() {
   const [voiceState, setVoiceState] = useState("Text or voice");
   const [runStep, setRunStep] = useState(0);
   const [demoStep, setDemoStep] = useState(0);
+  const [demoElapsedSeconds, setDemoElapsedSeconds] = useState(0);
   const [plans, setPlans] = useState([defaultPlan]);
   const [transactions, setTransactions] = useState([defaultTransaction]);
   const [selectedPlanId, setSelectedPlanId] = useState(defaultPlan.id);
@@ -189,7 +202,7 @@ function App() {
   );
   useEffect(() => {
     if (screen !== "splash") return undefined;
-    const timer = window.setTimeout(() => setScreen("plan"), 1250);
+    const timer = window.setTimeout(() => setScreen("plan"), SPLASH_DURATION_MS);
     return () => window.clearTimeout(timer);
   }, [screen]);
 
@@ -208,15 +221,32 @@ function App() {
   useEffect(() => {
     if (screen !== "demoTour") return undefined;
     setDemoStep(0);
-    const stepTimers = demoSteps.map((_, index) => (
-      window.setTimeout(() => setDemoStep(index), index * 3000)
-    ));
-    const finishTimer = window.setTimeout(() => setScreen("history"), demoSteps.length * 3000);
-    return () => {
-      stepTimers.forEach((timer) => window.clearTimeout(timer));
-      window.clearTimeout(finishTimer);
-    };
+    setDemoElapsedSeconds(0);
+    return undefined;
   }, [screen]);
+
+  useEffect(() => {
+    if (screen !== "demoTour") return undefined;
+    const timer = window.setInterval(() => {
+      setDemoElapsedSeconds((seconds) => seconds + 1);
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [screen]);
+
+  useEffect(() => {
+    if (screen !== "demoTour") return undefined;
+    const timer = window.setTimeout(() => {
+      if (demoStep === demoSteps.length - 1) {
+        setScreen("history");
+        return;
+      }
+
+      setDemoStep((currentStep) => Math.min(currentStep + 1, demoSteps.length - 1));
+    }, DEMO_STEP_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [demoStep, screen]);
 
   function captureVoice() {
     setVoiceState("Voice captured");
@@ -236,6 +266,8 @@ function App() {
     skipDemoPrompt();
     setReviewMode("demo");
     setCommand("send my mum 50k KES every 1st");
+    setDemoStep(0);
+    setDemoElapsedSeconds(0);
     setScreen("demoTour");
   }
 
@@ -258,6 +290,10 @@ function App() {
 
   function nextDemoStep() {
     setDemoStep((currentStep) => Math.min(currentStep + 1, demoSteps.length - 1));
+  }
+
+  function previousDemoStep() {
+    setDemoStep((currentStep) => Math.max(currentStep - 1, 0));
   }
 
   function finishDemo() {
@@ -371,7 +407,9 @@ function App() {
           {screen === "demoTour" && (
             <DemoTourScreen
               step={demoStep}
+              elapsedSeconds={demoElapsedSeconds}
               onSkip={() => setScreen("plan")}
+              onPrevious={previousDemoStep}
               onNext={nextDemoStep}
               onFinish={finishDemo}
             />
@@ -583,7 +621,7 @@ function DemoPrompt({ onRunDemo, onSkipDemo, onCloseDemo }) {
           <X size={18} strokeWidth={3} />
         </button>
         <ChocoMark size="small" />
-        <h2>Try Choco in 15 seconds</h2>
+        <h2>Try Choco in {DEMO_TOTAL_SECONDS} seconds</h2>
         <p>A guided tour shows home, plans, details, history, and sharing. Skip anytime.</p>
         <div className="demo-actions">
           <button type="button" onClick={onRunDemo}>Run demo</button>
@@ -594,7 +632,7 @@ function DemoPrompt({ onRunDemo, onSkipDemo, onCloseDemo }) {
   );
 }
 
-function DemoTourScreen({ step, onSkip, onNext, onFinish }) {
+function DemoTourScreen({ step, elapsedSeconds, onSkip, onPrevious, onNext, onFinish }) {
   const currentStep = demoSteps[step];
   const isLastStep = step === demoSteps.length - 1;
   const progress = `${((step + 1) / demoSteps.length) * 100}%`;
@@ -602,12 +640,36 @@ function DemoTourScreen({ step, onSkip, onNext, onFinish }) {
   return (
     <div className="screen demo-tour-screen">
       <div className="demo-tour-top">
-        <span>15 second tour</span>
+        <div>
+          <span>{DEMO_TOTAL_SECONDS} second tour</span>
+          <time dateTime={`PT${elapsedSeconds}S`}>{formatDemoTime(elapsedSeconds)} spent</time>
+        </div>
         <button type="button" onClick={onSkip}>Skip</button>
       </div>
 
       <div className="demo-progress" aria-label="Demo progress">
         <span style={{ width: progress }} />
+      </div>
+
+      <div className="demo-step-controls" aria-label="Demo step controls">
+        <button
+          className="demo-square-button"
+          type="button"
+          aria-label="Previous demo step"
+          disabled={step === 0}
+          onClick={onPrevious}
+        >
+          <ArrowLeft size={18} />
+        </button>
+        <span>{step + 1}/{demoSteps.length}</span>
+        <button
+          className="demo-square-button"
+          type="button"
+          aria-label={isLastStep ? "Finish demo" : "Next demo step"}
+          onClick={isLastStep ? onFinish : onNext}
+        >
+          <ArrowRight size={18} />
+        </button>
       </div>
 
       <section className="demo-tour-card">

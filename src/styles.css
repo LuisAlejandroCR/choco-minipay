@@ -725,6 +725,7 @@ a {
 .quick-info-head button:active,
 .pill-button:active,
 .demo-actions button:active,
+.demo-square-button:active,
 .demo-tour-actions button:active,
 .layer-heading button:active,
 .plan-row:active,
@@ -955,6 +956,23 @@ a {
   text-transform: uppercase;
 }
 
+.demo-tour-top > div {
+  display: grid;
+  gap: 4px;
+}
+
+.demo-tour-top span {
+  display: block;
+}
+
+.demo-tour-top time {
+  color: var(--latte-300);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
 .demo-tour-top button {
   min-height: 36px;
   padding: 0 14px;
@@ -979,6 +997,40 @@ a {
   border-radius: inherit;
   background: var(--cream);
   transition: width 0.28s ease;
+}
+
+.demo-step-controls {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.demo-step-controls > span {
+  min-width: 44px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+  text-align: center;
+}
+
+.demo-square-button {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  background: rgba(16, 9, 6, 0.58);
+  color: var(--cream);
+  cursor: pointer;
+  transition: transform 0.12s ease, opacity 0.12s ease, background 0.12s ease;
+}
+
+.demo-square-button:disabled {
+  cursor: default;
+  opacity: 0.36;
 }
 
 .demo-tour-card {
