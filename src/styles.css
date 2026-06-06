@@ -469,49 +469,26 @@ a {
   animation: worldMapPan var(--route-duration) ease-in-out infinite;
 }
 
-.world-map path {
-  stroke: rgba(22, 13, 8, 0.72);
-  stroke-width: 2.8;
-  stroke-linejoin: round;
+.map-base {
+  opacity: 0.82;
+  filter: sepia(1) saturate(0.78) hue-rotate(342deg) brightness(0.76) contrast(1.12);
+  mix-blend-mode: screen;
 }
 
-.continent-shape {
-  fill: rgba(185, 163, 137, 0.76);
-}
-
-.highlight-country {
+.map-country-label circle {
   fill: var(--cream);
-  stroke: rgba(38, 23, 15, 0.82);
-  stroke-width: 3;
+  stroke: rgba(38, 23, 15, 0.9);
+  stroke-width: 1.4px;
 }
 
-.continent-label {
-  fill: rgba(246, 232, 212, 0.62);
-  stroke: rgba(38, 23, 15, 0.62);
-  stroke-width: 3px;
-  paint-order: stroke fill;
-  font-size: 15px;
-  font-weight: 850;
-  letter-spacing: 0.02em;
-}
-
-.usa-shape,
-.usa-florida {
-  animation: usaWorldStage var(--route-duration) ease-in-out infinite;
-}
-
-.kenya-shape {
-  animation: kenyaWorldStage var(--route-duration) ease-in-out infinite;
-}
-
-.world-label {
+.map-country-label text {
   fill: var(--cream);
-  stroke: rgba(38, 23, 15, 0.8);
-  stroke-width: 4px;
+  stroke: rgba(38, 23, 15, 0.86);
+  stroke-width: 2.4px;
   paint-order: stroke fill;
   color: var(--cream);
   font-family: Inter, -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
-  font-size: 22px;
+  font-size: 9px;
   font-weight: 900;
 }
 

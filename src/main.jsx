@@ -574,70 +574,24 @@ function PitchScreen({ onClose }) {
       <section className="pitch-visual" aria-label="USA to Kenya remittance">
         <div className="mobile-world">
           <div className="globe-core" aria-hidden="true">
-            <svg className="world-map" viewBox="0 0 1000 500" role="img" aria-label="World map with USA and Kenya highlighted">
-              <path className="continent-shape alaska-shape" d="M18 133 L56 104 L102 105 L119 132 L92 153 L48 158 Z" />
-              <path className="continent-shape greenland-shape" d="M333 20 L386 5 L429 27 L421 68 L365 94 L322 67 Z" />
-              <path
-                className="continent-shape north-america-shape"
-                d="M72 164 C90 116 130 83 187 75 L236 48 C276 43 322 57 358 90 L410 95 C454 118 482 158 490 198 L461 234 L407 231 L369 256 L331 247 L300 269 L250 251 L214 255 L174 228 L130 220 L98 193 Z"
+            <svg className="world-map" viewBox="0 0 360 180" role="img" aria-label="World map with USA and Kenya highlighted">
+              <image
+                className="map-base"
+                href="https://upload.wikimedia.org/wikipedia/commons/5/51/BlankMap-Equirectangular.svg"
+                x="0"
+                y="0"
+                width="360"
+                height="180"
+                preserveAspectRatio="xMidYMid meet"
               />
-              <path
-                className="continent-shape central-america-shape"
-                d="M306 251 L355 261 L384 283 L367 303 L319 284 L287 267 Z"
-              />
-              <path
-                className="continent-shape south-america-shape"
-                d="M367 285 C410 315 438 371 427 423 C417 463 383 493 343 500 C330 443 285 406 274 349 C266 305 294 275 335 270 Z"
-              />
-              <path
-                className="continent-shape europe-shape"
-                d="M516 128 C552 91 605 86 645 112 L667 144 L632 165 L586 161 L565 196 L514 179 Z"
-              />
-              <path
-                className="continent-shape africa-shape"
-                d="M563 181 C626 176 681 217 704 275 L742 302 L715 337 L723 389 L676 468 L614 497 L575 414 L514 384 L472 313 L498 237 Z"
-              />
-              <path
-                className="continent-shape asia-shape"
-                d="M641 108 C714 62 805 60 876 99 L961 116 L1000 151 L985 210 L918 207 L879 248 L818 235 L782 291 L723 266 L680 213 L622 192 L609 148 Z"
-              />
-              <path
-                className="continent-shape australia-shape"
-                d="M820 370 L886 348 L966 379 L946 432 L879 449 L803 416 Z"
-              />
-              <path
-                className="continent-shape caribbean-shape"
-                d="M374 250 L391 246 L405 257 L390 266 L373 261 Z"
-              />
-              <path
-                className="continent-shape madagascar-shape"
-                d="M721 379 L742 421 L726 469 L704 432 Z"
-              />
-              <path
-                className="continent-shape japan-shape"
-                d="M900 197 L919 209 L910 233 L892 219 Z"
-              />
-              <path
-                className="continent-shape indonesia-shape"
-                d="M773 304 L830 309 L874 327 L832 341 L779 326 Z"
-              />
-              <path
-                className="highlight-country usa-shape"
-                d="M142 196 L176 181 L216 183 L242 169 L290 178 L326 174 L361 200 L337 225 L288 229 L256 249 L210 240 L178 252 L139 230 L105 226 L98 207 Z"
-              />
-              <path className="highlight-country usa-florida" d="M331 225 L356 239 L352 272 L335 255 L321 229 Z" />
-              <path
-                className="highlight-country kenya-shape"
-                d="M628 278 L650 289 L655 312 L637 335 L615 328 L603 304 L610 285 Z"
-              />
-              <text className="continent-label" x="178" y="155">NORTH AMERICA</text>
-              <text className="continent-label" x="312" y="366">SOUTH AMERICA</text>
-              <text className="continent-label" x="560" y="138">EUROPE</text>
-              <text className="continent-label" x="573" y="342">AFRICA</text>
-              <text className="continent-label" x="780" y="160">ASIA</text>
-              <text className="continent-label" x="852" y="374">AUSTRALIA</text>
-              <text className="world-label usa-map-label" x="210" y="173">USA</text>
-              <text className="world-label kenya-map-label" x="626" y="270">Kenya</text>
+              <g className="map-country-label usa-map-label">
+                <circle cx="82" cy="51" r="2.6" />
+                <text x="86" y="49">USA</text>
+              </g>
+              <g className="map-country-label kenya-map-label">
+                <circle cx="218" cy="90" r="2.6" />
+                <text x="222" y="88">Kenya</text>
+              </g>
             </svg>
           </div>
 
