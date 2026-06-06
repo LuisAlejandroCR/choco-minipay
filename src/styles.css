@@ -808,7 +808,8 @@ a {
   padding: 6px 2px 0;
 }
 
-.pitch-copy span {
+.pitch-kicker {
+  display: inline-block;
   color: var(--latte-300);
   font-size: 12px;
   font-weight: 850;
@@ -822,6 +823,28 @@ a {
   font-size: 42px;
   line-height: 0.98;
   letter-spacing: -0.055em;
+}
+
+.voice-highlight {
+  position: relative;
+  display: inline-block;
+  color: var(--cream);
+  isolation: isolate;
+  text-shadow: 0 2px 0 rgba(38, 23, 15, 0.95);
+}
+
+.voice-highlight::before {
+  content: "";
+  position: absolute;
+  left: -0.08em;
+  right: -0.08em;
+  bottom: 0.03em;
+  height: 0.34em;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--cocoa-600), var(--cocoa-800));
+  box-shadow: 0 0 0 1px rgba(246, 232, 212, 0.18), 0 8px 18px rgba(116, 67, 39, 0.28);
+  z-index: -1;
+  animation: voiceHighlightPulse 1.7s ease-in-out infinite;
 }
 
 .pitch-copy p {
@@ -849,6 +872,11 @@ a {
 @keyframes voiceWave {
   0%, 100% { transform: scaleY(0.58); opacity: 0.62; }
   45% { transform: scaleY(1.12); opacity: 1; }
+}
+
+@keyframes voiceHighlightPulse {
+  0%, 100% { opacity: 0.74; transform: scaleX(0.96); }
+  50% { opacity: 1; transform: scaleX(1); }
 }
 
 @keyframes lipTalk {

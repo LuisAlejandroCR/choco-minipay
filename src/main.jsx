@@ -646,8 +646,8 @@ function PitchScreen({ onClose }) {
       </section>
 
       <section className="pitch-copy">
-        <span>Voice remittance</span>
-        <h1>Send USA to Kenya by voice.</h1>
+        <span className="pitch-kicker">Voice remittance</span>
+        <h1>Send USA to Kenya by <span className="voice-highlight">voice</span>.</h1>
         <p>Create the plan once. Choco sends every month, retries failures, notifies family, and saves receipts.</p>
       </section>
 
