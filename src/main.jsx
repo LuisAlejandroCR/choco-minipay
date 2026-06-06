@@ -572,32 +572,26 @@ function PitchScreen({ onClose }) {
       </button>
 
       <section className="pitch-visual" aria-label="USA to Kenya remittance">
-        <div className="country-map usa-card">
-          <span>USA</span>
-          <svg className="mini-map usa-map" viewBox="0 0 120 82" role="img" aria-label="United States map">
-            <path d="M9 32 L18 21 L35 23 L43 16 L56 19 L67 15 L82 20 L96 18 L111 29 L105 40 L110 50 L95 57 L86 54 L76 62 L61 58 L51 64 L39 55 L25 57 L21 46 L10 43 Z" />
-            <path d="M28 66 L39 69 L36 76 L24 73 Z" className="map-island" />
-          </svg>
-        </div>
+        <div className="mobile-world">
+          <div className="globe-core" aria-hidden="true">
+            <svg className="globe-map globe-map-usa" viewBox="0 0 220 170" role="img" aria-label="USA map">
+              <path d="M20 78 L31 63 L49 64 L61 51 L78 57 L94 47 L110 53 L132 48 L154 55 L177 54 L202 72 L193 89 L202 104 L177 118 L160 112 L145 127 L123 120 L108 132 L91 116 L69 120 L61 101 L42 98 L38 86 Z" />
+              <path d="M52 139 L72 145 L66 158 L45 153 Z" className="globe-island" />
+            </svg>
 
-        <div className="ocean-lane" aria-hidden="true">
-          <span className="wave wave-a" />
-          <span className="wave wave-b" />
-          <span className="wave wave-c" />
-          <span className="route-arc" />
-        </div>
+            <svg className="globe-map globe-map-kenya" viewBox="0 0 220 170" role="img" aria-label="Kenya map">
+              <path className="africa-shape" d="M94 13 L125 20 L149 42 L145 70 L164 91 L143 118 L138 150 L111 145 L95 122 L72 113 L78 74 L65 48 Z" />
+              <path className="kenya-shape" d="M119 57 L136 66 L133 81 L148 94 L135 108 L130 126 L112 119 L105 101 L93 95 L98 77 Z" />
+            </svg>
 
-        <div className="country-map kenya-card">
-          <span>Kenya</span>
-          <svg className="mini-map kenya-map" viewBox="0 0 120 82" role="img" aria-label="Kenya map">
-            <path d="M62 8 L78 17 L76 32 L91 44 L77 59 L73 73 L55 69 L47 55 L35 50 L39 31 L51 22 Z" />
-            <circle cx="63" cy="43" r="4" className="map-pin" />
-          </svg>
-        </div>
+            <span className="location-label usa-label">USA</span>
+            <span className="location-label kenya-label">Kenya</span>
+          </div>
 
-        <div className="flying-remittance" aria-hidden="true">
-          <span className="money-chip">$</span>
-          <ChocoMark size="small" />
+          <div className="transfer-bundle" aria-hidden="true">
+            <ChocoMark size="small" />
+            <span className="money-chip">$</span>
+          </div>
         </div>
       </section>
 
