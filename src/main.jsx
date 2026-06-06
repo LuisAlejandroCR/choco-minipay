@@ -657,7 +657,8 @@ function PitchScreen({ onClose }) {
           </span>
           .
         </h1>
-        <p>Create the plan once. Choco sends every month, retries failures, notifies family, and saves receipts.</p>
+        <p className="pitch-memory">Plan once. Send on schedule.</p>
+        <p className="pitch-support">Secure transfers, retries, updates, and receipts.</p>
       </section>
 
       <button className="primary-cta" type="button" onClick={onClose}>Continue</button>

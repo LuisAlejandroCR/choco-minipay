@@ -864,11 +864,19 @@ a {
 .headline-wave i:nth-child(4) { height: 0.28em; animation-delay: 0.24s; }
 .headline-wave i:nth-child(5) { height: 0.2em; animation-delay: 0.32s; }
 
-.pitch-copy p {
-  margin: 14px 0 0;
+.pitch-memory {
+  margin: 16px 0 0;
+  color: var(--cream);
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.18;
+}
+
+.pitch-support {
+  margin: 6px 0 0;
   color: var(--muted);
-  font-size: 16px;
-  line-height: 1.45;
+  font-size: 14px;
+  line-height: 1.35;
 }
 
 @keyframes moneyTravel {
