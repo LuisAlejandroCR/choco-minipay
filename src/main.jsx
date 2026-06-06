@@ -25,6 +25,7 @@ import "./styles.css";
 
 const SPLASH_DURATION_MS = 2600;
 const DEMO_STEP_MS = 6000;
+const WORLD_MAP_URL = "https://upload.wikimedia.org/wikipedia/commons/5/51/BlankMap-Equirectangular.svg";
 
 const defaultPlan = {
   id: "mom-monthly",
@@ -359,6 +360,7 @@ function App() {
 
   return (
     <main className="stage">
+      <img className="map-preload" src={WORLD_MAP_URL} alt="" aria-hidden="true" />
       <section className="miniapp" aria-label="Choco Mini App">
         <StatusBar />
         <div className="topbar">
@@ -577,7 +579,7 @@ function PitchScreen({ onClose }) {
             <svg className="world-map" viewBox="0 0 360 180" role="img" aria-label="World map with USA and Kenya highlighted">
               <image
                 className="map-base"
-                href="https://upload.wikimedia.org/wikipedia/commons/5/51/BlankMap-Equirectangular.svg"
+                href={WORLD_MAP_URL}
                 x="0"
                 y="0"
                 width="360"

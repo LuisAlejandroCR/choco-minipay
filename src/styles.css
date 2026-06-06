@@ -52,6 +52,14 @@ a {
   text-decoration: none;
 }
 
+.map-preload {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .stage {
   min-height: 100dvh;
   display: grid;
@@ -583,11 +591,11 @@ a {
 }
 
 @keyframes moneyTravel {
-  0%, 16% { left: 24px; top: 57%; opacity: 1; transform: scale(0.9); }
-  34% { left: calc(50% - 42px); top: 29%; opacity: 1; transform: scale(1); }
-  58% { left: calc(100% - 138px); top: 42%; opacity: 1; transform: scale(1.02); }
-  76%, 90% { left: calc(100% - 108px); top: 57%; opacity: 1; transform: scale(0.96); }
-  98%, 100% { left: 24px; top: 57%; opacity: 0; transform: scale(0.86); }
+  0%, 16% { left: calc(50% - 18px); top: 17%; opacity: 1; transform: scale(0.9); }
+  34% { left: calc(50% - 64px); top: 32%; opacity: 1; transform: scale(1); }
+  58% { left: calc(50% - 12px); top: 39%; opacity: 1; transform: scale(1.02); }
+  76%, 90% { left: calc(50% - 30px); top: 46%; opacity: 1; transform: scale(0.96); }
+  98%, 100% { left: calc(50% - 18px); top: 17%; opacity: 0; transform: scale(0.86); }
 }
 
 @keyframes globeTurn {
