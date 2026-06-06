@@ -703,8 +703,8 @@ a {
   border: 1px solid rgba(246, 232, 212, 0.22);
   border-radius: 999px;
   background:
-    radial-gradient(circle at 14% 50%, rgba(246, 232, 212, 0.36), transparent 24%),
-    linear-gradient(90deg, #8f55c3, #6c3ca4);
+    radial-gradient(circle at 14% 50%, rgba(246, 232, 212, 0.24), transparent 24%),
+    linear-gradient(90deg, var(--cocoa-600), var(--cocoa-800));
   color: var(--cream);
 }
 
