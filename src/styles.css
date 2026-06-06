@@ -398,11 +398,11 @@ a {
 .pitch-visual {
   min-height: 330px;
   margin: -4px -4px 0;
-  padding: 26px 18px;
+  padding: 26px 16px;
   display: grid;
-  grid-template-columns: 72px 1fr 72px;
+  grid-template-columns: 92px 1fr 92px;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   overflow: hidden;
   border: 1px solid var(--line-soft);
   border-radius: 30px;
@@ -412,19 +412,22 @@ a {
   position: relative;
 }
 
-.route-point {
-  min-height: 84px;
+.country-map {
+  min-height: 154px;
+  padding: 13px 9px;
   display: grid;
-  place-items: center;
   align-content: center;
-  gap: 6px;
+  justify-items: center;
+  gap: 12px;
   border: 1px solid var(--line-soft);
-  border-radius: 22px;
+  border-radius: 24px;
   background: rgba(246, 232, 212, 0.08);
   color: var(--cream);
+  position: relative;
+  z-index: 1;
 }
 
-.route-point span {
+.country-map span {
   color: var(--muted);
   font-size: 11px;
   font-weight: 850;
@@ -432,54 +435,128 @@ a {
   text-transform: uppercase;
 }
 
-.route-point b {
-  width: 34px;
-  height: 34px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--cream);
-  color: var(--cocoa-900);
-  font-size: 17px;
+.mini-map {
+  width: 84px;
+  height: 58px;
+  overflow: visible;
 }
 
-.route-line {
-  height: 3px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, rgba(246, 232, 212, 0.18), var(--cream), rgba(246, 232, 212, 0.18));
+.mini-map path {
+  fill: var(--cream);
+  stroke: rgba(16, 9, 6, 0.6);
+  stroke-width: 2.6;
+  stroke-linejoin: round;
+}
+
+.mini-map .map-island {
+  opacity: 0.62;
+}
+
+.mini-map .map-pin {
+  fill: var(--cocoa-700);
+  stroke: var(--cream);
+  stroke-width: 2;
+}
+
+.usa-card::after,
+.kenya-card::after {
+  content: "";
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--cream);
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  box-shadow: 0 0 0 5px rgba(246, 232, 212, 0.1);
+}
+
+.usa-card::after {
+  right: -7px;
+}
+
+.kenya-card::after {
+  left: -7px;
+}
+
+.ocean-lane {
+  min-height: 190px;
+  overflow: hidden;
+  border: 1px solid rgba(246, 232, 212, 0.1);
+  border-radius: 26px;
+  background:
+    linear-gradient(180deg, rgba(246, 232, 212, 0.05), rgba(5, 3, 2, 0.16)),
+    rgba(5, 3, 2, 0.24);
   position: relative;
 }
 
-.route-line::before,
-.route-line::after {
-  content: "";
+.wave {
   position: absolute;
-  top: 50%;
-  width: 9px;
-  height: 9px;
+  left: -18px;
+  right: -18px;
+  height: 22px;
+  border-top: 2px solid rgba(246, 232, 212, 0.18);
   border-radius: 50%;
-  background: var(--cream);
+  animation: oceanDrift 5.4s linear infinite;
+}
+
+.wave-a {
+  top: 48px;
+}
+
+.wave-b {
+  top: 88px;
+  animation-delay: -1.8s;
+  opacity: 0.72;
+}
+
+.wave-c {
+  top: 128px;
+  animation-delay: -3.6s;
+  opacity: 0.5;
+}
+
+.route-arc {
+  position: absolute;
+  left: -16px;
+  right: -16px;
+  top: 50%;
+  height: 60px;
+  border-top: 3px dashed rgba(246, 232, 212, 0.45);
+  border-radius: 50%;
   transform: translateY(-50%);
 }
 
-.route-line::before {
-  left: 0;
-}
-
-.route-line::after {
-  right: 0;
-}
-
-.money-orbit {
+.route-arc::before,
+.route-arc::after {
+  content: "";
   position: absolute;
-  left: 92px;
+  top: -7px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--cream);
+}
+
+.route-arc::before {
+  left: 14px;
+}
+
+.route-arc::after {
+  right: 14px;
+}
+
+.flying-remittance {
+  position: absolute;
+  left: 84px;
   top: 50%;
   display: flex;
   align-items: center;
   gap: 8px;
   width: max-content;
+  z-index: 3;
   transform: translateY(-50%);
-  animation: moneyTravel 4.8s ease-in-out infinite;
+  animation: moneyTravel 5.4s ease-in-out infinite;
 }
 
 .money-chip {
@@ -524,8 +601,15 @@ a {
 }
 
 @keyframes moneyTravel {
-  0%, 100% { left: 92px; transform: translateY(-50%) scale(0.95); }
-  50% { left: calc(100% - 176px); transform: translateY(-50%) scale(1); }
+  0%, 100% { left: 84px; top: 57%; transform: translateY(-50%) scale(0.9); }
+  18% { top: 38%; transform: translateY(-50%) scale(0.98); }
+  50% { left: calc(100% - 174px); top: 42%; transform: translateY(-50%) scale(1); }
+  72% { top: 55%; transform: translateY(-50%) scale(0.98); }
+}
+
+@keyframes oceanDrift {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(36px); }
 }
 
 .home-hero {
