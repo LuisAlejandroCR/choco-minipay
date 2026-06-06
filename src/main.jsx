@@ -127,10 +127,6 @@ function rememberDemoChoice() {
 
 const demoSteps = [
   {
-    title: "Send money by voice",
-    copy: "Choco helps diaspora users send remittances from the USA to Kenya through voice notes or text. Create the plan once, then Choco handles the monthly run.",
-  },
-  {
     title: "Home is your plan list",
     copy: "Tap a saved plan to open details. No command is required just to review.",
   },
@@ -206,7 +202,7 @@ function App() {
   );
   useEffect(() => {
     if (screen !== "splash") return undefined;
-    const timer = window.setTimeout(() => setScreen("plan"), SPLASH_DURATION_MS);
+    const timer = window.setTimeout(() => setScreen("pitch"), SPLASH_DURATION_MS);
     return () => window.clearTimeout(timer);
   }, [screen]);
 
@@ -348,6 +344,7 @@ function App() {
 
   const screenTitle = useMemo(() => {
     if (screen === "splash") return "Choco";
+    if (screen === "pitch") return "Choco";
     if (screen === "plans") return "Plans";
     if (screen === "planDetail") return "Details";
     if (screen === "history") return "History";
@@ -392,7 +389,8 @@ function App() {
         </div>
 
         <div className={`app-panel tone-${screen}`}>
-          {screen === "splash" && <SplashScreen onStart={() => setScreen("plan")} />}
+          {screen === "splash" && <SplashScreen onStart={() => setScreen("pitch")} />}
+          {screen === "pitch" && <PitchScreen onClose={() => setScreen("plan")} />}
           {screen === "plan" && (
             <PlanScreen
               plans={plans}
@@ -566,6 +564,40 @@ function SplashScreen({ onStart }) {
   );
 }
 
+function PitchScreen({ onClose }) {
+  return (
+    <div className="screen pitch-screen">
+      <button className="pitch-close" type="button" aria-label="Close intro" onClick={onClose}>
+        <X size={18} strokeWidth={3} />
+      </button>
+
+      <section className="pitch-visual" aria-label="USA to Kenya remittance">
+        <div className="route-point point-a">
+          <span>USA</span>
+          <b>A</b>
+        </div>
+        <div className="route-line" />
+        <div className="money-orbit">
+          <span className="money-chip">$</span>
+          <ChocoMark size="small" />
+        </div>
+        <div className="route-point point-b">
+          <span>Kenya</span>
+          <b>B</b>
+        </div>
+      </section>
+
+      <section className="pitch-copy">
+        <span>Voice remittance</span>
+        <h1>Send USA to Kenya by voice.</h1>
+        <p>Create the plan once. Choco sends every month, retries failures, notifies family, and saves receipts.</p>
+      </section>
+
+      <button className="primary-cta" type="button" onClick={onClose}>Continue</button>
+    </div>
+  );
+}
+
 function PlanScreen({
   plans,
   showDemoPrompt,
@@ -696,19 +728,6 @@ function DemoTourScreen({ step, elapsedSeconds, onSkip, onPrevious, onNext, onFi
 function DemoVisual({ step }) {
   if (step === 0) {
     return (
-      <div className="demo-visual pitch-preview">
-        <div className="pitch-line">
-          <Mic size={18} />
-          <span>Voice note</span>
-        </div>
-        <strong>USA to Kenya</strong>
-        <p>Create one remittance plan and forget the monthly follow-up.</p>
-      </div>
-    );
-  }
-
-  if (step === 1) {
-    return (
       <div className="demo-visual saved-plan">
         <div className="plan-row-icon"><ChocoMark size="tiny" /></div>
         <div><b>Mom</b><span>50,000 KESm - Every 1st</span></div>
@@ -717,7 +736,7 @@ function DemoVisual({ step }) {
     );
   }
 
-  if (step === 2) {
+  if (step === 1) {
     return (
       <div className="demo-visual plans-preview">
         <button type="button"><Plus size={18} />New plan</button>
@@ -726,7 +745,7 @@ function DemoVisual({ step }) {
     );
   }
 
-  if (step === 3) {
+  if (step === 2) {
     return (
       <div className="demo-visual details-preview">
         <SummaryCard label="Route" value="USDC to KESm" />
@@ -737,7 +756,7 @@ function DemoVisual({ step }) {
     );
   }
 
-  if (step === 4) {
+  if (step === 3) {
     return (
       <div className="demo-visual history-preview">
         <div className="receipt-icon"><ReceiptText size={18} /></div>
@@ -747,7 +766,7 @@ function DemoVisual({ step }) {
     );
   }
 
-  if (step === 5) {
+  if (step === 4) {
     return (
       <div className="demo-visual share-preview">
         <label><Check size={16} />Recipient</label>
