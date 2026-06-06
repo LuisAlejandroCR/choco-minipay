@@ -606,7 +606,6 @@ function PitchScreen({ onClose }) {
               />
               <path className="person-cut" d="M13 38 C16 36 19 36 22 37" />
             </svg>
-            <span className="typing-bubble sender-chat"><span /><span /><span /></span>
           </div>
 
           <div className="route-person recipient-person" aria-hidden="true">
@@ -617,7 +616,6 @@ function PitchScreen({ onClose }) {
               />
               <path className="person-cut" d="M24 31 C22 38 24 43 30 46" />
             </svg>
-            <span className="typing-bubble recipient-chat"><span /><span /><span /></span>
           </div>
 
           <div className="transfer-bundle" aria-hidden="true">

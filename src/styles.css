@@ -534,8 +534,8 @@ a {
 
 .route-person {
   position: absolute;
-  width: 38px;
-  height: 46px;
+  width: 34px;
+  height: 42px;
   z-index: 5;
   color: var(--cream);
   filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.34));
@@ -554,14 +554,14 @@ a {
 .person-phone {
   fill: var(--cream);
   stroke: rgba(38, 23, 15, 0.9);
-  stroke-width: 3.4;
+  stroke-width: 1.8;
   stroke-linejoin: round;
 }
 
 .person-cut {
   fill: none;
   stroke: rgba(38, 23, 15, 0.9);
-  stroke-width: 3.4;
+  stroke-width: 1.8;
   stroke-linecap: round;
 }
 
@@ -607,37 +607,15 @@ a {
   animation-delay: 0.28s;
 }
 
-.sender-chat,
-.recipient-chat {
-  width: 24px;
-  height: 18px;
-}
-
-.sender-chat {
-  right: -14px;
-  top: 19px;
-}
-
-.recipient-chat {
-  left: -16px;
-  top: 18px;
-}
-
-.recipient-chat::after {
-  left: 5px;
-  right: auto;
-  transform: rotate(124deg);
-}
-
 .sender-person {
-  left: calc(50% - 125px);
-  top: 11%;
+  left: calc(50% - 151px);
+  top: 18%;
   animation: senderPersonStage var(--route-duration) ease-in-out infinite;
 }
 
 .recipient-person {
-  left: calc(50% + 38px);
-  top: 57%;
+  left: calc(50% + 105px);
+  top: 61%;
   opacity: 0;
   transform: scale(0.86);
   animation: recipientPersonStage var(--route-duration) ease-in-out infinite;
