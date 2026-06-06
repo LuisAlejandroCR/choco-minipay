@@ -598,8 +598,10 @@ function PitchScreen({ onClose }) {
           </div>
 
           <div className="transfer-bundle" aria-hidden="true">
-            <ChocoMark size="small" />
-            <span className="money-chip">$</span>
+            <span className="choco-dollar-token">
+              <ChocoMark size="tiny" />
+              <span>$</span>
+            </span>
           </div>
         </div>
       </section>
