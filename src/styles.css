@@ -595,10 +595,10 @@ a {
   0%, 16% { left: calc(50% - 66px); top: 23%; opacity: 1; transform: scale(0.9); }
   30% { left: calc(50% - 76px); top: 31%; opacity: 1; transform: scale(0.96); }
   48% { left: calc(50% - 58px); top: 39%; opacity: 1; transform: scale(0.98); }
-  66% { left: calc(50% - 38px); top: 47%; opacity: 0.96; transform: scale(0.9); }
-  78% { left: calc(50% - 30px); top: 51%; opacity: 0.76; transform: scale(0.68); }
-  88% { left: calc(50% - 18px); top: 53%; opacity: 0; transform: scale(0.36); }
-  92%, 100% { left: calc(50% - 66px); top: 23%; opacity: 0; transform: scale(0.36); }
+  64% { left: calc(50% - 43px); top: 46%; opacity: 0.94; transform: scale(0.86); }
+  72% { left: calc(50% - 28px); top: 50%; opacity: 0.24; transform: scale(0.52); }
+  76% { left: calc(50% - 21px); top: 52%; opacity: 0; transform: scale(0.22); }
+  80%, 100% { left: calc(50% - 66px); top: 23%; opacity: 0; transform: scale(0.22); }
 }
 
 @keyframes globeTurn {
