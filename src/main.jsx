@@ -607,9 +607,11 @@ function PitchScreen({ onClose }) {
                 <circle cx="29" cy="23" r="13" />
               </g>
               <circle className="person-fill" cx="29" cy="27" r="9" />
-              <path className="person-mouth" d="M36 29 C39 29 40 31 37 33" />
+              <g className="talk-mouth">
+                <ellipse className="talk-mouth-open" cx="29" cy="31" rx="3.3" ry="2.2" />
+                <path className="talk-mouth-line" d="M25 30 C28 32 32 32 35 30" />
+              </g>
               <path className="person-fill" d="M13 54 C15 42 21 36 29 36 C37 36 43 42 45 54 Z" />
-              <path className="person-cut" d="M24 30 C27 32 31 32 34 30" />
               <path className="voice-mark" d="M45 22 C49 26 50 31 49 36" />
             </svg>
           </div>
