@@ -592,11 +592,11 @@ a {
 }
 
 @keyframes moneyTravel {
-  0%, 16% { left: calc(50% - 46px); top: 19%; opacity: 1; transform: scale(0.9); }
+  0%, 16% { left: calc(50% - 66px); top: 23%; opacity: 1; transform: scale(0.9); }
   34% { left: calc(50% - 72px); top: 32%; opacity: 1; transform: scale(1); }
-  58% { left: calc(50% - 54px); top: 43%; opacity: 1; transform: scale(1.02); }
-  76%, 90% { left: calc(50% - 72px); top: 55%; opacity: 1; transform: scale(0.96); }
-  98%, 100% { left: calc(50% - 46px); top: 19%; opacity: 0; transform: scale(0.86); }
+  58% { left: calc(50% - 44px); top: 43%; opacity: 1; transform: scale(1.02); }
+  76%, 90% { left: calc(50% - 58px); top: 55%; opacity: 1; transform: scale(0.96); }
+  98%, 100% { left: calc(50% - 66px); top: 23%; opacity: 0; transform: scale(0.86); }
 }
 
 @keyframes globeTurn {
