@@ -464,16 +464,16 @@ a {
 }
 
 .globe-map-usa {
-  left: 2%;
-  top: 31%;
-  fill: var(--cream);
+  left: -7%;
+  top: 18%;
+  width: 84%;
   animation: usaWorldStage var(--route-duration) ease-in-out infinite;
 }
 
 .globe-map-kenya {
-  right: -5%;
-  top: 18%;
-  fill: rgba(246, 232, 212, 0.62);
+  right: -7%;
+  top: 13%;
+  width: 82%;
   opacity: 0;
   animation: kenyaWorldStage var(--route-duration) ease-in-out infinite;
 }
@@ -482,12 +482,19 @@ a {
   opacity: 0.62;
 }
 
-.africa-shape {
-  fill: rgba(246, 232, 212, 0.42);
+.america-shape,
+.south-america-shape,
+.central-america-shape {
+  fill: rgba(246, 232, 212, 0.38);
 }
 
+.usa-shape,
 .kenya-shape {
   fill: var(--cream);
+}
+
+.africa-shape {
+  fill: rgba(246, 232, 212, 0.42);
 }
 
 .location-label {
@@ -508,14 +515,15 @@ a {
 }
 
 .usa-label {
-  left: 24px;
-  top: 30px;
+  left: 70px;
+  top: 104px;
   animation: usaWorldStage var(--route-duration) ease-in-out infinite;
 }
 
 .kenya-label {
-  right: 26px;
-  bottom: 38px;
+  right: 58px;
+  top: 126px;
+  bottom: auto;
   opacity: 0;
   animation: kenyaWorldStage var(--route-duration) ease-in-out infinite;
 }
