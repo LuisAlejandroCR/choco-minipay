@@ -534,11 +534,11 @@ a {
 
 .route-person {
   position: absolute;
-  width: 34px;
-  height: 42px;
+  width: 31px;
+  height: 31px;
   z-index: 5;
   color: var(--cream);
-  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.34));
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.3));
   pointer-events: none;
 }
 
@@ -551,24 +551,29 @@ a {
 }
 
 .person-fill,
-.person-phone {
+.person-phone,
+.person-hair {
   fill: var(--cream);
   stroke: rgba(38, 23, 15, 0.9);
-  stroke-width: 1.8;
+  stroke-width: 2.1;
   stroke-linejoin: round;
+}
+
+.person-hair {
+  fill: var(--latte-300);
 }
 
 .person-cut {
   fill: none;
   stroke: rgba(38, 23, 15, 0.9);
-  stroke-width: 1.8;
+  stroke-width: 2.1;
   stroke-linecap: round;
 }
 
 .voice-mark {
   fill: none;
   stroke: var(--cream);
-  stroke-width: 4;
+  stroke-width: 3.2;
   stroke-linecap: round;
 }
 
@@ -615,16 +620,18 @@ a {
 }
 
 .sender-person {
-  left: calc(50% - 118px);
-  top: 16%;
-  width: 38px;
-  height: 44px;
+  left: calc(50% - 123px);
+  top: 19%;
+  width: 35px;
+  height: 35px;
   animation: senderPersonStage var(--route-duration) ease-in-out infinite;
 }
 
 .recipient-person {
-  left: calc(50% + 40px);
-  top: 59%;
+  left: calc(50% + 45px);
+  top: 65%;
+  width: 34px;
+  height: 34px;
   opacity: 0;
   transform: scale(0.86);
   animation: recipientPersonStage var(--route-duration) ease-in-out infinite;
@@ -721,8 +728,8 @@ a {
 }
 
 @keyframes recipientPersonStage {
-  0%, 54% { opacity: 0; transform: translateY(7px) scale(0.86); }
-  62%, 80% { opacity: 1; transform: translateY(0) scale(1); }
+  0%, 50% { opacity: 0; transform: translateY(7px) scale(0.86); }
+  58%, 80% { opacity: 1; transform: translateY(0) scale(1); }
   84%, 100% { opacity: 0; transform: translateY(7px) scale(0.86); }
 }
 

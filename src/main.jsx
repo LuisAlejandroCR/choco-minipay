@@ -598,23 +598,20 @@ function PitchScreen({ onClose }) {
           </div>
 
           <div className="route-person sender-person" aria-hidden="true">
-            <svg className="person-svg sender-silhouette" viewBox="0 0 64 72" role="img">
-              <circle className="person-fill" cx="35" cy="18" r="14" />
-              <path className="person-fill" d="M17 66 C19 47 27 38 36 38 C45 38 53 47 55 66 Z" />
-              <rect className="person-phone" x="7" y="29" width="10" height="25" rx="3" />
-              <path className="person-cut" d="M22 35 C19 38 17 42 17 48" />
-              <path className="voice-mark" d="M51 25 C55 28 57 32 57 37" />
-              <path className="voice-mark" d="M54 18 C61 23 64 30 64 38" />
+            <svg className="person-svg sender-silhouette" viewBox="0 0 48 48" role="img">
+              <circle className="person-fill" cx="25" cy="15" r="9" />
+              <path className="person-fill" d="M10 43 C12 31 18 26 25 26 C32 26 38 31 40 43 Z" />
+              <rect className="person-phone" x="3" y="21" width="7" height="18" rx="2" />
+              <path className="voice-mark" d="M38 16 C42 19 43 23 42 27" />
+              <path className="voice-mark" d="M42 11 C48 17 50 25 47 32" />
             </svg>
           </div>
 
           <div className="route-person recipient-person" aria-hidden="true">
-            <svg className="person-svg recipient-silhouette" viewBox="0 0 64 72" role="img">
-              <path
-                className="person-fill"
-                d="M34 4 C47 7 55 19 52 33 C50 42 57 48 55 59 C54 66 49 70 42 70 C38 61 39 53 42 45 C36 48 32 58 28 70 C19 67 16 59 20 50 C11 43 12 28 17 18 C21 9 27 4 34 4 Z"
-              />
-              <path className="person-cut" d="M24 31 C22 38 24 43 30 46" />
+            <svg className="person-svg recipient-silhouette" viewBox="0 0 48 48" role="img">
+              <path className="person-hair" d="M24 5 C35 5 42 14 40 26 C39 33 43 37 41 44 L31 44 C28 38 29 31 32 25 C27 29 25 37 22 44 L12 44 C14 38 9 34 10 26 C11 15 15 5 24 5 Z" />
+              <circle className="person-fill" cx="24" cy="17" r="8" />
+              <path className="person-fill" d="M10 43 C12 31 18 27 24 27 C31 27 37 31 39 43 Z" />
             </svg>
           </div>
 
