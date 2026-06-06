@@ -632,7 +632,12 @@ function PitchScreen({ onClose }) {
               <ChocoMark size="tiny" />
               <span>$</span>
             </span>
-            <span className="typing-bubble travel-chat"><span /><span /><span /></span>
+            <span className="voice-note travel-chat">
+              <span className="voice-note-mic"><Mic size={11} strokeWidth={3} /></span>
+              <span className="voice-wave">
+                <span /><span /><span /><span /><span /><span /><span /><span /><span /><span />
+              </span>
+            </span>
           </div>
         </div>
       </section>
