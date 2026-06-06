@@ -615,14 +615,15 @@ function PitchScreen({ onClose }) {
           </div>
 
           <div className="route-person recipient-person" aria-hidden="true">
-            <svg className="person-svg recipient-silhouette" viewBox="0 0 64 72" role="img">
+            <svg className="person-svg recipient-silhouette" viewBox="0 0 56 64" role="img">
               <path
                 className="person-hair"
-                d="M32 5 C45 5 54 16 53 31 C52 43 58 50 55 64 L43 64 C39 52 40 41 44 32 C39 38 36 51 34 68 L20 68 C18 52 14 42 11 33 C8 18 18 5 32 5 Z"
+                d="M28 4 C40 4 48 14 48 28 C48 39 52 48 54 60 L42 60 C39 48 39 39 42 31 C37 36 33 38 28 38 C23 38 18 36 14 31 C17 40 16 50 13 60 L4 60 C7 49 8 39 8 28 C8 14 17 4 28 4 Z"
               />
-              <circle className="person-fill" cx="32" cy="25" r="9" />
-              <path className="person-fill" d="M17 68 C19 53 25 45 32 45 C39 45 45 53 47 68 Z" />
-              <path className="person-cut" d="M27 29 C30 31 34 31 37 29" />
+              <circle className="person-fill" cx="28" cy="24" r="9" />
+              <path className="person-mouth" d="M33 26 C36 26 37 28 34 30" />
+              <path className="person-fill" d="M13 62 C15 47 21 40 28 40 C35 40 41 47 43 62 Z" />
+              <path className="person-cut" d="M23 27 C26 29 30 29 33 27" />
             </svg>
           </div>
 

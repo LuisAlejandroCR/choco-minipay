@@ -581,6 +581,9 @@ a {
   stroke: rgba(38, 23, 15, 0.9);
   stroke-width: 2.1;
   stroke-linecap: round;
+  animation: lipTalk 1.05s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
 }
 
 .voice-mark {
@@ -732,6 +735,11 @@ a {
 @keyframes typingDot {
   0%, 65%, 100% { opacity: 0.36; transform: translateY(0); }
   30% { opacity: 1; transform: translateY(-2px); }
+}
+
+@keyframes lipTalk {
+  0%, 28%, 68%, 100% { transform: scaleX(0.8) scaleY(0.75); opacity: 0.72; }
+  12%, 46% { transform: scaleX(1.18) scaleY(1.35); opacity: 1; }
 }
 
 @keyframes senderPersonStage {
