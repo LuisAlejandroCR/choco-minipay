@@ -514,8 +514,8 @@ a {
   top: 57%;
   display: grid;
   place-items: center;
-  width: 60px;
-  height: 60px;
+  width: 54px;
+  height: 54px;
   z-index: 4;
   animation: moneyTravel var(--route-duration) ease-in-out infinite;
 }
@@ -533,8 +533,8 @@ a {
 }
 
 .choco-dollar-token {
-  width: 50px;
-  height: 50px;
+  width: 44px;
+  height: 44px;
   display: grid;
   place-items: center;
   border: 2px solid var(--cocoa-900);
@@ -543,7 +543,7 @@ a {
     radial-gradient(circle at 68% 25%, rgba(217, 166, 121, 0.42), transparent 20%),
     var(--cream);
   color: var(--cocoa-900);
-  font-size: 25px;
+  font-size: 23px;
   font-weight: 950;
   position: relative;
   box-shadow: 0 14px 34px rgba(0, 0, 0, 0.3);
@@ -555,11 +555,11 @@ a {
 }
 
 .choco-dollar-token .choco-mark {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   position: absolute;
-  right: -3px;
-  top: -4px;
+  right: -2px;
+  top: -3px;
   z-index: 3;
   filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.28));
 }
@@ -594,8 +594,8 @@ a {
 @keyframes moneyTravel {
   0%, 16% { left: calc(50% - 46px); top: 19%; opacity: 1; transform: scale(0.9); }
   34% { left: calc(50% - 72px); top: 32%; opacity: 1; transform: scale(1); }
-  58% { left: calc(50% - 26px); top: 39%; opacity: 1; transform: scale(1.02); }
-  76%, 90% { left: calc(50% - 8px); top: 48%; opacity: 1; transform: scale(0.96); }
+  58% { left: calc(50% - 54px); top: 43%; opacity: 1; transform: scale(1.02); }
+  76%, 90% { left: calc(50% - 72px); top: 55%; opacity: 1; transform: scale(0.96); }
   98%, 100% { left: calc(50% - 46px); top: 19%; opacity: 0; transform: scale(0.86); }
 }
 
