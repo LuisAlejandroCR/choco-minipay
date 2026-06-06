@@ -127,6 +127,10 @@ function rememberDemoChoice() {
 
 const demoSteps = [
   {
+    title: "Send money by voice",
+    copy: "Choco helps diaspora users send remittances from the USA to Kenya through voice notes or text. Create the plan once, then Choco handles the monthly run.",
+  },
+  {
     title: "Home is your plan list",
     copy: "Tap a saved plan to open details. No command is required just to review.",
   },
@@ -692,6 +696,19 @@ function DemoTourScreen({ step, elapsedSeconds, onSkip, onPrevious, onNext, onFi
 function DemoVisual({ step }) {
   if (step === 0) {
     return (
+      <div className="demo-visual pitch-preview">
+        <div className="pitch-line">
+          <Mic size={18} />
+          <span>Voice note</span>
+        </div>
+        <strong>USA to Kenya</strong>
+        <p>Create one remittance plan and forget the monthly follow-up.</p>
+      </div>
+    );
+  }
+
+  if (step === 1) {
+    return (
       <div className="demo-visual saved-plan">
         <div className="plan-row-icon"><ChocoMark size="tiny" /></div>
         <div><b>Mom</b><span>50,000 KESm - Every 1st</span></div>
@@ -700,7 +717,7 @@ function DemoVisual({ step }) {
     );
   }
 
-  if (step === 1) {
+  if (step === 2) {
     return (
       <div className="demo-visual plans-preview">
         <button type="button"><Plus size={18} />New plan</button>
@@ -709,7 +726,7 @@ function DemoVisual({ step }) {
     );
   }
 
-  if (step === 2) {
+  if (step === 3) {
     return (
       <div className="demo-visual details-preview">
         <SummaryCard label="Route" value="USDC to KESm" />
@@ -720,7 +737,7 @@ function DemoVisual({ step }) {
     );
   }
 
-  if (step === 3) {
+  if (step === 4) {
     return (
       <div className="demo-visual history-preview">
         <div className="receipt-icon"><ReceiptText size={18} /></div>
@@ -730,7 +747,7 @@ function DemoVisual({ step }) {
     );
   }
 
-  if (step === 4) {
+  if (step === 5) {
     return (
       <div className="demo-visual share-preview">
         <label><Check size={16} />Recipient</label>
