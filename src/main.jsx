@@ -9,6 +9,7 @@ import {
   CircleDollarSign,
   History,
   ListChecks,
+  MessageCircle,
   MessageCircleQuestionMark,
   Mic,
   Pencil,
@@ -597,11 +598,24 @@ function PitchScreen({ onClose }) {
             </svg>
           </div>
 
+          <div className="route-person sender-person" aria-hidden="true">
+            <span className="person-head" />
+            <span className="person-body" />
+            <span className="person-bubble"><MessageCircle size={13} strokeWidth={3} /></span>
+          </div>
+
+          <div className="route-person recipient-person" aria-hidden="true">
+            <span className="person-head" />
+            <span className="person-body" />
+            <span className="person-bubble"><MessageCircle size={13} strokeWidth={3} /></span>
+          </div>
+
           <div className="transfer-bundle" aria-hidden="true">
             <span className="choco-dollar-token">
               <ChocoMark size="tiny" />
               <span>$</span>
             </span>
+            <span className="travel-chat"><MessageCircle size={15} strokeWidth={3} /></span>
           </div>
         </div>
       </section>
