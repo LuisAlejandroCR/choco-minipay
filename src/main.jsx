@@ -9,7 +9,6 @@ import {
   CircleDollarSign,
   History,
   ListChecks,
-  MessageCircle,
   MessageCircleQuestionMark,
   Mic,
   Pencil,
@@ -599,15 +598,14 @@ function PitchScreen({ onClose }) {
           </div>
 
           <div className="route-person sender-person" aria-hidden="true">
-            <span className="person-head" />
-            <span className="person-body" />
-            <span className="person-bubble"><MessageCircle size={13} strokeWidth={3} /></span>
+            <span className="sender-phone" />
+            <span className="sender-silhouette" />
+            <span className="typing-bubble sender-chat"><span /><span /><span /></span>
           </div>
 
           <div className="route-person recipient-person" aria-hidden="true">
-            <span className="person-head" />
-            <span className="person-body" />
-            <span className="person-bubble"><MessageCircle size={13} strokeWidth={3} /></span>
+            <span className="recipient-silhouette" />
+            <span className="typing-bubble recipient-chat"><span /><span /><span /></span>
           </div>
 
           <div className="transfer-bundle" aria-hidden="true">
@@ -615,7 +613,7 @@ function PitchScreen({ onClose }) {
               <ChocoMark size="tiny" />
               <span>$</span>
             </span>
-            <span className="travel-chat"><MessageCircle size={15} strokeWidth={3} /></span>
+            <span className="typing-bubble travel-chat"><span /><span /><span /></span>
           </div>
         </div>
       </section>
