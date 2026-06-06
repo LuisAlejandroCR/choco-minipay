@@ -576,6 +576,13 @@ a {
   stroke-linecap: round;
 }
 
+.person-mouth {
+  fill: none;
+  stroke: rgba(38, 23, 15, 0.9);
+  stroke-width: 2.1;
+  stroke-linecap: round;
+}
+
 .voice-mark {
   fill: none;
   stroke: var(--cream);
