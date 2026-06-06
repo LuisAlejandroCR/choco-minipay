@@ -598,13 +598,25 @@ function PitchScreen({ onClose }) {
           </div>
 
           <div className="route-person sender-person" aria-hidden="true">
-            <span className="sender-phone" />
-            <span className="sender-silhouette" />
+            <svg className="person-svg sender-silhouette" viewBox="0 0 64 72" role="img">
+              <rect className="person-phone" x="4" y="26" width="8" height="24" rx="3" />
+              <path
+                className="person-fill"
+                d="M45 7 C33 2 19 8 15 20 C13 26 14 31 11 35 L6 40 L15 42 C17 48 23 52 31 51 L35 68 L54 68 L51 50 C59 42 61 30 57 20 C55 14 51 10 45 7 Z"
+              />
+              <path className="person-cut" d="M15 36 C18 34 20 33 23 34" />
+            </svg>
             <span className="typing-bubble sender-chat"><span /><span /><span /></span>
           </div>
 
           <div className="route-person recipient-person" aria-hidden="true">
-            <span className="recipient-silhouette" />
+            <svg className="person-svg recipient-silhouette" viewBox="0 0 64 72" role="img">
+              <path
+                className="person-fill"
+                d="M35 4 C49 7 57 21 52 35 C49 43 54 49 55 57 C56 64 51 69 44 70 C39 62 39 53 42 44 C36 48 33 56 29 70 C20 67 17 59 20 50 C9 43 11 28 16 18 C20 9 27 4 35 4 Z"
+              />
+              <path className="person-cut" d="M24 30 C21 37 23 42 29 45" />
+            </svg>
             <span className="typing-bubble recipient-chat"><span /><span /><span /></span>
           </div>
 

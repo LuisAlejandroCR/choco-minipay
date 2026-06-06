@@ -534,51 +534,35 @@ a {
 
 .route-person {
   position: absolute;
-  width: 58px;
-  height: 66px;
+  width: 54px;
+  height: 62px;
   z-index: 3;
   color: var(--cream);
   filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.34));
   pointer-events: none;
 }
 
-.sender-silhouette,
-.recipient-silhouette,
-.sender-phone {
+.person-svg {
   position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   display: block;
 }
 
-.sender-phone {
-  left: 0;
-  top: 21px;
-  width: 9px;
-  height: 24px;
-  border: 2px solid rgba(38, 23, 15, 0.9);
-  border-radius: 3px;
-  background: var(--cream);
+.person-fill,
+.person-phone {
+  fill: var(--cream);
+  stroke: rgba(38, 23, 15, 0.9);
+  stroke-width: 3;
+  stroke-linejoin: round;
 }
 
-.sender-silhouette {
-  left: 10px;
-  top: 2px;
-  width: 39px;
-  height: 56px;
-  border: 2px solid rgba(38, 23, 15, 0.9);
-  border-radius: 52% 47% 35% 36% / 34% 38% 34% 30%;
-  background: var(--cream);
-  clip-path: polygon(35% 0, 76% 4%, 92% 20%, 89% 45%, 77% 55%, 82% 83%, 96% 100%, 32% 100%, 36% 73%, 23% 62%, 7% 55%, 21% 46%, 10% 35%, 19% 17%);
-}
-
-.recipient-silhouette {
-  left: 10px;
-  top: 1px;
-  width: 38px;
-  height: 62px;
-  border: 2px solid rgba(38, 23, 15, 0.9);
-  border-radius: 50% 52% 46% 46% / 24% 28% 58% 56%;
-  background: var(--cream);
-  clip-path: polygon(44% 0, 77% 4%, 92% 25%, 78% 49%, 90% 76%, 74% 100%, 54% 86%, 45% 60%, 29% 88%, 12% 100%, 16% 74%, 7% 52%, 18% 24%);
+.person-cut {
+  fill: none;
+  stroke: rgba(38, 23, 15, 0.9);
+  stroke-width: 3;
+  stroke-linecap: round;
 }
 
 .typing-bubble {
@@ -630,24 +614,24 @@ a {
 }
 
 .sender-chat {
-  right: -5px;
-  top: 25px;
+  right: -9px;
+  top: 27px;
 }
 
 .recipient-chat {
-  right: -6px;
-  top: 22px;
+  right: -9px;
+  top: 25px;
 }
 
 .sender-person {
-  left: calc(50% - 116px);
-  top: 10%;
+  left: calc(50% - 120px);
+  top: 9%;
   animation: senderPersonStage var(--route-duration) ease-in-out infinite;
 }
 
 .recipient-person {
-  left: calc(50% - 1px);
-  top: 45%;
+  left: calc(50% - 2px);
+  top: 43%;
   opacity: 0;
   transform: scale(0.86);
   animation: recipientPersonStage var(--route-duration) ease-in-out infinite;
@@ -726,10 +710,10 @@ a {
   0%, 16% { left: calc(50% - 66px); top: 23%; opacity: 1; transform: scale(0.9); }
   30% { left: calc(50% - 76px); top: 31%; opacity: 1; transform: scale(0.96); }
   48% { left: calc(50% - 58px); top: 39%; opacity: 1; transform: scale(0.98); }
-  64% { left: calc(50% - 43px); top: 46%; opacity: 0.94; transform: scale(0.86); }
-  72% { left: calc(50% - 28px); top: 50%; opacity: 0.24; transform: scale(0.52); }
-  76% { left: calc(50% - 21px); top: 52%; opacity: 0; transform: scale(0.22); }
-  80%, 100% { left: calc(50% - 66px); top: 23%; opacity: 0; transform: scale(0.22); }
+  64% { left: calc(50% - 43px); top: 46%; opacity: 1; transform: scale(0.9); }
+  76% { left: calc(50% - 24px); top: 51%; opacity: 1; transform: scale(0.76); }
+  84% { left: calc(50% - 18px); top: 52%; opacity: 0; transform: scale(0.28); }
+  88%, 100% { left: calc(50% - 66px); top: 23%; opacity: 0; transform: scale(0.28); }
 }
 
 @keyframes typingDot {
@@ -744,9 +728,9 @@ a {
 }
 
 @keyframes recipientPersonStage {
-  0%, 68% { opacity: 0; transform: translateY(7px) scale(0.86); }
-  76%, 90% { opacity: 1; transform: translateY(0) scale(1); }
-  98%, 100% { opacity: 0; transform: translateY(7px) scale(0.86); }
+  0%, 56% { opacity: 0; transform: translateY(7px) scale(0.86); }
+  64%, 80% { opacity: 1; transform: translateY(0) scale(1); }
+  84%, 100% { opacity: 0; transform: translateY(7px) scale(0.86); }
 }
 
 @keyframes globeTurn {
