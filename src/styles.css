@@ -517,7 +517,7 @@ a {
   width: 54px;
   height: 54px;
   z-index: 4;
-  animation: moneyTravel var(--route-duration) linear infinite;
+  animation: moneyTravel var(--route-duration) cubic-bezier(0.42, 0, 0.24, 1) infinite;
 }
 
 .transfer-bundle::after {
@@ -593,11 +593,12 @@ a {
 
 @keyframes moneyTravel {
   0%, 16% { left: calc(50% - 66px); top: 23%; opacity: 1; transform: scale(0.9); }
-  30% { left: calc(50% - 78px); top: 31%; opacity: 1; transform: scale(0.98); }
-  48% { left: calc(50% - 54px); top: 39%; opacity: 1; transform: scale(1); }
-  66% { left: calc(50% - 28px); top: 47%; opacity: 1; transform: scale(0.99); }
-  80%, 90% { left: calc(50% - 58px); top: 55%; opacity: 1; transform: scale(0.96); }
-  98%, 100% { left: calc(50% - 66px); top: 23%; opacity: 0; transform: scale(0.86); }
+  30% { left: calc(50% - 76px); top: 31%; opacity: 1; transform: scale(0.96); }
+  48% { left: calc(50% - 58px); top: 39%; opacity: 1; transform: scale(0.98); }
+  66% { left: calc(50% - 38px); top: 47%; opacity: 0.96; transform: scale(0.9); }
+  78% { left: calc(50% - 30px); top: 51%; opacity: 0.76; transform: scale(0.68); }
+  88% { left: calc(50% - 18px); top: 53%; opacity: 0; transform: scale(0.36); }
+  92%, 100% { left: calc(50% - 66px); top: 23%; opacity: 0; transform: scale(0.36); }
 }
 
 @keyframes globeTurn {
@@ -608,9 +609,8 @@ a {
 }
 
 @keyframes worldMapPan {
-  0%, 20% { transform: translateX(0); }
-  44% { transform: translateX(-21%); }
-  68%, 90% { transform: translateX(-36%); }
+  0%, 18% { transform: translateX(0); }
+  72%, 90% { transform: translateX(-36%); }
   98%, 100% { transform: translateX(0); }
 }
 
