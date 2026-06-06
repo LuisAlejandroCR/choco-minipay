@@ -563,6 +563,12 @@ a {
   fill: var(--latte-300);
 }
 
+.afro-hair circle {
+  fill: var(--latte-300);
+  stroke: rgba(38, 23, 15, 0.9);
+  stroke-width: 2.2;
+}
+
 .person-cut {
   fill: none;
   stroke: rgba(38, 23, 15, 0.9);
