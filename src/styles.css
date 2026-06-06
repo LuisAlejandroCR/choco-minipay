@@ -873,9 +873,10 @@ a {
 }
 
 .pitch-support {
-  margin: 6px 0 0;
-  color: var(--muted);
-  font-size: 14px;
+  margin: 8px 0 0;
+  color: rgba(238, 199, 153, 0.78);
+  font-size: 13px;
+  font-weight: 520;
   line-height: 1.35;
 }
 
