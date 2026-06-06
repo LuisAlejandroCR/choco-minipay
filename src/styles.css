@@ -517,7 +517,7 @@ a {
   width: 54px;
   height: 54px;
   z-index: 4;
-  animation: moneyTravel var(--route-duration) ease-in-out infinite;
+  animation: moneyTravel var(--route-duration) linear infinite;
 }
 
 .transfer-bundle::after {
@@ -593,9 +593,10 @@ a {
 
 @keyframes moneyTravel {
   0%, 16% { left: calc(50% - 66px); top: 23%; opacity: 1; transform: scale(0.9); }
-  34% { left: calc(50% - 72px); top: 32%; opacity: 1; transform: scale(1); }
-  58% { left: calc(50% - 44px); top: 43%; opacity: 1; transform: scale(1.02); }
-  76%, 90% { left: calc(50% - 58px); top: 55%; opacity: 1; transform: scale(0.96); }
+  30% { left: calc(50% - 78px); top: 31%; opacity: 1; transform: scale(0.98); }
+  48% { left: calc(50% - 54px); top: 39%; opacity: 1; transform: scale(1); }
+  66% { left: calc(50% - 28px); top: 47%; opacity: 1; transform: scale(0.99); }
+  80%, 90% { left: calc(50% - 58px); top: 55%; opacity: 1; transform: scale(0.96); }
   98%, 100% { left: calc(50% - 66px); top: 23%; opacity: 0; transform: scale(0.86); }
 }
 
