@@ -646,8 +646,8 @@ a {
 .recipient-person {
   left: calc(50% + 45px);
   top: 65%;
-  width: 31px;
-  height: 36px;
+  width: 34px;
+  height: 39px;
   opacity: 0;
   transform: scale(0.86);
   animation: recipientPersonStage var(--route-duration) ease-in-out infinite;
