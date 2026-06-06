@@ -574,40 +574,44 @@ function PitchScreen({ onClose }) {
       <section className="pitch-visual" aria-label="USA to Kenya remittance">
         <div className="mobile-world">
           <div className="globe-core" aria-hidden="true">
-            <svg className="globe-map globe-map-usa" viewBox="0 0 260 220" role="img" aria-label="Americas map with USA highlighted">
+            <svg className="world-map" viewBox="0 0 640 270" role="img" aria-label="World map with USA and Kenya highlighted">
+              <path className="continent-shape greenland-shape" d="M260 22 L292 10 L319 20 L310 45 L283 52 L260 42 Z" />
               <path
-                className="north-america-shape"
-                d="M18 77 C28 53 48 37 73 31 C91 18 107 25 122 14 C144 11 165 23 182 39 C198 38 221 50 238 69 C228 79 210 81 202 96 C190 92 176 98 166 110 L155 130 L137 135 L118 126 L104 134 L88 122 L76 107 L57 104 L47 88 Z"
+                className="continent-shape north-america-shape"
+                d="M18 76 C34 42 65 23 104 24 C132 9 160 18 185 37 C217 37 242 56 259 82 L242 105 L211 112 L188 132 L160 125 L137 136 L108 121 L82 119 L58 101 L35 100 Z"
               />
               <path
-                className="south-america-shape"
-                d="M157 129 C177 134 193 151 196 171 C191 191 178 211 161 219 C153 197 137 183 134 162 C132 146 141 135 157 129 Z"
+                className="continent-shape south-america-shape"
+                d="M187 132 C217 145 236 172 237 199 C231 229 209 260 184 268 C174 236 151 215 148 185 C145 162 158 143 187 132 Z"
               />
               <path
-                className="central-america-shape"
-                d="M104 129 C124 128 139 134 153 143 C170 142 181 149 190 160 C175 164 157 154 140 146 C123 139 110 139 98 134 Z"
+                className="continent-shape europe-shape"
+                d="M325 59 C350 39 381 38 402 58 L388 77 L360 80 L349 100 L321 91 Z"
               />
               <path
-                className="usa-shape"
-                d="M54 80 L70 69 L91 70 L103 61 L119 66 L135 64 L154 70 L170 82 L159 93 L139 96 L127 105 L109 104 L94 98 L80 103 L66 94 L49 91 L44 83 Z"
+                className="continent-shape africa-shape"
+                d="M363 88 C398 88 429 111 443 143 L462 158 L448 180 L451 209 L426 244 L392 250 L371 211 L340 194 L320 157 L333 123 Z"
               />
-              <path className="usa-shape usa-florida" d="M151 94 L163 101 L162 116 L153 110 L146 98 Z" />
-              <path className="globe-island" d="M59 135 L81 140 L75 153 L52 148 Z" />
+              <path
+                className="continent-shape asia-shape"
+                d="M402 53 C443 35 496 36 529 57 L579 63 L621 92 L610 124 L572 122 L547 146 L507 137 L488 164 L452 148 L429 119 L397 108 L385 79 Z"
+              />
+              <path
+                className="continent-shape australia-shape"
+                d="M553 194 L590 181 L626 198 L618 226 L584 235 L546 220 Z"
+              />
+              <path
+                className="highlight-country usa-shape"
+                d="M77 84 L96 72 L122 74 L138 65 L163 73 L184 70 L207 84 L194 99 L169 101 L153 113 L127 108 L109 116 L88 104 L65 100 L60 90 Z"
+              />
+              <path className="highlight-country usa-florida" d="M190 100 L206 109 L204 126 L193 119 L184 103 Z" />
+              <path
+                className="highlight-country kenya-shape"
+                d="M419 139 L439 150 L435 168 L451 181 L432 201 L414 190 L404 169 L391 159 L400 145 Z"
+              />
+              <text className="world-label usa-map-label" x="113" y="68">USA</text>
+              <text className="world-label kenya-map-label" x="430" y="136">Kenya</text>
             </svg>
-
-            <svg className="globe-map globe-map-kenya" viewBox="0 0 240 220" role="img" aria-label="Africa map with Kenya highlighted">
-              <path
-                className="africa-shape"
-                d="M112 16 C144 17 172 35 188 61 L210 77 L217 96 L199 109 L202 136 L183 160 L172 198 L145 207 L124 170 L95 158 L75 134 L61 103 L72 77 L67 56 L88 31 Z"
-              />
-              <path
-                className="kenya-shape"
-                d="M151 87 L170 97 L165 113 L180 126 L164 146 L149 137 L140 119 L128 109 L137 93 Z"
-              />
-            </svg>
-
-            <span className="location-label usa-label">USA</span>
-            <span className="location-label kenya-label">Kenya</span>
           </div>
 
           <div className="transfer-bundle" aria-hidden="true">
