@@ -399,7 +399,7 @@ a {
   --route-duration: 13s;
   min-height: 330px;
   margin: -4px -4px 0;
-  padding: 16px;
+  padding: 18px;
   display: grid;
   place-items: center;
   overflow: hidden;
@@ -412,8 +412,8 @@ a {
 }
 
 .mobile-world {
-  width: min(342px, 100%);
-  aspect-ratio: 1.22;
+  width: min(284px, 100%);
+  aspect-ratio: 1;
   display: grid;
   place-items: center;
   position: relative;
@@ -424,57 +424,59 @@ a {
   height: 100%;
   overflow: hidden;
   border: 1px solid rgba(246, 232, 212, 0.16);
-  border-radius: 28px;
+  border-radius: 50%;
   background:
-    radial-gradient(circle at 20% 12%, rgba(246, 232, 212, 0.12), transparent 28%),
-    radial-gradient(circle at 80% 72%, rgba(217, 166, 121, 0.16), transparent 30%),
-    linear-gradient(180deg, rgba(93, 60, 39, 0.86), rgba(45, 26, 17, 0.94));
+    radial-gradient(circle at 33% 23%, rgba(246, 232, 212, 0.18), transparent 24%),
+    radial-gradient(circle at 63% 62%, rgba(217, 166, 121, 0.13), transparent 38%),
+    linear-gradient(145deg, rgba(246, 232, 212, 0.08), rgba(5, 3, 2, 0.24)),
+    var(--cocoa-800);
   box-shadow:
-    inset 0 1px 0 rgba(246, 232, 212, 0.18),
-    inset 0 -28px 52px rgba(5, 3, 2, 0.26),
-    0 26px 58px rgba(0, 0, 0, 0.26);
+    inset -28px -20px 44px rgba(5, 3, 2, 0.36),
+    inset 18px 14px 30px rgba(246, 232, 212, 0.08),
+    0 30px 70px rgba(0, 0, 0, 0.3);
   position: relative;
+  animation: globeTurn var(--route-duration) ease-in-out infinite;
 }
 
 .globe-core::before {
   content: "";
   position: absolute;
-  inset: 0;
-  border-radius: inherit;
+  inset: 13px;
+  border-radius: 50%;
   background:
-    linear-gradient(90deg, rgba(246, 232, 212, 0.06) 1px, transparent 1px) 0 0 / 52px 52px,
-    linear-gradient(0deg, rgba(246, 232, 212, 0.04) 1px, transparent 1px) 0 0 / 52px 52px;
-  opacity: 0.45;
+    radial-gradient(circle at 23% 34%, rgba(246, 232, 212, 0.12), transparent 18%),
+    radial-gradient(circle at 76% 58%, rgba(246, 232, 212, 0.08), transparent 24%);
+  opacity: 0.72;
 }
 
 .globe-core::after {
   content: "";
   position: absolute;
-  inset: 14px;
-  border: 1px solid rgba(246, 232, 212, 0.12);
-  border-radius: 23px;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 24%, transparent 0 44%, rgba(12, 7, 5, 0.18) 62%, rgba(5, 3, 2, 0.44) 100%);
   pointer-events: none;
 }
 
 .world-map {
   position: absolute;
-  width: 170%;
+  width: 250%;
   height: auto;
   left: -8%;
-  top: 6%;
+  top: -3%;
   overflow: visible;
-  filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.18));
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.24));
   animation: worldMapPan var(--route-duration) ease-in-out infinite;
 }
 
 .world-map path {
-  stroke: rgba(38, 23, 15, 0.72);
-  stroke-width: 2.2;
+  stroke: rgba(22, 13, 8, 0.72);
+  stroke-width: 2.8;
   stroke-linejoin: round;
 }
 
 .continent-shape {
-  fill: rgba(188, 166, 139, 0.74);
+  fill: rgba(185, 163, 137, 0.76);
 }
 
 .highlight-country {
@@ -488,7 +490,7 @@ a {
   stroke: rgba(38, 23, 15, 0.62);
   stroke-width: 3px;
   paint-order: stroke fill;
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 850;
   letter-spacing: 0.02em;
 }
@@ -509,7 +511,7 @@ a {
   paint-order: stroke fill;
   color: var(--cream);
   font-family: Inter, -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
-  font-size: 16px;
+  font-size: 22px;
   font-weight: 900;
 }
 
@@ -523,7 +525,7 @@ a {
 
 .transfer-bundle {
   position: absolute;
-  left: 28px;
+  left: 24px;
   top: 57%;
   display: grid;
   place-items: center;
