@@ -19,6 +19,7 @@ This repository should stay focused on the production MiniPay app. Keep source, 
 | `public/review.css` | Shared mobile-first styling for the public review pages. |
 | `public/terms.html` | Required review surface; final legal content still needed. |
 | `public/support.html` | Required review surface; final support process still needed. |
+| `public/support.js` | Support-page behavior for topic chips, filled request copy, and request preparation. |
 | `public/stats.html` | Useful for MiniPay/product review; real metrics still needed. |
 | `docs` | Deployment stages, runbooks, positioning, and production handoff notes. |
 | `.env.example` | Non-secret environment contract for local and deployed services. |
@@ -46,6 +47,7 @@ This repository should stay focused on the production MiniPay app. Keep source, 
 ## Finish Before Release
 
 - Replace draft legal/support/stats pages with approved production content.
+- Connect the support form to the final chat, inbox, or ticket endpoint.
 - Confirm the final agent metadata URL, owner wallet, and ERC-8004 registration evidence.
 - Connect quote, ODIS, transfer, notification, analytics, and monitoring providers through the existing module boundaries.
 - Validate MiniPay behavior at 360 x 640.

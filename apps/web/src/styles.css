@@ -62,9 +62,7 @@ a {
 
 .stage {
   min-height: 100dvh;
-  display: grid;
-  grid-template-columns: minmax(360px, 430px);
-  gap: 0;
+  display: flex;
   align-items: center;
   justify-content: center;
   padding: 28px;
@@ -75,7 +73,9 @@ a {
 }
 
 .miniapp {
-  width: min(430px, 100%);
+  width: 100%;
+  max-width: 430px;
+  flex: 0 1 430px;
   min-height: min(900px, 100dvh);
   background: #000;
   border: 1px solid rgba(246, 232, 212, 0.08);

@@ -18,37 +18,113 @@
 
       <section class="hero">
         <div class="eyebrow">Support first</div>
-        <h1>Help with a Choco transfer plan.</h1>
-        <p>Use this page when a schedule, receipt, wallet check, or route needs review. Choco is in production-candidate mode, so support focuses on testnet behavior and safe handoff before live money movement.</p>
+        <h1>Talk to Choco support.</h1>
+        <p>Start with chat, then review the filled request before sending it. Choco only asks for the transfer details needed to check a plan, receipt, wallet, or route.</p>
         <div class="actions">
-          <a class="primary" href="https://github.com/LuisAlejandroCR/choco-minipay/issues/new" target="_blank" rel="noreferrer">Open support issue</a>
-          <a class="secondary" href="#support-intake">Review intake</a>
+          <a class="primary" href="#support-chat">Start chat</a>
+          <a class="secondary" href="#support-form">Review form</a>
         </div>
       </section>
 
-      <section class="stack two" id="support-intake" aria-label="Support intake">
+      <section class="chat-card" id="support-chat" aria-label="Support chat preview">
+        <div class="chat-thread">
+          <div class="chat-bubble agent">
+            <strong>Choco Support</strong>
+            <span>What do you need help with today?</span>
+          </div>
+          <div class="chat-bubble user">
+            <span>My transfer plan needs review.</span>
+          </div>
+          <div class="chat-bubble agent">
+            <span>I filled the form below with the usual transfer details. Change anything that looks wrong before sending.</span>
+          </div>
+        </div>
+        <div class="quick-replies" aria-label="Support topics">
+          <button type="button" data-topic="Schedule review">Schedule</button>
+          <button type="button" data-topic="Receipt review">Receipt</button>
+          <button type="button" data-topic="Wallet access">Wallet</button>
+          <button type="button" data-topic="Route or quote">Route</button>
+        </div>
+      </section>
+
+      <form class="support-form" id="support-form" data-support-form>
+        <div>
+          <div class="eyebrow">Filled request</div>
+          <h2>Transfer help form</h2>
+          <p>Review these fields before sending the request to Choco support.</p>
+        </div>
+
+        <label>
+          Support topic
+          <select name="topic">
+            <option>Schedule review</option>
+            <option>Receipt review</option>
+            <option>Wallet access</option>
+            <option>Route or quote</option>
+            <option>Other</option>
+          </select>
+        </label>
+
+        <div class="form-grid">
+          <label>
+            Recipient
+            <input name="recipient" value="Mom" autocomplete="name" />
+          </label>
+          <label>
+            Amount
+            <input name="amount" value="50,000 KESm" inputmode="decimal" />
+          </label>
+        </div>
+
+        <div class="form-grid">
+          <label>
+            Route
+            <input name="route" value="USDC to KESm" />
+          </label>
+          <label>
+            Timing
+            <input name="timing" value="monthly on 1st" />
+          </label>
+        </div>
+
+        <label>
+          Contact for reply
+          <input name="contact" placeholder="Phone, email, or MiniPay contact" autocomplete="email" />
+        </label>
+
+        <label>
+          Message
+          <textarea name="message" rows="7">Hi Choco support, I need help with: Schedule review.
+
+Recipient: Mom
+Amount: 50,000 KESm
+Route: USDC to KESm
+Timing: monthly on 1st
+Reply contact: not provided yet
+
+What happened:
+Please review this transfer plan and tell me what to do next.</textarea>
+        </label>
+
+        <div class="actions">
+          <button class="primary" type="submit">Prepare chat request</button>
+          <button class="secondary" type="button" data-copy-request>Copy message</button>
+        </div>
+
+        <output class="form-result" data-support-result hidden></output>
+      </form>
+
+      <section class="stack two" aria-label="Support expectations">
         <article class="card">
-          <strong>What to include</strong>
-          <ul>
-            <li>Instruction text or screen name.</li>
-            <li>Recipient alias, amount, route, and timing.</li>
-            <li>Receipt link or transaction hash when available.</li>
-          </ul>
+          <strong>Good details</strong>
+          <p>Share the instruction, recipient alias, amount, route, timing, and receipt link or transaction hash when available.</p>
         </article>
         <article class="card">
-          <strong>Where support starts</strong>
-          <p>During review, file product issues in the production repository so the fix stays attached to the app history.</p>
-          <a class="inline-link" href="https://github.com/LuisAlejandroCR/choco-minipay/issues/new" target="_blank" rel="noreferrer">Create a GitHub issue</a>
-        </article>
-        <article class="card">
-          <strong>Wallet or MiniPay access</strong>
-          <p>Confirm whether the issue happened inside MiniPay or in a normal browser preview.</p>
-        </article>
-        <article class="card">
-          <strong>Critical issue target</strong>
-          <p>After live money movement is enabled, critical transfer issues should be acknowledged within 24 hours.</p>
+          <strong>Do not share</strong>
+          <p>Never send wallet recovery material, private keys, or full card and bank details through support.</p>
         </article>
       </section>
     </main>
+    <script src="/support.js"></script>
   </body>
 </html>

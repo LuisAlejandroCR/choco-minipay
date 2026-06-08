@@ -65,6 +65,7 @@ Choco is a MiniPay-native remittance concierge for family transfers, scheduled r
 |   |-- review.css
 |   |-- stats.html
 |   |-- support.html
+|   |-- support.js
 |   `-- terms.html
 |-- services/
 |   |-- api/
@@ -205,6 +206,7 @@ Before production release:
 - ERC-8004 metadata is public and registered.
 - Quote, ODIS, API, worker, and analytics integrations are connected through module boundaries.
 - Terms, privacy, support, and stats pages contain final production content.
+- Support form is connected to the final chat, inbox, or ticket endpoint.
 - Docker production compose builds all services.
 
 ## References
