@@ -15,7 +15,6 @@ import {
   Plus,
   ReceiptText,
   RefreshCw,
-  Share2,
   ShieldCheck,
   Trash2,
   Wallet,
@@ -24,8 +23,19 @@ import {
 import "./styles.css";
 
 const SPLASH_DURATION_MS = 2600;
-const DEMO_STEP_MS = 6000;
+const DEMO_STEP_MS = 5000;
 const WORLD_MAP_URL = "https://upload.wikimedia.org/wikipedia/commons/5/51/BlankMap-Equirectangular.svg";
+
+const deliveryModes = {
+  now: {
+    label: "Now",
+    detail: "One-time",
+  },
+  schedule: {
+    label: "Schedule",
+    detail: "Repeat",
+  },
+};
 
 const defaultPlan = {
   id: "mom-monthly",
@@ -43,6 +53,7 @@ const defaultPlan = {
   status: "Active",
   phone: "+254 7xx xxx 214",
   schedule: "Every 1st - 9:00 AM",
+  deliveryMode: "schedule",
 };
 
 const defaultTransaction = {
@@ -54,14 +65,77 @@ const defaultTransaction = {
   payAsset: defaultPlan.payAsset,
   schedule: defaultPlan.schedule,
   date: "July 1",
-  status: "Filed",
+  status: "Scheduled",
   hash: defaultPlan.hash,
   routeEstimate: defaultPlan.routeEstimate,
-  type: "Scheduled transfer",
+  type: "Scheduled run",
+  deliveryMode: defaultPlan.deliveryMode,
 };
 
-function buildPlanFromCommand(commandText, basePlan = defaultPlan) {
+function getTimingLabel(item) {
+  return item.deliveryMode === "now" ? "Send once now" : item.schedule;
+}
+
+function getPlanSignature(plan) {
+  return [
+    plan.recipient,
+    plan.amount,
+    plan.asset,
+    getTimingLabel(plan),
+  ].join("|").toLowerCase();
+}
+
+function findSimilarPlan(plans, candidate, excludeId = "") {
+  if (!candidate || candidate.deliveryMode === "now") return null;
+  const candidateSignature = getPlanSignature(candidate);
+  return plans.find((plan) => plan.id !== excludeId && getPlanSignature(plan) === candidateSignature) || null;
+}
+
+function getSimilarPlanIds(plans) {
+  const groups = new Map();
+  plans.forEach((plan) => {
+    const signature = getPlanSignature(plan);
+    groups.set(signature, [...(groups.get(signature) || []), plan.id]);
+  });
+
+  return new Set(
+    [...groups.values()]
+      .filter((ids) => ids.length > 1)
+      .flat(),
+  );
+}
+
+function formatKesAmount(value) {
+  return Math.round(value).toLocaleString("en-US");
+}
+
+function parseKesAmount(text, fallbackAmount) {
+  const kMatch = text.match(/(\d+(?:[.,]\d+)?)\s*k\b/i);
+  if (kMatch) {
+    return Number(kMatch[1].replace(",", ".")) * 1000;
+  }
+
+  const kesMatch = text.match(/(\d{4,})\s*(kes|kesm)\b/i);
+  if (kesMatch) {
+    return Number(kesMatch[1].replace(/,/g, ""));
+  }
+
+  return Number(String(fallbackAmount).replace(/,/g, "")) || 50000;
+}
+
+function getRouteEstimate(amountValue) {
+  return `$${(amountValue / 129.39).toFixed(2)} USDC`;
+}
+
+function getTransactionStatus(plan, type) {
+  if (plan.deliveryMode === "now") return "Sent";
+  if (type === "Plan updated") return "Updated";
+  return "Scheduled";
+}
+
+function buildPlanFromCommand(commandText, basePlan = defaultPlan, selectedDeliveryMode = "") {
   const text = commandText.toLowerCase();
+  const deliveryMode = selectedDeliveryMode || (/now|today|immediate|once/.test(text) ? "now" : "schedule");
   const recipient = text.includes("sister")
     ? "Sister"
     : text.includes("aunt")
@@ -69,22 +143,22 @@ function buildPlanFromCommand(commandText, basePlan = defaultPlan) {
       : text.includes("dad")
         ? "Dad"
         : "Mom";
-  const amount = text.includes("75")
-    ? "75,000"
-    : text.includes("25")
-      ? "25,000"
-      : text.includes("20")
-        ? "20,000"
-        : "50,000";
+  const amountValue = parseKesAmount(text, basePlan.amount);
+  const amount = formatKesAmount(amountValue);
   const day = text.includes("15") ? "15th" : text.includes("monday") ? "Monday" : "1st";
-  const schedule = day === "Monday" ? "Every Monday - 9:00 AM" : `Every ${day} - 9:00 AM`;
-  const nextDate = day === "15th" ? "July 15" : day === "Monday" ? "Next Monday" : "July 1";
-  const routeEstimate = {
-    "20,000": "$154.57 USDC",
-    "25,000": "$193.21 USDC",
-    "50,000": "$386.42 USDC",
-    "75,000": "$579.63 USDC",
-  }[amount];
+  const schedule = deliveryMode === "now"
+    ? "Send once now"
+    : day === "Monday"
+      ? "Every Monday - 9:00 AM"
+      : `Every ${day} - 9:00 AM`;
+  const nextDate = deliveryMode === "now"
+    ? "Today"
+    : day === "15th"
+      ? "July 15"
+      : day === "Monday"
+        ? "Next Monday"
+        : "July 1";
+  const routeEstimate = getRouteEstimate(amountValue);
 
   return {
     ...basePlan,
@@ -93,7 +167,8 @@ function buildPlanFromCommand(commandText, basePlan = defaultPlan) {
     schedule,
     nextDate,
     routeEstimate,
-    status: "Active",
+    status: deliveryMode === "now" ? "Ready" : "Active",
+    deliveryMode,
   };
 }
 
@@ -107,10 +182,11 @@ function buildTransactionFromPlan(plan, type = "Plan confirmed") {
     payAsset: plan.payAsset,
     schedule: plan.schedule,
     date: "Today",
-    status: "Filed",
+    status: getTransactionStatus(plan, type),
     hash: plan.hash,
     routeEstimate: plan.routeEstimate,
     type,
+    deliveryMode: plan.deliveryMode,
   };
 }
 
@@ -128,20 +204,24 @@ function rememberDemoChoice() {
 
 const demoSteps = [
   {
-    title: "Home is your plan list",
-    copy: "Tap a saved plan to open details. No command is required just to review.",
+    title: "Home starts both flows",
+    copy: "Tap one action to start. Choco asks timing on the next screen.",
+  },
+  {
+    title: "Choose timing first",
+    copy: "Choco asks if the transfer should happen now or run on a schedule.",
   },
   {
     title: "Plans is for management",
-    copy: "Create new schedules here, or choose an active plan to update.",
+    copy: "Scheduled transfers live here. Create a plan once, then update or delete it anytime.",
   },
   {
     title: "Details shows control",
     copy: "See route, schedule, retries, and edit or delete the selected plan.",
   },
   {
-    title: "History keeps receipts",
-    copy: "Select a transaction to review proof before sharing anything.",
+    title: "Movements keep receipts",
+    copy: "One-time sends and scheduled runs both land in history with receipt proof.",
   },
   {
     title: "Share only what matters",
@@ -177,7 +257,6 @@ const infoPanels = {
 function App() {
   const [screen, setScreen] = useState("splash");
   const [command, setCommand] = useState("send my mum 50k KES every 1st");
-  const [voiceState, setVoiceState] = useState("Text or voice");
   const [runStep, setRunStep] = useState(0);
   const [demoStep, setDemoStep] = useState(0);
   const [demoElapsedSeconds, setDemoElapsedSeconds] = useState(0);
@@ -186,6 +265,7 @@ function App() {
   const [selectedPlanId, setSelectedPlanId] = useState(defaultPlan.id);
   const [selectedTransactionId, setSelectedTransactionId] = useState(defaultTransaction.id);
   const [reviewMode, setReviewMode] = useState("create");
+  const [deliveryMode, setDeliveryMode] = useState("schedule");
   const [showDemoPrompt, setShowDemoPrompt] = useState(shouldShowDemoPrompt);
   const [activeInfoPanel, setActiveInfoPanel] = useState(null);
 
@@ -194,8 +274,12 @@ function App() {
     [plans, selectedPlanId],
   );
   const previewPlan = useMemo(
-    () => buildPlanFromCommand(command, activePlan || defaultPlan),
-    [activePlan, command],
+    () => buildPlanFromCommand(command, activePlan || defaultPlan, deliveryMode),
+    [activePlan, command, deliveryMode],
+  );
+  const similarPlan = useMemo(
+    () => findSimilarPlan(plans, previewPlan, reviewMode === "update" ? activePlan?.id : ""),
+    [activePlan, plans, previewPlan, reviewMode],
   );
   const activeTransaction = useMemo(
     () => transactions.find((item) => item.id === selectedTransactionId) || transactions[0] || null,
@@ -249,11 +333,6 @@ function App() {
     return () => window.clearTimeout(timer);
   }, [demoStep, screen]);
 
-  function captureVoice() {
-    setVoiceState("Voice captured");
-    window.setTimeout(() => setVoiceState("Text or voice"), 1400);
-  }
-
   function dismissDemoPrompt() {
     setShowDemoPrompt(false);
   }
@@ -266,6 +345,7 @@ function App() {
   function runDemo() {
     skipDemoPrompt();
     setReviewMode("demo");
+    setDeliveryMode("schedule");
     setCommand("send my mum 50k KES every 1st");
     setDemoStep(0);
     setDemoElapsedSeconds(0);
@@ -274,18 +354,45 @@ function App() {
 
   function openNewPlan() {
     setReviewMode("create");
-    setCommand("send my mum 50k KES every 1st");
+    setDeliveryMode("schedule");
+    setCommand("");
+    setScreen("planEditor");
+  }
+
+  function openImmediateSend() {
+    setReviewMode("create");
+    setDeliveryMode("now");
+    setCommand("");
     setScreen("planEditor");
   }
 
   function openEditPlan() {
     const targetPlan = activePlan || defaultPlan;
     setReviewMode("update");
+    setDeliveryMode(targetPlan.deliveryMode || "schedule");
     setCommand(`change ${targetPlan.recipient}'s plan to 75k KES every 15th`);
     setScreen("planEditor");
   }
 
-  function buildPlan() {
+  function changeDeliveryMode(nextMode) {
+    setDeliveryMode(nextMode);
+    setCommand((currentCommand) => {
+      if (nextMode === "now" && /every|weekly|monthly|monday|1st|15th/i.test(currentCommand)) {
+        return "send my mum 50k KES now";
+      }
+
+      if (nextMode === "schedule" && /now|today|immediate|once/i.test(currentCommand)) {
+        return "send my mum 50k KES every 1st";
+      }
+
+      return currentCommand;
+    });
+  }
+
+  function buildPlan(nextCommand = "") {
+    if (nextCommand) {
+      setCommand(nextCommand);
+    }
     setScreen("processing");
   }
 
@@ -303,6 +410,27 @@ function App() {
 
   function confirmPlan() {
     let committedPlan;
+
+    if (previewPlan.deliveryMode === "now") {
+      committedPlan = {
+        ...previewPlan,
+        id: `send-${Date.now()}`,
+        hash: "0x9d41...celo-sepolia-309",
+        status: "Sent",
+      };
+
+      const transaction = buildTransactionFromPlan(committedPlan, "Sent once");
+      setTransactions((items) => [transaction, ...items]);
+      setSelectedTransactionId(transaction.id);
+      setScreen("history");
+      return;
+    }
+
+    if (similarPlan) {
+      setSelectedPlanId(similarPlan.id);
+      setScreen("planDetail");
+      return;
+    }
 
     if (reviewMode === "update" && activePlan) {
       committedPlan = {
@@ -350,13 +478,13 @@ function App() {
     if (screen === "planDetail") return "Details";
     if (screen === "history") return "History";
     if (screen === "receiptDetail") return "Receipt";
-    if (screen === "planEditor") return reviewMode === "update" ? "Edit plan" : "New plan";
+    if (screen === "planEditor") return reviewMode === "update" ? "Edit plan" : deliveryMode === "now" ? "Send now" : "New schedule";
     if (screen === "deletePlan") return "Delete";
     if (screen === "demoTour") return "Demo";
     if (screen === "processing") return "Planning";
     if (screen === "review") return "Quote";
     return "Home";
-  }, [reviewMode, screen]);
+  }, [deliveryMode, reviewMode, screen]);
 
   return (
     <main className="stage">
@@ -399,6 +527,7 @@ function App() {
               showDemoPrompt={showDemoPrompt}
               onPlans={() => setScreen("plans")}
               onHistory={() => setScreen("history")}
+              onSendNow={openImmediateSend}
               onSelectPlan={(planId) => {
                 setSelectedPlanId(planId);
                 setScreen("planDetail");
@@ -464,9 +593,8 @@ function App() {
               mode={reviewMode}
               command={command}
               setCommand={setCommand}
-              voiceState={voiceState}
-              onVoice={captureVoice}
-              onCancel={() => setScreen(reviewMode === "update" ? "planDetail" : "plans")}
+              deliveryMode={deliveryMode}
+              setDeliveryMode={changeDeliveryMode}
               onBuild={buildPlan}
             />
           )}
@@ -478,7 +606,8 @@ function App() {
             <ReviewScreen
               plan={previewPlan}
               mode={reviewMode}
-              onEdit={() => setScreen(reviewMode === "update" ? "planEditor" : "plan")}
+              similarPlan={similarPlan}
+              onEdit={() => setScreen("planEditor")}
               onConfirm={confirmPlan}
             />
           )}
@@ -657,7 +786,7 @@ function PitchScreen({ onClose }) {
           </span>
           .
         </h1>
-        <p className="pitch-memory">Plan once. Send on schedule.</p>
+        <p className="pitch-memory">Plan once. Send now or on schedule.</p>
         <p className="pitch-support">Choco handles the rest.</p>
       </section>
 
@@ -671,6 +800,7 @@ function PlanScreen({
   showDemoPrompt,
   onPlans,
   onHistory,
+  onSendNow,
   onSelectPlan,
   onRunDemo,
   onSkipDemo,
@@ -687,24 +817,35 @@ function PlanScreen({
           <button type="button" aria-label="Support"><ShieldCheck size={20} /></button>
         </div>
         <div className="balance-copy">
-          <span>Next transfer</span>
+          <span>Next plan</span>
           <strong>{nextPlan.amount}</strong>
-          <p>{nextPlan.asset} to {nextPlan.recipient} - {nextPlan.schedule}</p>
+          <p>{nextPlan.asset} to {nextPlan.recipient} - {getTimingLabel(nextPlan)}</p>
         </div>
       </div>
 
+      <button className="home-start-action" type="button" onClick={onSendNow}>
+        <span className="home-start-icon">
+          <CircleDollarSign size={20} />
+        </span>
+        <span>
+          <b>New transfer</b>
+          <small>Send now or schedule with voice</small>
+        </span>
+        <ArrowRight size={21} />
+      </button>
+
       <section className="home-list" aria-label="Home plan list">
         <div className="section-heading">
-          <span>Active plans</span>
+          <span>Plans</span>
           <button type="button" onClick={onPlans}>Manage</button>
         </div>
 
-        {plans.map((item) => (
-          <button className="plan-row" type="button" key={item.id} onClick={() => onSelectPlan(item.id)}>
+        {plans.slice(0, 1).map((item) => (
+          <button className="plan-row compact-row" type="button" key={item.id} onClick={() => onSelectPlan(item.id)}>
             <div className="plan-row-icon"><ChocoMark size="tiny" /></div>
             <div>
               <b>{item.recipient}</b>
-              <span>{item.amount} {item.asset} - {item.schedule}</span>
+              <span>{item.amount} {item.asset} - {getTimingLabel(item)}</span>
             </div>
             <small>{item.status}</small>
           </button>
@@ -726,7 +867,7 @@ function DemoPrompt({ onRunDemo, onSkipDemo, onCloseDemo }) {
         </button>
         <ChocoMark size="small" />
         <h2>Try Choco in {DEMO_TOTAL_SECONDS} seconds</h2>
-        <p>A guided tour shows home, plans, details, history, and sharing. Skip anytime.</p>
+        <p>A guided tour shows transfers, schedules, receipts, and sharing. Skip anytime.</p>
         <div className="demo-actions">
           <button type="button" onClick={onRunDemo}>Run demo</button>
           <button type="button" onClick={onSkipDemo}>Skip</button>
@@ -796,50 +937,62 @@ function DemoTourScreen({ step, elapsedSeconds, onSkip, onPrevious, onNext, onFi
 function DemoVisual({ step }) {
   if (step === 0) {
     return (
-      <div className="demo-visual saved-plan">
-        <div className="plan-row-icon"><ChocoMark size="tiny" /></div>
-        <div><b>Mom</b><span>50,000 KESm - Every 1st</span></div>
-        <small>Active</small>
+      <div className="demo-visual home-preview">
+        <button type="button"><CircleDollarSign size={17} />New transfer<span>Voice or text</span></button>
+        <div className="mini-plan-row">
+          <div className="plan-row-icon"><ChocoMark size="tiny" /></div>
+          <div><b>Mom</b><span>50,000 KESm - Every 1st</span></div>
+          <small>Active</small>
+        </div>
       </div>
     );
   }
 
   if (step === 1) {
     return (
-      <div className="demo-visual plans-preview">
-        <button type="button"><Plus size={18} />New plan</button>
-        <button type="button"><ListChecks size={18} />All active plans</button>
+      <div className="demo-visual timing-preview">
+        <button className="active" type="button"><CircleDollarSign size={18} />Send now<span>One-time</span></button>
+        <button type="button"><CalendarDays size={18} />Schedule<span>Repeat</span></button>
       </div>
     );
   }
 
   if (step === 2) {
     return (
-      <div className="demo-visual details-preview">
-        <SummaryCard label="Route" value="USDC to KESm" />
-        <SummaryCard label="Retry" value="3 attempts" />
-        <SummaryCard label="Schedule" value="Every 1st" />
-        <SummaryCard label="Receipt" value="Onchain" />
+      <div className="demo-visual plans-preview">
+        <button type="button"><Plus size={18} />Schedule transfer</button>
+        <button type="button"><ListChecks size={18} />All active plans</button>
       </div>
     );
   }
 
   if (step === 3) {
     return (
-      <div className="demo-visual history-preview">
-        <div className="receipt-icon"><ReceiptText size={18} /></div>
-        <div><b>Mom</b><span>50,000 KESm - Plan confirmed</span></div>
-        <small>Today</small>
+      <div className="demo-visual details-preview">
+        <SummaryCard label="Route" value="USDC to KESm" />
+        <SummaryCard label="Retry" value="3 attempts" />
+        <SummaryCard label="Timing" value="Every 1st" />
+        <SummaryCard label="Receipt" value="Onchain" />
       </div>
     );
   }
 
   if (step === 4) {
     return (
+      <div className="demo-visual history-preview">
+        <div className="receipt-icon"><ReceiptText size={18} /></div>
+        <div><b>Mom</b><span>50,000 KESm - Sent once</span></div>
+        <small>Today</small>
+      </div>
+    );
+  }
+
+  if (step === 5) {
+    return (
       <div className="demo-visual share-preview">
         <label><Check size={16} />Recipient</label>
         <label><Check size={16} />Amount</label>
-        <label>Schedule</label>
+        <label>Timing</label>
         <label>Hash</label>
       </div>
     );
@@ -851,6 +1004,8 @@ function DemoVisual({ step }) {
 }
 
 function PlansScreen({ plans, onSelectPlan, onNewPlan, onHome, onHistory }) {
+  const similarPlanIds = getSimilarPlanIds(plans);
+
   return (
     <div className="screen plans-screen">
       <div className="layer-heading">
@@ -858,28 +1013,40 @@ function PlansScreen({ plans, onSelectPlan, onNewPlan, onHome, onHistory }) {
           <span>Manage</span>
           <h2>Plans</h2>
         </div>
-        <button type="button" onClick={onNewPlan}><Plus size={18} />New</button>
+        <button type="button" onClick={onNewPlan}><Plus size={18} />Schedule</button>
       </div>
 
       {plans.length > 0 ? (
-        <div className="plans-list" aria-label="Plans list">
-          {plans.map((item) => (
-            <button className="plan-row" type="button" key={item.id} onClick={() => onSelectPlan(item.id)}>
-              <div className="plan-row-icon"><ChocoMark size="tiny" /></div>
-              <div>
-                <b>{item.recipient}</b>
-                <span>{item.amount} {item.asset} - {item.schedule}</span>
-              </div>
-              <small>{item.status}</small>
-            </button>
-          ))}
-        </div>
+        <>
+          {similarPlanIds.size > 0 && (
+            <div className="plan-alert">
+              <Check size={16} />
+              <span>Similar plan already exists. Review before scheduling again.</span>
+            </div>
+          )}
+          <div className="plans-list" aria-label="Plans list">
+            {plans.map((item) => {
+              const isSimilar = similarPlanIds.has(item.id);
+
+              return (
+                <button className="plan-row" type="button" key={item.id} onClick={() => onSelectPlan(item.id)}>
+                  <div className="plan-row-icon"><ChocoMark size="tiny" /></div>
+                  <div>
+                    <b>{item.recipient}</b>
+                    <span>{item.amount} {item.asset} - {getTimingLabel(item)}</span>
+                  </div>
+                  <small className={isSimilar ? "warning" : ""}>{isSimilar ? "Similar" : item.status}</small>
+                </button>
+              );
+            })}
+          </div>
+        </>
       ) : (
         <div className="empty-plans">
           <ChocoMark size="small" />
           <h2>No plans yet</h2>
-          <p>Create one with a text or voice instruction. Choco will show a quote before anything is activated.</p>
-          <button type="button" onClick={onNewPlan}>New plan</button>
+          <p>Create a scheduled transfer with text or voice. One-time sends stay in history.</p>
+          <button type="button" onClick={onNewPlan}>Schedule transfer</button>
         </div>
       )}
 
@@ -894,7 +1061,7 @@ function HistoryScreen({ transactions, onSelectTransaction, onHome, onPlans }) {
       <div className="layer-heading">
         <div>
           <span>Receipts</span>
-          <h2>History</h2>
+          <h2>Movements</h2>
         </div>
       </div>
 
@@ -917,57 +1084,23 @@ function HistoryScreen({ transactions, onSelectTransaction, onHome, onPlans }) {
 }
 
 function ReceiptDetailScreen({ transaction, onBack, onHome, onPlans }) {
-  const shareItems = [
-    { id: "recipient", label: "Recipient", value: transaction.recipient },
-    { id: "amount", label: "Amount", value: `${transaction.amount} ${transaction.asset}` },
-    { id: "schedule", label: "Schedule", value: transaction.schedule },
-    { id: "status", label: "Status", value: transaction.status },
-    { id: "hash", label: "Onchain hash", value: transaction.hash },
-  ];
-  const [selectedFields, setSelectedFields] = useState(["recipient", "amount", "status"]);
-
-  function toggleField(fieldId) {
-    setSelectedFields((items) => (
-      items.includes(fieldId) ? items.filter((item) => item !== fieldId) : [...items, fieldId]
-    ));
-  }
-
   return (
     <div className="screen receipt-detail-screen">
       <section className="receipt-detail-card">
         <div className="sheet-top">
           <div className="sheet-icon success"><ReceiptText size={24} /></div>
-          <h2>Receipt details</h2>
+          <h2>Movement details</h2>
           <span className="sheet-chip">{transaction.status}</span>
         </div>
 
         <div className="receipt-card">
           <ReceiptRow icon={<Check size={18} />} label="Status" value={transaction.status} />
-          <ReceiptRow icon={<CalendarDays size={18} />} label="Schedule" value={transaction.schedule} />
           <ReceiptRow icon={<CircleDollarSign size={18} />} label="Amount" value={`${transaction.amount} ${transaction.asset}`} />
+          <ReceiptRow icon={<CalendarDays size={18} />} label="Timing" value={getTimingLabel(transaction)} />
           <ReceiptRow icon={<ReceiptText size={18} />} label="Receipt hash" value={transaction.hash} mono />
         </div>
 
-        <div className="share-panel">
-          <div className="section-heading">
-            <span>Share fields</span>
-            <small>{selectedFields.length} selected</small>
-          </div>
-          {shareItems.map((item) => (
-            <label className="share-option" key={item.id}>
-              <input
-                type="checkbox"
-                checked={selectedFields.includes(item.id)}
-                onChange={() => toggleField(item.id)}
-              />
-              <span>{item.label}</span>
-              <b>{item.value}</b>
-            </label>
-          ))}
-        </div>
-
-        <button className="primary-cta" type="button"><Share2 size={18} />Share selected</button>
-        <button className="secondary-dark" type="button" onClick={onBack}>Back to history</button>
+        <button className="secondary-dark" type="button" onClick={onBack}>Back to movements</button>
       </section>
 
       <BottomNav active="history" onHome={onHome} onPlans={onPlans} onHistory={onBack} />
@@ -995,7 +1128,7 @@ function PlanDetailScreen({ plan, onHome, onHistory, onBack, onEdit, onDelete })
         </div>
       </section>
 
-      <div className="schedule-bar" aria-label="Monthly schedule">
+      <div className="schedule-bar" aria-label="Transfer schedule">
         <span>Now</span>
         <div className="track" />
         <span>{plan.nextDate}</span>
@@ -1004,7 +1137,7 @@ function PlanDetailScreen({ plan, onHome, onHistory, onBack, onEdit, onDelete })
       <div className="detail-grid" aria-label="Plan details">
         <SummaryTile label="Route" value={`${plan.payAsset} to ${plan.asset}`} />
         <SummaryTile label="Retry" value="3 attempts" />
-        <SummaryTile label="Schedule" value={plan.schedule} />
+        <SummaryTile label="Timing" value={getTimingLabel(plan)} />
         <SummaryTile label="Receipt" value="Onchain" />
       </div>
 
@@ -1013,46 +1146,145 @@ function PlanDetailScreen({ plan, onHome, onHistory, onBack, onEdit, onDelete })
         <button className="danger-action" type="button" onClick={onDelete}><Trash2 size={18} />Delete</button>
       </div>
 
-      <button className="secondary-dark" type="button" onClick={onBack}>Back to plans</button>
+      <button className="secondary-dark" type="button" onClick={onHome}>Back home</button>
       <BottomNav active="plans" onHome={onHome} onPlans={onBack} onHistory={onHistory} />
     </div>
   );
 }
 
-function PlanEditorScreen({ mode, command, setCommand, voiceState, onVoice, onCancel, onBuild }) {
-  const title = mode === "update" ? "Describe the update" : "Describe the transfer";
+function PlanEditorScreen({
+  mode,
+  command,
+  setCommand,
+  deliveryMode,
+  setDeliveryMode,
+  onBuild,
+}) {
+  const [isRecording, setIsRecording] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const hasText = command.trim().length > 0;
+  const title = mode === "update"
+    ? "Update plan"
+    : deliveryMode === "now"
+      ? "Send money"
+      : "Schedule transfer";
+  const voiceTranscript = deliveryMode === "now"
+    ? "send my mum 50k KES now"
+    : "send my mum 50k KES every 1st";
+
+  useEffect(() => {
+    if (!isRecording || isPaused) return undefined;
+
+    const timer = window.setInterval(() => {
+      setRecordingSeconds((seconds) => seconds + 1);
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [isPaused, isRecording]);
+
+  function startRecording() {
+    setRecordingSeconds(0);
+    setIsPaused(false);
+    setIsRecording(true);
+  }
+
+  function cancelRecording() {
+    setIsRecording(false);
+    setIsPaused(false);
+    setRecordingSeconds(0);
+  }
+
+  function submitRecording() {
+    setIsRecording(false);
+    setIsPaused(false);
+    setRecordingSeconds(0);
+    onBuild(voiceTranscript);
+  }
+
+  function submitComposer() {
+    if (hasText) {
+      onBuild();
+      return;
+    }
+
+    startRecording();
+  }
 
   return (
     <div className="screen editor-screen">
       <section className="editor-card">
         <ChocoMark size="small" />
         <div>
-          <span>{mode === "update" ? "Edit plan" : "New plan"}</span>
+          <span>{mode === "update" ? "Edit plan" : "New transfer"}</span>
           <h2>{title}</h2>
-          <p>Use text or voice. You will review the quote before anything is saved.</p>
+          <p>Tell Choco with text or voice.</p>
+        </div>
+      </section>
+
+      <section className="timing-choice" aria-label="Transfer timing">
+        <span className="timing-label">When?</span>
+        <div className="timing-toggle">
+          {Object.entries(deliveryModes).map(([modeId, item]) => (
+            <button
+              className={deliveryMode === modeId ? "active" : ""}
+              type="button"
+              key={modeId}
+              onClick={() => setDeliveryMode(modeId)}
+            >
+              {modeId === "now" ? <CircleDollarSign size={19} /> : <CalendarDays size={19} />}
+              <span>{item.label}</span>
+              <small>{item.detail}</small>
+            </button>
+          ))}
         </div>
       </section>
 
       <section className="composer" aria-label="Command composer">
-        <div className="composer-label">
-          <span>{voiceState}</span>
-          <span></span>
-        </div>
-        <div className="composer-box">
-          <input value={command} onChange={(event) => setCommand(event.target.value)} aria-label="Plan instruction" />
-          <button className="pill-button" type="button" aria-label="Record voice command" onClick={onVoice}>
-            <Mic size={20} strokeWidth={2.6} />
-          </button>
-          <button className="pill-button send" type="button" aria-label="Review quote" onClick={onBuild}>
-            <ArrowRight size={24} strokeWidth={3} />
-          </button>
-        </div>
+        {isRecording ? (
+          <div className="voice-recorder" aria-live="polite">
+            <button className="recorder-delete" type="button" aria-label="Discard recording" onClick={cancelRecording}>
+              <Trash2 size={18} />
+            </button>
+            <span className={`record-dot ${isPaused ? "paused" : ""}`} />
+            <time dateTime={`PT${recordingSeconds}S`}>{formatDemoTime(recordingSeconds)}</time>
+            <div className={`recorder-wave ${isPaused ? "paused" : ""}`} aria-hidden="true">
+              <span /><span /><span /><span /><span /><span /><span /><span /><span /><span /><span /><span />
+            </div>
+            <button
+              className={`pause-mark ${isPaused ? "paused" : ""}`}
+              type="button"
+              aria-label={isPaused ? "Resume recording" : "Pause recording"}
+              onClick={() => setIsPaused((paused) => !paused)}
+            >
+              <i /><i />
+            </button>
+            <button className="recorder-send" type="button" aria-label="Use voice note" onClick={submitRecording}>
+              <ArrowRight size={24} strokeWidth={3} />
+            </button>
+          </div>
+        ) : (
+          <div className="composer-box">
+            <input
+              value={command}
+              onChange={(event) => setCommand(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && hasText) onBuild();
+              }}
+              placeholder="Type a message"
+              aria-label="Transfer instruction"
+            />
+            <button
+              className={`composer-action ${hasText ? "send" : "mic"}`}
+              type="button"
+              aria-label={hasText ? "Review transfer" : "Record voice command"}
+              onClick={submitComposer}
+            >
+              {hasText ? <ArrowRight size={24} strokeWidth={3} /> : <Mic size={20} strokeWidth={2.6} />}
+            </button>
+          </div>
+        )}
       </section>
-
-      <button className="primary-cta" type="button" onClick={onBuild}>
-        {mode === "update" ? "Review update" : "Review quote"}
-      </button>
-      <button className="secondary-dark" type="button" onClick={onCancel}>Cancel</button>
     </div>
   );
 }
@@ -1076,11 +1308,12 @@ function DeletePlanScreen({ plan, onCancel, onDelete }) {
 }
 
 function ProcessingScreen({ step, plan, command }) {
+  const isSendNow = plan.deliveryMode === "now";
   const feed = [
     {
       icon: <Check size={15} />,
       title: "Intent detected",
-      copy: "Text or voice becomes one monthly transfer plan.",
+      copy: isSendNow ? "Text or voice becomes a one-time transfer." : "Text or voice becomes a scheduled transfer plan.",
     },
     {
       icon: <RefreshCw size={15} />,
@@ -1109,13 +1342,13 @@ function ProcessingScreen({ step, plan, command }) {
 
         <div className={`agent-toast ${step >= 1 ? "show" : ""}`}>
           <ChocoMark size="tiny" />
-          <span>Plan detected</span>
+          <span>{isSendNow ? "Send-now intent" : "Schedule detected"}</span>
         </div>
 
         <div className={`agent-plan ${step >= 1 ? "lift" : ""}`}>
-          <span>Monthly transfer</span>
+          <span>{isSendNow ? "Send once now" : "Scheduled transfer"}</span>
           <strong>{plan.amount} {plan.asset}</strong>
-          <small>To {plan.recipient} - {plan.schedule}</small>
+          <small>To {plan.recipient} - {getTimingLabel(plan)}</small>
         </div>
 
         <div className="agent-feed">
@@ -1136,14 +1369,16 @@ function ProcessingScreen({ step, plan, command }) {
   );
 }
 
-function ReviewScreen({ plan, mode, onEdit, onConfirm }) {
-  const chip = mode === "update" ? "UPDATE" : mode === "demo" ? "DEMO" : "NEW";
+function ReviewScreen({ plan, mode, similarPlan, onEdit, onConfirm }) {
+  const isSendNow = plan.deliveryMode === "now";
+  const isSimilar = Boolean(similarPlan && !isSendNow);
+  const chip = isSendNow ? "SEND NOW" : mode === "update" ? "UPDATE" : mode === "demo" ? "DEMO" : "NEW";
 
   return (
     <LightSheet>
       <div className="sheet-top">
         <div className="sheet-icon"><ChocoMark size="small" /></div>
-        <h2>Choco monthly plan</h2>
+        <h2>{isSendNow ? "Choco send now" : "Choco scheduled plan"}</h2>
         <span className="sheet-chip">{chip}</span>
       </div>
 
@@ -1167,14 +1402,22 @@ function ReviewScreen({ plan, mode, onEdit, onConfirm }) {
 
       <div className="summary-grid">
         <SummaryCard label="Amount" value={`${plan.amount} ${plan.asset}`} />
-        <SummaryCard label="Schedule" value={plan.schedule.replace(" - 9:00 AM", "")} />
+        <SummaryCard label="Timing" value={isSendNow ? "Send once now" : plan.schedule.replace(" - 9:00 AM", "")} />
         <SummaryCard label="Fee" value={plan.fee} />
         <SummaryCard label="Retries" value="3 attempts" />
       </div>
 
-      <div className="notice">Choco will ask for confirmation before activating the monthly plan. No private key is stored in this Mini App.</div>
+      <div className="notice">
+        {isSimilar
+          ? `Similar plan already exists for ${similarPlan.recipient}. Open it instead of creating a duplicate.`
+          : isSendNow
+          ? "Choco will ask for confirmation before sending once. No private key is stored in this Mini App."
+          : "Choco will ask for confirmation before activating the schedule. No private key is stored in this Mini App."}
+      </div>
 
-      <button className="primary-cta" type="button" onClick={onConfirm}>Confirm plan</button>
+      <button className="primary-cta" type="button" onClick={onConfirm}>
+        {isSimilar ? "Open existing plan" : isSendNow ? "Send once" : "Confirm schedule"}
+      </button>
       <button className="secondary-cta" type="button" onClick={onEdit}>Edit instruction</button>
     </LightSheet>
   );
@@ -1230,14 +1473,14 @@ function ProjectPanel({ setScreen }) {
       <div className="agent-badge">Agent #309 · Celo Sepolia</div>
       <h1>Remittance concierge for MiniPay.</h1>
       <p>
-        A diaspora user sends one text or voice command. Choco turns it into a scheduled USDC to KESm
-        family transfer, retries failures, notifies the recipient, and files a receipt.
+        A diaspora user sends one text or voice command. Choco turns it into a USDC to KESm
+        family transfer now or on schedule, retries failures, notifies the recipient, and files a receipt.
       </p>
 
       <div className="scope-grid">
-        <InfoCard title="First version" text="Mini Apps only, text and voice commands, US to Kenya, one monthly scheduled action." />
-        <InfoCard title="Corridor" text="USDC in, KESm out, with a clear quote, fee, schedule, and receipt before activation." />
-        <InfoCard title="Agent behavior" text="Parse intent, prepare route, execute on the 1st, retry on failure, and keep visible status." />
+        <InfoCard title="First version" text="Mini Apps only, text and voice commands, US to Kenya, send now or schedule." />
+        <InfoCard title="Corridor" text="USDC in, KESm out, with a clear quote, fee, timing, and receipt before activation." />
+        <InfoCard title="Agent behavior" text="Parse intent, prepare route, ask timing, send once or run the saved schedule, and keep visible status." />
         <InfoCard title="Future" text="UK to NGN plus WhatsApp, Telegram, Facebook Messenger, and related social messaging networks." />
       </div>
 
