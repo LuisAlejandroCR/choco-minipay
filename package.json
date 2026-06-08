@@ -1,0 +1,44 @@
+{
+  "name": "choco-minipay",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Production-ready Choco MiniPay app scaffold for Celo remittance flows.",
+  "type": "module",
+  "scripts": {
+    "dev": "npm run dev:web",
+    "dev:web": "vite --host 127.0.0.1",
+    "dev:api": "node services/api/src/server.js",
+    "dev:worker": "node services/worker/src/scheduler.js",
+    "build": "npm run build:web",
+    "build:web": "vite build",
+    "test": "node --test packages/core/src/domain/intent.test.js packages/core/src/domain/duplicates.test.js packages/core/src/domain/receipts.test.js",
+    "check": "npm run test && npm run build:web",
+    "agent:generate": "tsx ops/agent-registry/register-agent.ts",
+    "agent:register": "tsx ops/agent-registry/register-agent.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LuisAlejandroCR/choco-minipay.git"
+  },
+  "keywords": [
+    "celo",
+    "minipay",
+    "stablecoin",
+    "remittance",
+    "erc-8004"
+  ],
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@vitejs/plugin-react": "^6.0.2",
+    "lucide-react": "^1.17.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "typescript": "^6.0.3",
+    "viem": "^2.52.2",
+    "vite": "^8.0.16"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.2",
+    "tsx": "^4.22.4"
+  }
+}

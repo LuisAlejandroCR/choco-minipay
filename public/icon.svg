@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Choco">
+  <rect width="256" height="256" rx="56" fill="#100906"/>
+  <ellipse cx="128" cy="150" rx="58" ry="74" fill="#d9a679" transform="rotate(-16 128 150)"/>
+  <path d="M112 78c-28 26-39 65-31 100M132 72c-24 36-30 75-16 116M153 82c-12 37-9 71 10 102" fill="none" stroke="#5b371f" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="178" cy="76" r="20" fill="#f6e8d4"/>
+  <circle cx="78" cy="188" r="18" fill="#f6e8d4"/>
+</svg>

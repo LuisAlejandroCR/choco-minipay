@@ -1,0 +1,20 @@
+name: choco-minipay
+
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: docker/api.Dockerfile
+    env_file:
+      - ../.env.example
+    ports:
+      - "8787:8787"
+
+  worker:
+    build:
+      context: ..
+      dockerfile: docker/worker.Dockerfile
+    env_file:
+      - ../.env.example
+    environment:
+      WORKER_INTERVAL_MS: "30000"
