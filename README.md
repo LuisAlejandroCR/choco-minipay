@@ -192,7 +192,7 @@ Use [docs/runbook-celo-agent-registration.md](docs/runbook-celo-agent-registrati
 - Detect MiniPay with `window.ethereum.isMiniPay === true`.
 - Do not depend on message-signing auth.
 - Use Celo Sepolia testnet for wallet verification, agent review, and receipt paths until mainnet release.
-- After wallet verification, confirm enough testnet funds and the correct recipient contact before send or schedule.
+- After wallet verification, run Choco Agent AI preflight through `/v1/agent/preflight`.
 - Never mark a send-now movement as `Sent` until a real on-chain transaction hash exists.
 - Keep user-facing balances and transfers stablecoin-only: USDC, USDT, USDm.
 - Use MiniPay terms: `Network fee`, `Deposit`, `Withdraw`, `Stablecoin`.
@@ -206,14 +206,47 @@ Use [docs/runbook-celo-agent-registration.md](docs/runbook-celo-agent-registrati
 Before production release:
 
 - MiniPay detection works in the MiniPay WebView.
-- Wallet-ready flow asks for testnet funds and recipient contact confirmation before transfer creation.
-- Send-now preflight blocks when the wallet has no Celo Sepolia testnet gas funds.
+- Wallet-ready flow calls Choco Agent AI preflight before transfer creation.
+- Send-now preflight blocks when the API reports missing Celo Sepolia testnet gas funds or recipient contact.
 - Celo Sepolia transaction and receipt paths are verified.
 - ERC-8004 metadata is public and registered.
 - Quote, ODIS, API, worker, and analytics integrations are connected through module boundaries.
 - Terms, privacy, support, and stats pages contain final production content.
 - Support form is connected to the final chat, inbox, or ticket endpoint.
 - Docker production compose builds all services.
+
+## Testnet Testing
+
+Run the API and web app locally:
+
+```bash
+npm run dev:api
+npm run dev:web
+```
+
+Open the web app, connect a Celo Sepolia testnet wallet, then tap `Run agent preflight`. The API checks Celo Sepolia RPC for wallet gas funds and verifies the recipient contact payload. A blocked response is expected when the wallet has `0 CELO`.
+
+Direct API test from PowerShell:
+
+```powershell
+$body = @{
+  walletAddress = "0x0000000000000000000000000000000000000001"
+  chainId = "0xaa044c"
+  recipientContact = "Mom +254 7xx xxx 214"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:8787/v1/agent/preflight" -ContentType "application/json" -Body $body
+```
+
+Direct API test from bash:
+
+```bash
+curl -X POST http://127.0.0.1:8787/v1/agent/preflight \
+  -H "Content-Type: application/json" \
+  -d "{\"walletAddress\":\"0x0000000000000000000000000000000000000001\",\"chainId\":\"0xaa044c\",\"recipientContact\":\"Mom +254 7xx xxx 214\"}"
+```
+
+For Vercel, set `VITE_API_BASE_URL` to the deployed API service. The static web deployment cannot run Choco Agent AI preflight by itself.
 
 ## References
 

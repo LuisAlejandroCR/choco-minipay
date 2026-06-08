@@ -11,6 +11,8 @@ This repository should stay focused on the production MiniPay app. Keep source, 
 | `apps/web/src/modules/wallet/useMiniPayWallet.js` | MiniPay/browser wallet detection and Celo Sepolia testnet verification. |
 | `apps/web/src/modules/wallet/useMiniPayWallet.test.js` | Protects the Celo Sepolia testnet chain ID used by wallet verification. |
 | `packages/core` | Shared intent parsing, duplicate detection, receipt, amount, and Celo config logic. |
+| `packages/core/src/domain/preflight.js` | Choco Agent AI preflight rules for Celo Sepolia gas funds and recipient contact. |
+| `packages/core/src/domain/preflight.test.js` | Protects agent preflight behavior before wiring real transfer execution. |
 | `services/api` | Backend API shell for quotes, identity, and transfer orchestration. |
 | `services/worker` | Scheduler and reconciliation shell for recurring transfers. |
 | `docker` | Production and local service containers. |

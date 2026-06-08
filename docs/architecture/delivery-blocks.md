@@ -41,13 +41,17 @@ Files:
 - `apps/web/src/modules/wallet/useMiniPayWallet.js`
 - `apps/web/src/modules/wallet/useMiniPayWallet.test.js`
 - `apps/web/src/App.jsx`
+- `packages/core/src/domain/preflight.js`
+- `packages/core/src/domain/preflight.test.js`
+- `services/api/src/server.js`
 - `packages/core/src/config/celo.js`
 
 Validation:
 
 - MiniPay detection works in WebView.
 - Verify wallet targets Celo Sepolia testnet chain ID `11142220`.
-- After wallet verification, the UI asks for testnet funds and recipient contact confirmation.
+- After wallet verification, the UI calls Choco Agent AI preflight through `/v1/agent/preflight`.
+- Agent preflight checks Celo Sepolia gas funds and recipient contact.
 - Send-now does not create a `Sent` receipt without a real chain transaction hash.
 - Browser fallback remains readable.
 - No message-signing auth dependency.

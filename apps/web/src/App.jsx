@@ -33,6 +33,7 @@ const SPLASH_DURATION_MS = 2600;
 const DEMO_STEP_MS = 5000;
 const WORLD_MAP_URL = "https://upload.wikimedia.org/wikipedia/commons/5/51/BlankMap-Equirectangular.svg";
 const VERIFY_BASE_URL = "https://celo-sepolia.blockscout.com/tx";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8787";
 const DEMO_FROM_ADDRESS = "0xb7b2...0426d";
 const DEFAULT_SCHEDULED_TIMESTAMP = "07/01/2026 09:00 AM Local";
 
@@ -341,7 +342,8 @@ export function App() {
   const [deliveryMode, setDeliveryMode] = useState("schedule");
   const [showDemoPrompt, setShowDemoPrompt] = useState(shouldShowDemoPrompt);
   const [activeInfoPanel, setActiveInfoPanel] = useState(null);
-  const [isContactConfirmed, setIsContactConfirmed] = useState(false);
+  const [agentPreflight, setAgentPreflight] = useState(null);
+  const [agentPreflightStatus, setAgentPreflightStatus] = useState("idle");
   const [transferBlockMessage, setTransferBlockMessage] = useState("");
   const wallet = useMiniPayWallet();
   const isWalletVerified = wallet.isReady;
@@ -485,6 +487,50 @@ export function App() {
     setScreen("processing");
   }
 
+  async function runAgentPreflight(plan = activePlan || defaultPlan) {
+    if (!wallet.address) {
+      setAgentPreflight({
+        agent: "Choco Agent AI",
+        status: "blocked",
+        ok: false,
+        summary: "Connect a Celo Sepolia testnet wallet before running agent preflight.",
+        checks: [],
+      });
+      return;
+    }
+
+    setAgentPreflightStatus("loading");
+    setTransferBlockMessage("");
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/v1/agent/preflight`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          walletAddress: wallet.address,
+          chainId: wallet.chainId,
+          recipientContact: `${plan.recipient} ${plan.phone || ""}`.trim(),
+          payAsset: plan.payAsset,
+          amount: plan.routeEstimate,
+        }),
+      });
+      const result = await response.json();
+      setAgentPreflight(result);
+      setAgentPreflightStatus("idle");
+    } catch {
+      setAgentPreflight({
+        agent: "Choco Agent AI",
+        status: "blocked",
+        ok: false,
+        summary: "Agent API is not reachable. Start the API service before testnet preflight.",
+        checks: [],
+      });
+      setAgentPreflightStatus("idle");
+    }
+  }
+
   function nextDemoStep() {
     setDemoStep((currentStep) => Math.min(currentStep + 1, demoSteps.length - 1));
   }
@@ -501,8 +547,8 @@ export function App() {
     let committedPlan;
 
     if (previewPlan.deliveryMode === "now") {
-      if (!wallet.hasTestnetGasFunds) {
-        setTransferBlockMessage("Cannot send: this wallet has 0 CELO on Celo Sepolia testnet for network fees.");
+      if (!agentPreflight?.ok) {
+        setTransferBlockMessage("Cannot continue: Choco Agent AI preflight must pass before any testnet send.");
         return;
       }
 
@@ -627,9 +673,10 @@ export function App() {
               showDemoPrompt={showDemoPrompt}
               isWalletVerified={isWalletVerified}
               wallet={wallet}
-              isContactConfirmed={isContactConfirmed}
+              agentPreflight={agentPreflight}
+              agentPreflightStatus={agentPreflightStatus}
               onVerifyWallet={wallet.verifyWallet}
-              onToggleContact={() => setIsContactConfirmed((isConfirmed) => !isConfirmed)}
+              onRunAgentPreflight={() => runAgentPreflight(activePlan || defaultPlan)}
               onPlans={() => setScreen("plans")}
               onHistory={() => setScreen("history")}
               onSendNow={openImmediateSend}
@@ -949,9 +996,10 @@ function PlanScreen({
   showDemoPrompt,
   isWalletVerified,
   wallet,
-  isContactConfirmed,
+  agentPreflight,
+  agentPreflightStatus,
   onVerifyWallet,
-  onToggleContact,
+  onRunAgentPreflight,
   onPlans,
   onHistory,
   onSendNow,
@@ -965,22 +1013,22 @@ function PlanScreen({
   const walletHelp = isWalletVerified
     ? `${formatWalletAddress(wallet.address)} - ${wallet.network.name} testnet`
     : wallet.statusLabel;
-  const isReadyForTransfer = !isWalletVerified || (wallet.hasTestnetGasFunds && isContactConfirmed);
+  const isAgentReady = agentPreflight?.ok === true;
+  const isCheckingAgent = agentPreflightStatus === "loading";
+  const isReadyForTransfer = !isWalletVerified || isAgentReady;
   const actionLabel = isWalletVerified
     ? isReadyForTransfer
       ? "New transfer"
-      : wallet.hasTestnetGasFunds
-        ? "Confirm recipient contact"
-        : "Testnet funds required"
+      : isCheckingAgent
+        ? "Agent checking"
+        : "Run agent preflight"
     : isVerifyingWallet
       ? "Verifying testnet wallet"
       : "Verify testnet wallet";
   const actionHelp = isWalletVerified
     ? isReadyForTransfer
       ? "Send now or schedule with voice"
-      : wallet.hasTestnetGasFunds
-        ? "Confirm the recipient before sending"
-        : "Add Celo Sepolia testnet CELO for network fees"
+      : agentPreflight?.summary || "Choco Agent AI verifies funds and recipient contact"
     : walletHelp;
 
   return (
@@ -1007,18 +1055,18 @@ function PlanScreen({
       </div>
 
       {isWalletVerified && (
-        <ReadyChecks
+        <AgentPreflight
           plan={nextPlan}
-          wallet={wallet}
-          isContactConfirmed={isContactConfirmed}
-          onToggleContact={onToggleContact}
+          result={agentPreflight}
+          status={agentPreflightStatus}
+          onRun={onRunAgentPreflight}
         />
       )}
 
       <button
         className={`home-start-action ${isWalletVerified ? "" : "verify-action"}`}
         type="button"
-        disabled={(!isWalletVerified && isVerifyingWallet) || (isWalletVerified && !isReadyForTransfer)}
+        disabled={(!isWalletVerified && isVerifyingWallet) || (isWalletVerified && (!isReadyForTransfer || isCheckingAgent))}
         onClick={isWalletVerified ? onSendNow : onVerifyWallet}
       >
         <span className="home-start-icon">
@@ -1056,34 +1104,38 @@ function PlanScreen({
   );
 }
 
-function ReadyChecks({ plan, wallet, isContactConfirmed, onToggleContact }) {
-  return (
-    <section className="ready-checks" aria-label="Transfer ready checks">
-      <div className="section-heading">
-        <span>Ready checks</span>
-        <small>Before send or schedule</small>
-      </div>
+function AgentPreflight({ plan, result, status, onRun }) {
+  const isLoading = status === "loading";
 
-      <div className={`ready-check-row ${wallet.hasTestnetGasFunds ? "complete" : "blocked"}`}>
-        <span className="ready-check-icon">{wallet.hasTestnetGasFunds ? <Check size={18} /> : <Wallet size={18} />}</span>
-        <span>
-          <b>{wallet.hasTestnetGasFunds ? "Testnet gas funds detected" : "No testnet gas funds detected"}</b>
-          <small>{wallet.nativeBalanceLabel}. Add Celo Sepolia CELO before send or schedule.</small>
-        </span>
+  return (
+    <section className="ready-checks" aria-label="Choco Agent AI preflight">
+      <div className="section-heading">
+        <span>Choco Agent AI</span>
+        <small>API preflight</small>
       </div>
 
       <button
-        className={`ready-check-row ${isContactConfirmed ? "complete" : ""}`}
+        className={`ready-check-row agent-check ${result?.ok ? "complete" : result ? "blocked" : ""}`}
         type="button"
-        aria-pressed={isContactConfirmed}
-        onClick={onToggleContact}
+        disabled={isLoading}
+        onClick={onRun}
       >
-        <span className="ready-check-icon">{isContactConfirmed ? <Check size={18} /> : <ShieldCheck size={18} />}</span>
+        <span className="ready-check-icon">{result?.ok ? <Check size={18} /> : <ShieldCheck size={18} />}</span>
         <span>
-          <b>{isContactConfirmed ? "Recipient contact confirmed" : "Confirm recipient contact"}</b>
-          <small>{plan.recipient} - {plan.phone || "recipient contact needed"}</small>
+          <b>{isLoading ? "Agent checking testnet" : result?.agent || "Run agent preflight"}</b>
+          <small>{result?.summary || `${plan.routeEstimate} route, recipient contact, Celo Sepolia funds.`}</small>
         </span>
       </button>
+
+      {result?.checks?.map((check) => (
+        <div className={`ready-check-row compact ${check.status === "pass" ? "complete" : "blocked"}`} key={check.id}>
+          <span className="ready-check-icon">{check.status === "pass" ? <Check size={18} /> : <X size={18} />}</span>
+          <span>
+            <b>{check.label}</b>
+            <small>{check.detail}</small>
+          </span>
+        </div>
+      ))}
     </section>
   );
 }
