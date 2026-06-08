@@ -73,28 +73,53 @@ Choco is a MiniPay-native remittance concierge for family transfers, scheduled r
 |-- .dockerignore
 |-- .env.example
 |-- .gitignore
+|-- package-lock.json
 |-- package.json
 |-- README.md
+|-- vercel.json
 `-- vite.config.mjs
 ```
 
-## 1. Install
+## 1. Start With Docker
+
+Build and run the production service set:
 
 ```bash
-npm install
+docker compose -f docker/docker-compose.production.yml up --build
+```
+
+Open:
+
+```text
+Web: http://127.0.0.1:8080
+API: http://127.0.0.1:8787/health
+```
+
+Run only the API and worker shells:
+
+```bash
+docker compose -f docker/docker-compose.local.yml up --build
 ```
 
 Use `.env.example` as the environment contract for local and deployed services.
 
-## 2. Run Locally
+## 2. Local Node Path
 
-Web app:
+Local Node is optional. Use it when you need Vite hot reload or faster unit-test loops.
+
+Install from the lockfile:
+
+```bash
+npm ci
+```
+
+Run the web app:
 
 ```bash
 npm run dev:web
 ```
 
-API and worker shells:
+Run API and worker shells:
 
 ```bash
 npm run dev:api
@@ -109,20 +134,9 @@ npm run build:web
 npm run check
 ```
 
-## 4. Run With Docker
+CI, Docker, and Vercel use `npm ci`; keep `package-lock.json` committed.
 
-Production compose:
-
-```bash
-docker compose -f docker/docker-compose.production.yml build
-docker compose -f docker/docker-compose.production.yml up
-```
-
-Local service compose:
-
-```bash
-docker compose -f docker/docker-compose.local.yml up --build
-```
+## 4. Docker Layout
 
 The Docker layout keeps `web`, `api`, and `worker` as separate services so each can be deployed and scaled independently.
 
@@ -137,6 +151,7 @@ https://github.com/LuisAlejandroCR/choco-minipay
 Vercel settings are defined in `vercel.json`:
 
 ```text
+Install command: npm ci
 Build command: npm run build:web
 Output directory: dist/web
 Production URL: https://choco-minipay.vercel.app

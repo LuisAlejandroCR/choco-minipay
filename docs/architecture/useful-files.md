@@ -24,6 +24,8 @@ This repository should stay focused on the production MiniPay app. Keep source, 
 | `.dockerignore` | Keeps images small and excludes generated/local files. |
 | `.gitignore` | Keeps generated/local files out of Git. |
 | `package.json` | Scripts, dependencies, and repository metadata. |
+| `package-lock.json` | Reproducible Node installs for Docker, CI, and Vercel. |
+| `vercel.json` | Production web deployment settings for Vercel. |
 | `vite.config.mjs` | Builds the web app from `apps/web` and serves `public`. |
 
 ## Keep Out
@@ -42,7 +44,6 @@ This repository should stay focused on the production MiniPay app. Keep source, 
 
 ## Finish Before Release
 
-- Add a committed `package-lock.json` for deterministic CI and Docker builds.
 - Replace draft legal/support/stats pages with approved production content.
 - Confirm the final agent metadata URL, owner wallet, and ERC-8004 registration evidence.
 - Connect quote, ODIS, transfer, notification, analytics, and monitoring providers through the existing module boundaries.

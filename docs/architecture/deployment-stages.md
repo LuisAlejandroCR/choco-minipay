@@ -42,8 +42,9 @@ Purpose:
 
 Docker:
 
-- Use Docker for API and worker once integrations need secrets.
-- Web may be run locally with Vite, but production path still has a Docker web image.
+- Use Docker from the start for the production app.
+- Use local Node only when Vite hot reload or faster unit-test loops are needed.
+- Keep `package-lock.json` committed so Docker, CI, and Vercel use the same dependency graph.
 
 ## Stage 3: Production Build
 
