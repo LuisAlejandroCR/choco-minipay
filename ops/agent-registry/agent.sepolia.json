@@ -2,11 +2,11 @@
   "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
   "name": "Choco",
   "description": "MiniPay-native remittance concierge. Choco schedules USDC to KESm family transfers on Celo, retries failures, notifies recipients, and files receipts.",
-  "image": "https://choco.vercel.app/icon.svg",
+  "image": "https://choco-minipay.vercel.app/icon.svg",
   "services": [
     {
       "name": "web",
-      "endpoint": "https://choco.vercel.app",
+      "endpoint": "https://choco-minipay.vercel.app",
       "version": "1.0"
     },
     {

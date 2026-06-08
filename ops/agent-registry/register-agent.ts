@@ -63,7 +63,7 @@ async function main() {
   const chain = network === "mainnet" ? celo : celoSepolia;
   const registry = getAddress(REGISTRY[network]);
   const account = privateKeyToAccount(privateKey);
-  const appUrl = (process.env.APP_URL ?? "https://choco.vercel.app").replace(/\/$/, "");
+  const appUrl = (process.env.APP_URL ?? "https://choco-minipay.vercel.app").replace(/\/$/, "");
   const outputPath = process.env.AGENT_OUTPUT ?? "public/agent.json";
 
   const agentJson = {

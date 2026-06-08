@@ -126,7 +126,32 @@ docker compose -f docker/docker-compose.local.yml up --build
 
 The Docker layout keeps `web`, `api`, and `worker` as separate services so each can be deployed and scaled independently.
 
-## 5. Agent Registry
+## 5. Deploy Web On Vercel
+
+Use the production GitHub repo:
+
+```text
+https://github.com/LuisAlejandroCR/choco-minipay
+```
+
+Vercel settings are defined in `vercel.json`:
+
+```text
+Build command: npm run build:web
+Output directory: dist/web
+Production URL: https://choco-minipay.vercel.app
+```
+
+After the first deployment, confirm these public URLs return 200:
+
+```text
+https://choco-minipay.vercel.app
+https://choco-minipay.vercel.app/agent.json
+https://choco-minipay.vercel.app/privacy.html
+https://choco-minipay.vercel.app/terms.html
+```
+
+## 6. Agent Registry
 
 Generate public agent metadata:
 
