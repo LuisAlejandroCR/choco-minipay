@@ -16,6 +16,7 @@ This repository should stay focused on the production MiniPay app. Keep source, 
 | `public/agent.json` | Public agent metadata served by the app. |
 | `public/icon.svg` | Agent/app icon used by the metadata and review pages. |
 | `public/privacy.html` | Required review surface; final legal content still needed. |
+| `public/review.css` | Shared mobile-first styling for the public review pages. |
 | `public/terms.html` | Required review surface; final legal content still needed. |
 | `public/support.html` | Required review surface; final support process still needed. |
 | `public/stats.html` | Useful for MiniPay/product review; real metrics still needed. |

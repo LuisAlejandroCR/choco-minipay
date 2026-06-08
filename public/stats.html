@@ -4,10 +4,46 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Choco Stats</title>
-    <style>body{font-family:system-ui;margin:0;padding:24px;max-width:720px;line-height:1.5}</style>
+    <link rel="stylesheet" href="/review.css" />
   </head>
   <body>
-    <h1>Stats</h1>
-    <p>Production stats pending. Track DAU, MAU, retention, transaction volume per stablecoin, failed-transaction rate, and support incidents before MiniPay review.</p>
+    <main class="page">
+      <nav class="review-nav" aria-label="Public pages">
+        <a href="/">App</a>
+        <a href="/support.html">Support</a>
+        <a href="/privacy.html">Privacy</a>
+        <a href="/terms.html">Terms</a>
+        <a href="/stats.html" aria-current="page">Stats</a>
+      </nav>
+
+      <section class="hero">
+        <div class="eyebrow">Stats</div>
+        <h1>Review metrics for Choco.</h1>
+        <p>This page defines the production metrics Choco will report for MiniPay and product review. Live values should be wired after analytics, quote, and transfer providers are connected.</p>
+      </section>
+
+      <section class="stack metrics" aria-label="Choco metrics">
+        <article class="metric-card">
+          <span class="metric">0</span>
+          <strong>Live transfers</strong>
+          <p class="note">Live money movement is not enabled yet.</p>
+        </article>
+        <article class="metric-card">
+          <span class="metric">1</span>
+          <strong>First corridor</strong>
+          <p class="note">US to Kenya, USDC to KESm target route.</p>
+        </article>
+        <article class="metric-card">
+          <span class="metric">3</span>
+          <strong>Stablecoins</strong>
+          <p class="note">USDC, USDT, and USDm are the supported UI set.</p>
+        </article>
+        <article class="metric-card">
+          <span class="metric">24h</span>
+          <strong>Critical target</strong>
+          <p class="note">Support target after production support is live.</p>
+        </article>
+      </section>
+    </main>
   </body>
 </html>

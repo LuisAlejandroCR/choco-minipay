@@ -315,10 +315,10 @@ const infoPanels = {
     Icon: Bell,
   },
   support: {
-    eyebrow: "Support",
-    title: "Help with a plan",
-    copy: "Use this when a transfer, receipt, or schedule needs a quick explanation before you continue.",
-    items: ["Plan setup guidance", "Receipt and hash review", "Wallet and route checks"],
+    eyebrow: "Support first",
+    title: "Support and about",
+    copy: "Start here for help, review pages, and the short Choco story.",
+    items: [],
     Icon: MessageCircleQuestionMark,
   },
 };
@@ -588,13 +588,21 @@ export function App() {
     <main className="stage">
       <img className="map-preload" src={WORLD_MAP_URL} alt="" aria-hidden="true" />
       <section className="miniapp" aria-label="Choco Mini App">
-        <StatusBar />
         <div className="topbar">
           <button className="icon-button" type="button" aria-label="Back to home" onClick={() => setScreen("plan")}>
             <X size={34} strokeWidth={2.4} />
           </button>
           <div className="app-title">{screenTitle}</div>
           <div className="topbar-actions" aria-label="Feature and support shortcuts">
+            <button
+              className="header-icon"
+              type="button"
+              aria-label="Support and about Choco"
+              title="Support and about Choco"
+              onClick={() => setActiveInfoPanel("support")}
+            >
+              <MessageCircleQuestionMark size={22} strokeWidth={2.4} />
+            </button>
             <button
               className="header-icon future"
               type="button"
@@ -603,15 +611,6 @@ export function App() {
               onClick={() => setActiveInfoPanel("future")}
             >
               <Bell size={21} strokeWidth={2.4} />
-            </button>
-            <button
-              className="header-icon"
-              type="button"
-              aria-label="Support"
-              title="Support"
-              onClick={() => setActiveInfoPanel("support")}
-            >
-              <MessageCircleQuestionMark size={22} strokeWidth={2.4} />
             </button>
           </div>
         </div>
@@ -734,8 +733,6 @@ export function App() {
           )}
         </div>
       </section>
-
-      <ProjectPanel setScreen={setScreen} />
     </main>
   );
 }
@@ -756,32 +753,55 @@ function QuickInfoPanel({ type, onClose }) {
           <button type="button" aria-label="Close" onClick={onClose}><X size={18} strokeWidth={3} /></button>
         </div>
         <p>{panel.copy}</p>
-        <div className="quick-info-list">
-          {panel.items.map((item) => (
-            <div key={item}>
-              <Check size={15} />
-              <span>{item}</span>
-            </div>
-          ))}
-        </div>
+        {panel.items.length > 0 && (
+          <div className="quick-info-list">
+            {panel.items.map((item) => (
+              <div key={item}>
+                <Check size={15} />
+                <span>{item}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {type === "support" && <SupportAboutContent />}
       </section>
     </div>
   );
 }
 
-function StatusBar() {
+function SupportAboutContent() {
   return (
-    <div className="statusbar">
-      <span>9:41</span>
-      <div className="status-icons" aria-hidden="true">
-        <div className="signal">
-          <span />
-          <span />
-          <span />
-          <span />
-        </div>
-        <div className="wifi" />
-        <div className="battery" />
+    <div className="support-about">
+      <section className="about-card" aria-label="About Choco">
+        <div className="agent-badge">Agent #309 - Celo Sepolia</div>
+        <h3>Choco helps MiniPay users send family transfers with review, schedules, and receipts.</h3>
+        <p>
+          The app is production-candidate: support, privacy, terms, and stats stay close to the flow
+          so reviewers can inspect the product without leaving the Choco behavior.
+        </p>
+      </section>
+
+      <div className="support-link-grid" aria-label="Public review links">
+        <a href="/support.html">
+          <MessageCircleQuestionMark size={17} />
+          Support
+          <ExternalLink size={13} />
+        </a>
+        <a href="/privacy.html">
+          <ShieldCheck size={17} />
+          Privacy
+          <ExternalLink size={13} />
+        </a>
+        <a href="/terms.html">
+          <ReceiptText size={17} />
+          Terms
+          <ExternalLink size={13} />
+        </a>
+        <a href="/stats.html">
+          <ListChecks size={17} />
+          Stats
+          <ExternalLink size={13} />
+        </a>
       </div>
     </div>
   );
@@ -1706,38 +1726,3 @@ function ReceiptRow({ icon, label, value, mono = false }) {
     </div>
   );
 }
-
-function ProjectPanel({ setScreen }) {
-  return (
-    <aside className="project-panel" aria-label="Project summary">
-      <div className="agent-badge">Agent #309 - Celo Sepolia</div>
-      <h1>Remittance concierge for MiniPay.</h1>
-      <p>
-        A diaspora user sends one text or voice command. Choco turns it into a USDC to KESm
-        family transfer now or on schedule, retries failures, notifies the recipient, and files a receipt.
-      </p>
-
-      <div className="scope-grid">
-        <InfoCard title="First version" text="Mini Apps only, text and voice commands, US to Kenya, send now or schedule." />
-        <InfoCard title="Corridor" text="USDC in, KESm out, with a clear quote, fee, timing, and receipt before activation." />
-        <InfoCard title="Agent behavior" text="Parse intent, prepare route, ask timing, send once or run the saved schedule, and keep visible status." />
-        <InfoCard title="Future" text="UK to NGN plus WhatsApp, Telegram, Facebook Messenger, and related social messaging networks." />
-      </div>
-
-      <div className="panel-actions">
-        <button type="button" onClick={() => setScreen("plan")}>Open app</button>
-        <a href="https://testnet.8004scan.io/agents/celo-sepolia/309" target="_blank" rel="noreferrer">Registry</a>
-      </div>
-    </aside>
-  );
-}
-
-function InfoCard({ title, text }) {
-  return (
-    <div className="info-card">
-      <b>{title}</b>
-      <span>{text}</span>
-    </div>
-  );
-}
-

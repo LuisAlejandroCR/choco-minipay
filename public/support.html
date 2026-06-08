@@ -4,10 +4,51 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Choco Support</title>
-    <style>body{font-family:system-ui;margin:0;padding:24px;max-width:720px;line-height:1.5}</style>
+    <link rel="stylesheet" href="/review.css" />
   </head>
   <body>
-    <h1>Support</h1>
-    <p>Production support channel pending. Before MiniPay listing, configure a support inbox, incident owner, and 24-hour critical issue response process.</p>
+    <main class="page">
+      <nav class="review-nav" aria-label="Public pages">
+        <a href="/">App</a>
+        <a href="/support.html" aria-current="page">Support</a>
+        <a href="/privacy.html">Privacy</a>
+        <a href="/terms.html">Terms</a>
+        <a href="/stats.html">Stats</a>
+      </nav>
+
+      <section class="hero">
+        <div class="eyebrow">Support first</div>
+        <h1>Help with a Choco transfer plan.</h1>
+        <p>Use this page when a schedule, receipt, wallet check, or route needs review. Choco is in production-candidate mode, so support focuses on testnet behavior and safe handoff before live money movement.</p>
+        <div class="actions">
+          <a class="primary" href="https://github.com/LuisAlejandroCR/choco-minipay/issues/new" target="_blank" rel="noreferrer">Open support issue</a>
+          <a class="secondary" href="#support-intake">Review intake</a>
+        </div>
+      </section>
+
+      <section class="stack two" id="support-intake" aria-label="Support intake">
+        <article class="card">
+          <strong>What to include</strong>
+          <ul>
+            <li>Instruction text or screen name.</li>
+            <li>Recipient alias, amount, route, and timing.</li>
+            <li>Receipt link or transaction hash when available.</li>
+          </ul>
+        </article>
+        <article class="card">
+          <strong>Where support starts</strong>
+          <p>During review, file product issues in the production repository so the fix stays attached to the app history.</p>
+          <a class="inline-link" href="https://github.com/LuisAlejandroCR/choco-minipay/issues/new" target="_blank" rel="noreferrer">Create a GitHub issue</a>
+        </article>
+        <article class="card">
+          <strong>Wallet or MiniPay access</strong>
+          <p>Confirm whether the issue happened inside MiniPay or in a normal browser preview.</p>
+        </article>
+        <article class="card">
+          <strong>Critical issue target</strong>
+          <p>After live money movement is enabled, critical transfer issues should be acknowledged within 24 hours.</p>
+        </article>
+      </section>
+    </main>
   </body>
 </html>

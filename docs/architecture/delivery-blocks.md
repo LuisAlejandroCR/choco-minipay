@@ -28,30 +28,11 @@ Status:
 | 4. Vercel deployment | Production web app deploys to `https://choco-minipay.vercel.app`. | `vercel.json`, `public/agent.json`, Vercel deployment |
 | 5. UI/UX restore | Production app uses the richer Choco MVP interface while keeping production modules. | `apps/web/src/App.jsx`, `apps/web/src/styles.css` |
 | 6. Documentation operating model | Delivery blocks and architecture docs explain how to continue and debug the app. | `docs/architecture/delivery-blocks.md`, `docs/architecture/architecture.md`, `README.md` |
+| 7. Public review pages | Support, privacy, terms, and stats pages are review-ready, mobile-first, and linked from the in-app `?` panel. | `public/*.html`, `public/review.css`, `apps/web/src/App.jsx`, `apps/web/src/styles.css` |
 
 ## Current Block
 
-Block: Public review pages
-
-Goal: Replace draft public pages with production-ready content.
-
-Files:
-
-- `public/privacy.html`
-- `public/terms.html`
-- `public/support.html`
-- `public/stats.html`
-
-Validation:
-
-- Pages load at the deployed domain.
-- Copy is final enough for MiniPay review.
-
-Status: Next
-
-## Next Blocks
-
-### 7. MiniPay Wallet Integration
+Block: 8. MiniPay wallet integration
 
 Goal: Replace demo wallet behavior with MiniPay provider behavior.
 
@@ -67,7 +48,11 @@ Validation:
 - Browser fallback remains readable.
 - No message-signing auth dependency.
 
-### 8. Agent Metadata And Registration
+Status: Ready
+
+## Next Blocks
+
+### 9. Agent Metadata And Registration
 
 Goal: Confirm public metadata, owner wallet, agent ID, and registry evidence.
 
@@ -83,7 +68,7 @@ Validation:
 - `https://choco-minipay.vercel.app/agent.json` returns 200.
 - Agent registry transaction hash and agent ID are recorded.
 
-### 9. API Contracts
+### 10. API Contracts
 
 Goal: Move quote, identity, and transfer preview flows behind API contracts.
 
@@ -98,7 +83,7 @@ Validation:
 - `/health` returns 200.
 - API preview endpoint has tests or documented request examples.
 
-### 10. Worker And Scheduling
+### 11. Worker And Scheduling
 
 Goal: Turn the scheduler shell into a documented recurring-transfer worker.
 

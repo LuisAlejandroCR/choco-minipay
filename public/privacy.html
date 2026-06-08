@@ -4,10 +4,46 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Choco Privacy</title>
-    <style>body{font-family:system-ui;margin:0;padding:24px;max-width:720px;line-height:1.5}</style>
+    <link rel="stylesheet" href="/review.css" />
   </head>
   <body>
-    <h1>Privacy Policy Draft</h1>
-    <p>Choco production privacy policy is pending legal review. Do not launch production remittance flows until phone-number lookup, transaction records, analytics, and support retention policies are approved.</p>
+    <main class="page">
+      <nav class="review-nav" aria-label="Public pages">
+        <a href="/">App</a>
+        <a href="/support.html">Support</a>
+        <a href="/privacy.html" aria-current="page">Privacy</a>
+        <a href="/terms.html">Terms</a>
+        <a href="/stats.html">Stats</a>
+      </nav>
+
+      <section class="hero">
+        <div class="eyebrow">Privacy</div>
+        <h1>What Choco expects to handle.</h1>
+        <p>Last updated: June 8, 2026. Choco is a production-candidate MiniPay app for stablecoin remittance planning. This page explains the expected data surfaces before live transfer execution is enabled.</p>
+      </section>
+
+      <section class="stack two" aria-label="Privacy details">
+        <article class="card">
+          <strong>Data used by the app</strong>
+          <ul>
+            <li>Transfer instructions typed or spoken by the user.</li>
+            <li>Recipient aliases, schedule timing, amount, route, and receipt metadata.</li>
+            <li>MiniPay wallet address when the wallet provider exposes it.</li>
+          </ul>
+        </article>
+        <article class="card">
+          <strong>Data boundaries</strong>
+          <p>Wallet signing stays with MiniPay. Server-only provider keys and registry keys must stay outside public frontend variables.</p>
+        </article>
+        <article class="card">
+          <strong>Support records</strong>
+          <p>Support issues may include receipt links, transaction hashes, route details, screenshots, and the contact path the user chooses to provide.</p>
+        </article>
+        <article class="card">
+          <strong>Production review</strong>
+          <p>Final retention, analytics, compliance, and licensed-partner policies must be approved before live remittance flows launch.</p>
+        </article>
+      </section>
+    </main>
   </body>
 </html>

@@ -62,6 +62,7 @@ Choco is a MiniPay-native remittance concierge for family transfers, scheduled r
 |   |-- agent.json
 |   |-- icon.svg
 |   |-- privacy.html
+|   |-- review.css
 |   |-- stats.html
 |   |-- support.html
 |   `-- terms.html
