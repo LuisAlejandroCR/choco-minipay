@@ -32,6 +32,44 @@ const DEMO_STEP_MS = 5000;
 const WORLD_MAP_URL = "https://upload.wikimedia.org/wikipedia/commons/5/51/BlankMap-Equirectangular.svg";
 const VERIFY_BASE_URL = "https://celo-sepolia.blockscout.com/tx";
 const DEMO_FROM_ADDRESS = "0xb7b2...0426d";
+const DEFAULT_SCHEDULED_TIMESTAMP = "07/01/2026 09:00 AM Local";
+
+function formatLocalTimestamp(date = new Date()) {
+  const timestamp = new Intl.DateTimeFormat("en-US", {
+    month: "2-digit",
+    day: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  }).format(date);
+
+  return `${timestamp.replace(",", "")} Local`;
+}
+
+function formatLocalDate(date = new Date()) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "2-digit",
+    day: "2-digit",
+    year: "numeric",
+  }).format(date);
+}
+
+function formatHistoryDate(timestamp) {
+  const datePart = String(timestamp).match(/\d{2}\/\d{2}\/\d{4}/)?.[0];
+  if (!datePart) return timestamp;
+  if (datePart === formatLocalDate()) return "Today";
+
+  const [month, day] = datePart.split("/");
+  return `${month}/${day}`;
+}
+
+function getMovementTimestamp(plan) {
+  if (plan.deliveryMode === "now") return formatLocalTimestamp();
+  if (plan.nextDate === "July 15") return "07/15/2026 09:00 AM Local";
+  if (plan.nextDate === "Next Monday") return "06/15/2026 09:00 AM Local";
+  return DEFAULT_SCHEDULED_TIMESTAMP;
+}
 
 const deliveryModes = {
   now: {
@@ -71,7 +109,7 @@ const defaultTransaction = {
   asset: defaultPlan.asset,
   payAsset: defaultPlan.payAsset,
   schedule: defaultPlan.schedule,
-  date: "July 1",
+  date: DEFAULT_SCHEDULED_TIMESTAMP,
   status: "Scheduled",
   hash: defaultPlan.hash,
   routeEstimate: defaultPlan.routeEstimate,
@@ -212,7 +250,7 @@ function buildTransactionFromPlan(plan, type = "Plan confirmed") {
     asset: plan.asset,
     payAsset: plan.payAsset,
     schedule: plan.schedule,
-    date: "Today",
+    date: getMovementTimestamp(plan),
     status: getTransactionStatus(plan, type),
     hash: plan.hash,
     routeEstimate: plan.routeEstimate,
@@ -301,6 +339,7 @@ function App() {
   const [deliveryMode, setDeliveryMode] = useState("schedule");
   const [showDemoPrompt, setShowDemoPrompt] = useState(shouldShowDemoPrompt);
   const [activeInfoPanel, setActiveInfoPanel] = useState(null);
+  const [isWalletVerified, setIsWalletVerified] = useState(false);
 
   const activePlan = useMemo(
     () => plans.find((item) => item.id === selectedPlanId) || plans[0] || null,
@@ -327,6 +366,8 @@ function App() {
     () => transactions.find((item) => item.id === selectedTransactionId) || transactions[0] || null,
     [selectedTransactionId, transactions],
   );
+  const guardedScreens = ["plans", "planDetail", "history", "receiptDetail", "planEditor", "deletePlan", "processing", "duplicateGuard", "review"];
+  const visibleScreen = !isWalletVerified && guardedScreens.includes(screen) ? "walletGate" : screen;
   useEffect(() => {
     if (screen !== "splash") return undefined;
     const timer = window.setTimeout(() => setScreen("pitch"), SPLASH_DURATION_MS);
@@ -529,20 +570,21 @@ function App() {
   }
 
   const screenTitle = useMemo(() => {
-    if (screen === "splash") return "Choco";
-    if (screen === "pitch") return "Choco";
-    if (screen === "plans") return "Plans";
-    if (screen === "planDetail") return "Details";
-    if (screen === "history") return "History";
-    if (screen === "receiptDetail") return "Receipt";
-    if (screen === "planEditor") return reviewMode === "update" ? "Edit plan" : deliveryMode === "now" ? "Send now" : "New schedule";
-    if (screen === "deletePlan") return "Delete";
-    if (screen === "demoTour") return "Demo";
-    if (screen === "processing") return "Planning";
-    if (screen === "duplicateGuard") return "Choco";
-    if (screen === "review") return "Quote";
+    if (visibleScreen === "splash") return "Choco";
+    if (visibleScreen === "pitch") return "Choco";
+    if (visibleScreen === "plans") return "Plans";
+    if (visibleScreen === "planDetail") return "Details";
+    if (visibleScreen === "history") return "History";
+    if (visibleScreen === "receiptDetail") return "Receipt";
+    if (visibleScreen === "planEditor") return reviewMode === "update" ? "Edit plan" : deliveryMode === "now" ? "Send now" : "New schedule";
+    if (visibleScreen === "deletePlan") return "Delete";
+    if (visibleScreen === "demoTour") return "Demo";
+    if (visibleScreen === "processing") return "Planning";
+    if (visibleScreen === "duplicateGuard") return "Choco";
+    if (visibleScreen === "review") return "Quote";
+    if (visibleScreen === "walletGate") return "Locked";
     return "Home";
-  }, [deliveryMode, reviewMode, screen]);
+  }, [deliveryMode, reviewMode, visibleScreen]);
 
   return (
     <main className="stage">
@@ -577,12 +619,14 @@ function App() {
         </div>
 
         <div className={`app-panel tone-${screen}`}>
-          {screen === "splash" && <SplashScreen onStart={() => setScreen("pitch")} />}
-          {screen === "pitch" && <PitchScreen onClose={() => setScreen("plan")} />}
-          {screen === "plan" && (
+          {visibleScreen === "splash" && <SplashScreen onStart={() => setScreen("pitch")} />}
+          {visibleScreen === "pitch" && <PitchScreen onClose={() => setScreen("plan")} />}
+          {visibleScreen === "plan" && (
             <PlanScreen
               plans={plans}
               showDemoPrompt={showDemoPrompt}
+              isWalletVerified={isWalletVerified}
+              onVerifyWallet={() => setIsWalletVerified(true)}
               onPlans={() => setScreen("plans")}
               onHistory={() => setScreen("history")}
               onSendNow={openImmediateSend}
@@ -595,7 +639,10 @@ function App() {
               onCloseDemo={dismissDemoPrompt}
             />
           )}
-          {screen === "demoTour" && (
+          {visibleScreen === "walletGate" && (
+            <WalletGateScreen onHome={() => setScreen("plan")} />
+          )}
+          {visibleScreen === "demoTour" && (
             <DemoTourScreen
               step={demoStep}
               elapsedSeconds={demoElapsedSeconds}
@@ -605,7 +652,7 @@ function App() {
               onFinish={finishDemo}
             />
           )}
-          {screen === "plans" && (
+          {visibleScreen === "plans" && (
             <PlansScreen
               plans={plans}
               onHome={() => setScreen("plan")}
@@ -617,7 +664,7 @@ function App() {
               }}
             />
           )}
-          {screen === "planDetail" && activePlan && (
+          {visibleScreen === "planDetail" && activePlan && (
             <PlanDetailScreen
               plan={activePlan}
               onHome={() => setScreen("plan")}
@@ -627,7 +674,7 @@ function App() {
               onDelete={() => setScreen("deletePlan")}
             />
           )}
-          {screen === "history" && (
+          {visibleScreen === "history" && (
             <HistoryScreen
               transactions={transactions}
               onHome={() => setScreen("plan")}
@@ -638,7 +685,7 @@ function App() {
               }}
             />
           )}
-          {screen === "receiptDetail" && activeTransaction && (
+          {visibleScreen === "receiptDetail" && activeTransaction && (
             <ReceiptDetailScreen
               transaction={activeTransaction}
               onBack={() => setScreen("history")}
@@ -646,7 +693,7 @@ function App() {
               onPlans={() => setScreen("plans")}
             />
           )}
-          {screen === "planEditor" && (
+          {visibleScreen === "planEditor" && (
             <PlanEditorScreen
               mode={reviewMode}
               command={command}
@@ -657,10 +704,10 @@ function App() {
               onHome={() => setScreen("plan")}
             />
           )}
-          {screen === "deletePlan" && activePlan && (
+          {visibleScreen === "deletePlan" && activePlan && (
             <DeletePlanScreen plan={activePlan} onCancel={() => setScreen("planDetail")} onDelete={confirmDeletePlan} />
           )}
-          {screen === "processing" && (
+          {visibleScreen === "processing" && (
             <ProcessingScreen
               step={runStep}
               plan={previewPlan}
@@ -668,7 +715,7 @@ function App() {
               duplicateAttempt={duplicateAttempt}
             />
           )}
-          {screen === "duplicateGuard" && duplicateAttempt && (
+          {visibleScreen === "duplicateGuard" && duplicateAttempt && (
             <DuplicateGuardScreen
               plan={previewPlan}
               match={duplicateAttempt}
@@ -676,7 +723,7 @@ function App() {
               onProceed={continueDuplicateAttempt}
             />
           )}
-          {screen === "review" && (
+          {visibleScreen === "review" && (
             <ReviewScreen
               plan={previewPlan}
               mode={reviewMode}
@@ -871,6 +918,8 @@ function PitchScreen({ onClose }) {
 function PlanScreen({
   plans,
   showDemoPrompt,
+  isWalletVerified,
+  onVerifyWallet,
   onPlans,
   onHistory,
   onSendNow,
@@ -890,27 +939,31 @@ function PlanScreen({
           <button type="button" aria-label="Support"><ShieldCheck size={20} /></button>
         </div>
         <div className="balance-copy">
-          <span>Next plan</span>
-          <strong>{nextPlan.amount}</strong>
-          <p>{nextPlan.asset} to {nextPlan.recipient} - {getTimingLabel(nextPlan)}</p>
+          <span>{isWalletVerified ? "Next plan" : "Wallet access"}</span>
+          <strong>{isWalletVerified ? nextPlan.amount : "Locked"}</strong>
+          <p>
+            {isWalletVerified
+              ? `${nextPlan.asset} to ${nextPlan.recipient} - ${getTimingLabel(nextPlan)}`
+              : "Verify once to unlock transfers, plans, and receipts."}
+          </p>
         </div>
       </div>
 
-      <button className="home-start-action" type="button" onClick={onSendNow}>
+      <button className={`home-start-action ${isWalletVerified ? "" : "verify-action"}`} type="button" onClick={isWalletVerified ? onSendNow : onVerifyWallet}>
         <span className="home-start-icon">
-          <CircleDollarSign size={20} />
+          {isWalletVerified ? <CircleDollarSign size={20} /> : <ShieldCheck size={20} />}
         </span>
         <span>
-          <b>New transfer</b>
-          <small>Send now or schedule with voice</small>
+          <b>{isWalletVerified ? "New transfer" : "Verify wallet"}</b>
+          <small>{isWalletVerified ? "Send now or schedule with voice" : "Unlock Choco for this session"}</small>
         </span>
         <ArrowRight size={21} />
       </button>
 
+      {isWalletVerified && (
       <section className="home-list" aria-label="Home plan list">
         <div className="section-heading">
           <span>Plans</span>
-          <button type="button" onClick={onPlans}>Manage</button>
         </div>
 
         {plans.slice(0, 1).map((item) => (
@@ -924,9 +977,29 @@ function PlanScreen({
           </button>
         ))}
       </section>
+      )}
 
       <BottomNav active="home" onHome={() => {}} onPlans={onPlans} onHistory={onHistory} />
       {showDemoPrompt && <DemoPrompt onRunDemo={onRunDemo} onSkipDemo={onSkipDemo} onCloseDemo={onCloseDemo} />}
+    </div>
+  );
+}
+
+function WalletGateScreen({ onHome }) {
+  return (
+    <div className="screen wallet-gate-screen">
+      <section className="wallet-gate-card">
+        <span className="guard-icon"><ShieldCheck size={24} /></span>
+        <div>
+          <span>Wallet access</span>
+          <h2>Verify on Home first</h2>
+          <p>Choco hides plans, movements, and receipts until the wallet is verified for this session.</p>
+        </div>
+        <button className="primary-cta" type="button" onClick={onHome}>
+          Back home
+        </button>
+      </section>
+      <BottomNav active="home" onHome={onHome} onPlans={onHome} onHistory={onHome} />
     </div>
   );
 }
@@ -1014,7 +1087,7 @@ function DemoVisual({ step }) {
         <button type="button"><CircleDollarSign size={17} />New transfer<span>Voice or text</span></button>
         <div className="mini-plan-row">
           <div className="plan-row-icon"><ChocoMark size="tiny" /></div>
-          <div><b>Mom</b><span>50,000 KESm - Every 1st</span></div>
+          <div><b>Mom </b><span>50,000 KESm - Every 1st</span></div>
           <small>Active</small>
         </div>
       </div>
@@ -1035,7 +1108,7 @@ function DemoVisual({ step }) {
       <div className="demo-visual duplicate-preview">
         <div className="agent-toast show">
           <ChocoMark size="tiny" />
-          <span>Repeat check</span>
+          <span>Choco Agent AI</span>
         </div>
         <p>Similar plan already exists for Mom. Open it instead of creating a duplicate.</p>
       </div>
@@ -1047,7 +1120,7 @@ function DemoVisual({ step }) {
       <div className="demo-visual details-preview">
         <div className="mini-plan-row">
           <div className="plan-row-icon"><ChocoMark size="tiny" /></div>
-          <div><b>Mom</b><span>50,000 KESm</span></div>
+          <div><b>Mom </b><span>50,000 KESm</span></div>
           <small>Active</small>
         </div>
         <DetailLine label="Timing" value="Every 1st" />
@@ -1152,9 +1225,9 @@ function HistoryScreen({ transactions, onSelectTransaction, onHome, onPlans }) {
             <div className="receipt-icon"><ReceiptText size={18} /></div>
             <div>
               <b>{item.recipient}</b>
-              <span>{item.amount} {item.asset} - {item.type}</span>
+              <span>{item.amount} {item.asset} · {item.type}</span>
             </div>
-            <small>{item.date}</small>
+            <small>{formatHistoryDate(item.date)}</small>
           </button>
         ))}
       </div>
@@ -1470,7 +1543,7 @@ function ProcessingScreen({ step, plan, command, duplicateAttempt }) {
         <div className="agent-phone-head">
           <ChocoMark size="small" />
           <div>
-            <span>Choco agent run</span>
+            <span>Choco Agent AI run</span>
             <b>Mini App</b>
           </div>
         </div>
@@ -1515,14 +1588,14 @@ function DuplicateGuardScreen({ plan, match, onEdit, onProceed }) {
         <div className="agent-phone-head">
           <ChocoMark size="small" />
           <div>
-            <span>Choco agent</span>
+            <span>Choco Agent AI</span>
             <b>Repeat check</b>
           </div>
         </div>
 
         <div className="agent-bubble choco">
           {isSendNow
-            ? `Similar transfer found for ${plan.recipient}. You already sent ${match.amount} ${match.asset}.`
+            ? `Similar transfer found for ${plan.recipient}. You already sent ${match.amount} ${match.asset} on ${match.date}.`
             : `Similar plan already exists for ${plan.recipient}. Open it instead of creating a duplicate.`}
         </div>
 
