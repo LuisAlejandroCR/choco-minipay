@@ -192,6 +192,7 @@ Use [docs/runbook-celo-agent-registration.md](docs/runbook-celo-agent-registrati
 - Detect MiniPay with `window.ethereum.isMiniPay === true`.
 - Do not depend on message-signing auth.
 - Use Celo Sepolia testnet for wallet verification, agent review, and receipt paths until mainnet release.
+- After wallet verification, confirm enough testnet funds and the correct recipient contact before send or schedule.
 - Keep user-facing balances and transfers stablecoin-only: USDC, USDT, USDm.
 - Use MiniPay terms: `Network fee`, `Deposit`, `Withdraw`, `Stablecoin`.
 - Test the web app at 360 x 640.
@@ -204,6 +205,7 @@ Use [docs/runbook-celo-agent-registration.md](docs/runbook-celo-agent-registrati
 Before production release:
 
 - MiniPay detection works in the MiniPay WebView.
+- Wallet-ready flow asks for testnet funds and recipient contact confirmation before transfer creation.
 - Celo Sepolia transaction and receipt paths are verified.
 - ERC-8004 metadata is public and registered.
 - Quote, ODIS, API, worker, and analytics integrations are connected through module boundaries.

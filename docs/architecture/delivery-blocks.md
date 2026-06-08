@@ -47,6 +47,7 @@ Validation:
 
 - MiniPay detection works in WebView.
 - Verify wallet targets Celo Sepolia testnet chain ID `11142220`.
+- After wallet verification, the UI asks for testnet funds and recipient contact confirmation.
 - Browser fallback remains readable.
 - No message-signing auth dependency.
 

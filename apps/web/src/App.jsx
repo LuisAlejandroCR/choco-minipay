@@ -341,6 +341,8 @@ export function App() {
   const [deliveryMode, setDeliveryMode] = useState("schedule");
   const [showDemoPrompt, setShowDemoPrompt] = useState(shouldShowDemoPrompt);
   const [activeInfoPanel, setActiveInfoPanel] = useState(null);
+  const [hasTestnetFunds, setHasTestnetFunds] = useState(false);
+  const [isContactConfirmed, setIsContactConfirmed] = useState(false);
   const wallet = useMiniPayWallet();
   const isWalletVerified = wallet.isReady;
 
@@ -629,7 +631,11 @@ export function App() {
               showDemoPrompt={showDemoPrompt}
               isWalletVerified={isWalletVerified}
               wallet={wallet}
+              hasTestnetFunds={hasTestnetFunds}
+              isContactConfirmed={isContactConfirmed}
               onVerifyWallet={wallet.verifyWallet}
+              onToggleFunds={() => setHasTestnetFunds((isConfirmed) => !isConfirmed)}
+              onToggleContact={() => setIsContactConfirmed((isConfirmed) => !isConfirmed)}
               onPlans={() => setScreen("plans")}
               onHistory={() => setScreen("history")}
               onSendNow={openImmediateSend}
@@ -948,7 +954,11 @@ function PlanScreen({
   showDemoPrompt,
   isWalletVerified,
   wallet,
+  hasTestnetFunds,
+  isContactConfirmed,
   onVerifyWallet,
+  onToggleFunds,
+  onToggleContact,
   onPlans,
   onHistory,
   onSendNow,
@@ -962,6 +972,19 @@ function PlanScreen({
   const walletHelp = isWalletVerified
     ? `${formatWalletAddress(wallet.address)} - ${wallet.network.name} testnet`
     : wallet.statusLabel;
+  const isReadyForTransfer = !isWalletVerified || (hasTestnetFunds && isContactConfirmed);
+  const actionLabel = isWalletVerified
+    ? isReadyForTransfer
+      ? "New transfer"
+      : "Finish ready checks"
+    : isVerifyingWallet
+      ? "Verifying testnet wallet"
+      : "Verify testnet wallet";
+  const actionHelp = isWalletVerified
+    ? isReadyForTransfer
+      ? "Send now or schedule with voice"
+      : "Confirm funds and recipient before sending"
+    : walletHelp;
 
   return (
     <div className="screen plan-screen">
@@ -986,18 +1009,28 @@ function PlanScreen({
         </div>
       </div>
 
+      {isWalletVerified && (
+        <ReadyChecks
+          plan={nextPlan}
+          hasTestnetFunds={hasTestnetFunds}
+          isContactConfirmed={isContactConfirmed}
+          onToggleFunds={onToggleFunds}
+          onToggleContact={onToggleContact}
+        />
+      )}
+
       <button
         className={`home-start-action ${isWalletVerified ? "" : "verify-action"}`}
         type="button"
-        disabled={!isWalletVerified && isVerifyingWallet}
+        disabled={(!isWalletVerified && isVerifyingWallet) || (isWalletVerified && !isReadyForTransfer)}
         onClick={isWalletVerified ? onSendNow : onVerifyWallet}
       >
         <span className="home-start-icon">
           {isWalletVerified ? <CircleDollarSign size={20} /> : <ShieldCheck size={20} />}
         </span>
         <span>
-          <b>{isWalletVerified ? "New transfer" : isVerifyingWallet ? "Verifying testnet wallet" : "Verify testnet wallet"}</b>
-          <small>{isWalletVerified ? "Send now or schedule with voice" : walletHelp}</small>
+          <b>{actionLabel}</b>
+          <small>{actionHelp}</small>
         </span>
         <ArrowRight size={21} />
       </button>
@@ -1024,6 +1057,43 @@ function PlanScreen({
       <BottomNav active="home" onHome={() => {}} onPlans={onPlans} onHistory={onHistory} />
       {showDemoPrompt && <DemoPrompt onRunDemo={onRunDemo} onSkipDemo={onSkipDemo} onCloseDemo={onCloseDemo} />}
     </div>
+  );
+}
+
+function ReadyChecks({ plan, hasTestnetFunds, isContactConfirmed, onToggleFunds, onToggleContact }) {
+  return (
+    <section className="ready-checks" aria-label="Transfer ready checks">
+      <div className="section-heading">
+        <span>Ready checks</span>
+        <small>Before send or schedule</small>
+      </div>
+
+      <button
+        className={`ready-check-row ${hasTestnetFunds ? "complete" : ""}`}
+        type="button"
+        aria-pressed={hasTestnetFunds}
+        onClick={onToggleFunds}
+      >
+        <span className="ready-check-icon">{hasTestnetFunds ? <Check size={18} /> : <Wallet size={18} />}</span>
+        <span>
+          <b>{hasTestnetFunds ? "Testnet funds confirmed" : "Confirm enough testnet funds"}</b>
+          <small>{plan.routeEstimate} for {plan.amount} {plan.asset}, plus network fee.</small>
+        </span>
+      </button>
+
+      <button
+        className={`ready-check-row ${isContactConfirmed ? "complete" : ""}`}
+        type="button"
+        aria-pressed={isContactConfirmed}
+        onClick={onToggleContact}
+      >
+        <span className="ready-check-icon">{isContactConfirmed ? <Check size={18} /> : <ShieldCheck size={18} />}</span>
+        <span>
+          <b>{isContactConfirmed ? "Recipient contact confirmed" : "Confirm recipient contact"}</b>
+          <small>{plan.recipient} - {plan.phone || "recipient contact needed"}</small>
+        </span>
+      </button>
+    </section>
   );
 }
 
