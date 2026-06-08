@@ -199,7 +199,7 @@ function getRouteEstimate(amountValue) {
 }
 
 function getTransactionStatus(plan, type) {
-  if (plan.deliveryMode === "now") return "Sent";
+  if (plan.deliveryMode === "now") return "Preflight";
   if (type === "Plan updated") return "Updated";
   return "Scheduled";
 }
@@ -341,8 +341,8 @@ export function App() {
   const [deliveryMode, setDeliveryMode] = useState("schedule");
   const [showDemoPrompt, setShowDemoPrompt] = useState(shouldShowDemoPrompt);
   const [activeInfoPanel, setActiveInfoPanel] = useState(null);
-  const [hasTestnetFunds, setHasTestnetFunds] = useState(false);
   const [isContactConfirmed, setIsContactConfirmed] = useState(false);
+  const [transferBlockMessage, setTransferBlockMessage] = useState("");
   const wallet = useMiniPayWallet();
   const isWalletVerified = wallet.isReady;
 
@@ -481,6 +481,7 @@ export function App() {
     if (nextCommand) {
       setCommand(nextCommand);
     }
+    setTransferBlockMessage("");
     setScreen("processing");
   }
 
@@ -500,17 +501,12 @@ export function App() {
     let committedPlan;
 
     if (previewPlan.deliveryMode === "now") {
-      committedPlan = {
-        ...previewPlan,
-        id: `send-${Date.now()}`,
-        hash: "0x9d41...celo-sepolia-309",
-        status: "Sent",
-      };
+      if (!wallet.hasTestnetGasFunds) {
+        setTransferBlockMessage("Cannot send: this wallet has 0 CELO on Celo Sepolia testnet for network fees.");
+        return;
+      }
 
-      const transaction = buildTransactionFromPlan(committedPlan, "Sent once");
-      setTransactions((items) => [transaction, ...items]);
-      setSelectedTransactionId(transaction.id);
-      setScreen("history");
+      setTransferBlockMessage("Testnet transfer execution is not connected yet. Choco prepared the route, but no funds were moved and no receipt was created.");
       return;
     }
 
@@ -631,10 +627,8 @@ export function App() {
               showDemoPrompt={showDemoPrompt}
               isWalletVerified={isWalletVerified}
               wallet={wallet}
-              hasTestnetFunds={hasTestnetFunds}
               isContactConfirmed={isContactConfirmed}
               onVerifyWallet={wallet.verifyWallet}
-              onToggleFunds={() => setHasTestnetFunds((isConfirmed) => !isConfirmed)}
               onToggleContact={() => setIsContactConfirmed((isConfirmed) => !isConfirmed)}
               onPlans={() => setScreen("plans")}
               onHistory={() => setScreen("history")}
@@ -740,6 +734,7 @@ export function App() {
             <ReviewScreen
               plan={previewPlan}
               mode={reviewMode}
+              transferBlockMessage={transferBlockMessage}
               onEdit={() => setScreen("planEditor")}
               onConfirm={confirmPlan}
             />
@@ -954,10 +949,8 @@ function PlanScreen({
   showDemoPrompt,
   isWalletVerified,
   wallet,
-  hasTestnetFunds,
   isContactConfirmed,
   onVerifyWallet,
-  onToggleFunds,
   onToggleContact,
   onPlans,
   onHistory,
@@ -972,18 +965,22 @@ function PlanScreen({
   const walletHelp = isWalletVerified
     ? `${formatWalletAddress(wallet.address)} - ${wallet.network.name} testnet`
     : wallet.statusLabel;
-  const isReadyForTransfer = !isWalletVerified || (hasTestnetFunds && isContactConfirmed);
+  const isReadyForTransfer = !isWalletVerified || (wallet.hasTestnetGasFunds && isContactConfirmed);
   const actionLabel = isWalletVerified
     ? isReadyForTransfer
       ? "New transfer"
-      : "Finish ready checks"
+      : wallet.hasTestnetGasFunds
+        ? "Confirm recipient contact"
+        : "Testnet funds required"
     : isVerifyingWallet
       ? "Verifying testnet wallet"
       : "Verify testnet wallet";
   const actionHelp = isWalletVerified
     ? isReadyForTransfer
       ? "Send now or schedule with voice"
-      : "Confirm funds and recipient before sending"
+      : wallet.hasTestnetGasFunds
+        ? "Confirm the recipient before sending"
+        : "Add Celo Sepolia testnet CELO for network fees"
     : walletHelp;
 
   return (
@@ -1012,9 +1009,8 @@ function PlanScreen({
       {isWalletVerified && (
         <ReadyChecks
           plan={nextPlan}
-          hasTestnetFunds={hasTestnetFunds}
+          wallet={wallet}
           isContactConfirmed={isContactConfirmed}
-          onToggleFunds={onToggleFunds}
           onToggleContact={onToggleContact}
         />
       )}
@@ -1060,7 +1056,7 @@ function PlanScreen({
   );
 }
 
-function ReadyChecks({ plan, hasTestnetFunds, isContactConfirmed, onToggleFunds, onToggleContact }) {
+function ReadyChecks({ plan, wallet, isContactConfirmed, onToggleContact }) {
   return (
     <section className="ready-checks" aria-label="Transfer ready checks">
       <div className="section-heading">
@@ -1068,18 +1064,13 @@ function ReadyChecks({ plan, hasTestnetFunds, isContactConfirmed, onToggleFunds,
         <small>Before send or schedule</small>
       </div>
 
-      <button
-        className={`ready-check-row ${hasTestnetFunds ? "complete" : ""}`}
-        type="button"
-        aria-pressed={hasTestnetFunds}
-        onClick={onToggleFunds}
-      >
-        <span className="ready-check-icon">{hasTestnetFunds ? <Check size={18} /> : <Wallet size={18} />}</span>
+      <div className={`ready-check-row ${wallet.hasTestnetGasFunds ? "complete" : "blocked"}`}>
+        <span className="ready-check-icon">{wallet.hasTestnetGasFunds ? <Check size={18} /> : <Wallet size={18} />}</span>
         <span>
-          <b>{hasTestnetFunds ? "Testnet funds confirmed" : "Confirm enough testnet funds"}</b>
-          <small>{plan.routeEstimate} for {plan.amount} {plan.asset}, plus network fee.</small>
+          <b>{wallet.hasTestnetGasFunds ? "Testnet gas funds detected" : "No testnet gas funds detected"}</b>
+          <small>{wallet.nativeBalanceLabel}. Add Celo Sepolia CELO before send or schedule.</small>
         </span>
-      </button>
+      </div>
 
       <button
         className={`ready-check-row ${isContactConfirmed ? "complete" : ""}`}
@@ -1733,7 +1724,7 @@ function DuplicateGuardScreen({ plan, match, onEdit, onProceed }) {
   );
 }
 
-function ReviewScreen({ plan, mode, onEdit, onConfirm }) {
+function ReviewScreen({ plan, mode, transferBlockMessage, onEdit, onConfirm }) {
   const isSendNow = plan.deliveryMode === "now";
   const chip = isSendNow ? "SEND NOW" : mode === "update" ? "UPDATE" : mode === "demo" ? "DEMO" : "NEW";
 
@@ -1772,12 +1763,14 @@ function ReviewScreen({ plan, mode, onEdit, onConfirm }) {
 
       <div className="notice">
         {isSendNow
-          ? "Choco will ask for confirmation before sending once."
+          ? "Choco will run a testnet preflight. It will not mark funds sent until a real on-chain transaction succeeds."
           : "Choco will ask for confirmation before activating the schedule."}
       </div>
 
+      {transferBlockMessage && <div className="notice danger">{transferBlockMessage}</div>}
+
       <button className="primary-cta" type="button" onClick={onConfirm}>
-        {isSendNow ? "Send once" : "Confirm schedule"}
+        {isSendNow ? "Run testnet preflight" : "Confirm schedule"}
       </button>
       <button className="secondary-cta" type="button" onClick={onEdit}>Edit instruction</button>
     </LightSheet>

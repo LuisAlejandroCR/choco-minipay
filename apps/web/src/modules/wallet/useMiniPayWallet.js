@@ -31,6 +31,24 @@ export function formatWalletAddress(address) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
+export function hasPositiveWeiBalance(balanceWei) {
+  if (!balanceWei) return false;
+  try {
+    return BigInt(balanceWei) > 0n;
+  } catch {
+    return false;
+  }
+}
+
+export function formatCeloBalance(balanceWei) {
+  if (!hasPositiveWeiBalance(balanceWei)) return "0 CELO";
+  const wei = BigInt(balanceWei);
+  const base = 10n ** 18n;
+  const whole = wei / base;
+  const fraction = ((wei % base) / (10n ** 14n)).toString().padStart(4, "0").replace(/0+$/, "");
+  return `${whole}${fraction ? `.${fraction}` : ""} CELO`;
+}
+
 function getProvider() {
   if (typeof window === "undefined") return null;
   return window.ethereum || null;
@@ -41,6 +59,17 @@ async function readChainId(provider) {
     return await provider.request({ method: "eth_chainId" });
   } catch {
     return "";
+  }
+}
+
+async function readNativeBalance(provider, address) {
+  try {
+    return await provider.request({
+      method: "eth_getBalance",
+      params: [address, "latest"],
+    });
+  } catch {
+    return "0x0";
   }
 }
 
@@ -86,6 +115,7 @@ function getWalletErrorMessage(error) {
 export function useMiniPayWallet() {
   const [address, setAddress] = useState("");
   const [chainId, setChainId] = useState("");
+  const [nativeBalanceWei, setNativeBalanceWei] = useState("");
   const [status, setStatus] = useState("checking");
   const [error, setError] = useState("");
   const [isMiniPay, setIsMiniPay] = useState(false);
@@ -96,6 +126,7 @@ export function useMiniPayWallet() {
     if (!provider) {
       setAddress("");
       setChainId("");
+      setNativeBalanceWei("");
       setIsMiniPay(false);
       setStatus("unavailable");
       setError("Open in MiniPay or connect a Celo Sepolia testnet wallet.");
@@ -122,22 +153,27 @@ export function useMiniPayWallet() {
       setChainId(nextChainId || "");
 
       if (!nextAddress) {
+        setNativeBalanceWei("");
         setStatus("empty");
         setError("Choose a wallet account to continue on testnet.");
         return false;
       }
 
       if (!isTestnet) {
+        setNativeBalanceWei("");
         setStatus("wrong-network");
         setError("Switch to Celo Sepolia testnet before verifying Choco.");
         return false;
       }
 
+      const nextBalanceWei = await readNativeBalance(provider, nextAddress);
+      setNativeBalanceWei(nextBalanceWei || "0x0");
       setStatus("ready");
       return true;
     } catch (nextError) {
       const nextChainId = await readChainId(provider);
       setChainId(nextChainId || "");
+      setNativeBalanceWei("");
       setStatus("error");
       setError(getWalletErrorMessage(nextError));
       return false;
@@ -169,8 +205,10 @@ export function useMiniPayWallet() {
   );
 
   const isTestnet = isCeloSepoliaTestnet(chainId);
+  const hasTestnetGasFunds = hasPositiveWeiBalance(nativeBalanceWei);
+  const nativeBalanceLabel = formatCeloBalance(nativeBalanceWei);
   const statusLabel = useMemo(() => {
-    if (status === "ready") return `${formatWalletAddress(address)} on ${TESTNET_WALLET_NETWORK.name}`;
+    if (status === "ready") return `${formatWalletAddress(address)} - ${nativeBalanceLabel}`;
     if (status === "loading") return `Opening ${TESTNET_WALLET_NETWORK.name} wallet`;
     if (status === "checking") return `Checking ${TESTNET_WALLET_NETWORK.name}`;
     if (status === "wrong-network") return "Switch wallet to Celo Sepolia testnet";
@@ -178,16 +216,19 @@ export function useMiniPayWallet() {
     if (status === "unavailable") return "Open in MiniPay or connect a testnet wallet";
     if (status === "error") return error || "Wallet unavailable";
     return `Verify on ${TESTNET_WALLET_NETWORK.name}`;
-  }, [address, error, status]);
+  }, [address, error, nativeBalanceLabel, status]);
 
   return {
     address,
     chainId,
     error,
+    hasTestnetGasFunds,
     isMiniPay,
     isReady: status === "ready" && isTestnet,
     isTestnet,
     loadWallet: readWallet,
+    nativeBalanceLabel,
+    nativeBalanceWei,
     network: TESTNET_WALLET_NETWORK,
     status,
     statusLabel,
