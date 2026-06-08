@@ -6,15 +6,20 @@ import {
   Bell,
   CalendarDays,
   Check,
+  ChevronDown,
+  ChevronUp,
   CircleDollarSign,
+  ExternalLink,
   History,
   ListChecks,
   MessageCircleQuestionMark,
   Mic,
   Pencil,
   Plus,
+  QrCode,
   ReceiptText,
   RefreshCw,
+  Share2,
   ShieldCheck,
   Trash2,
   Wallet,
@@ -25,6 +30,8 @@ import "./styles.css";
 const SPLASH_DURATION_MS = 2600;
 const DEMO_STEP_MS = 5000;
 const WORLD_MAP_URL = "https://upload.wikimedia.org/wikipedia/commons/5/51/BlankMap-Equirectangular.svg";
+const VERIFY_BASE_URL = "https://celo-sepolia.blockscout.com/tx";
+const DEMO_FROM_ADDRESS = "0xb7b2...0426d";
 
 const deliveryModes = {
   now: {
@@ -70,6 +77,8 @@ const defaultTransaction = {
   routeEstimate: defaultPlan.routeEstimate,
   type: "Scheduled run",
   deliveryMode: defaultPlan.deliveryMode,
+  from: DEMO_FROM_ADDRESS,
+  to: "Mom · +254 7xx xxx 214",
 };
 
 function getTimingLabel(item) {
@@ -85,10 +94,32 @@ function getPlanSignature(plan) {
   ].join("|").toLowerCase();
 }
 
+function getMovementSignature(item) {
+  return [
+    item.recipient,
+    item.amount,
+    item.asset,
+    item.deliveryMode || "schedule",
+  ].join("|").toLowerCase();
+}
+
+function getVerifyTransactionUrl(hash) {
+  return `${VERIFY_BASE_URL}/${encodeURIComponent(hash)}`;
+}
+
 function findSimilarPlan(plans, candidate, excludeId = "") {
   if (!candidate || candidate.deliveryMode === "now") return null;
   const candidateSignature = getPlanSignature(candidate);
   return plans.find((plan) => plan.id !== excludeId && getPlanSignature(plan) === candidateSignature) || null;
+}
+
+function findRecentSimilarTransfer(transactions, candidate) {
+  if (!candidate || candidate.deliveryMode !== "now") return null;
+  const lastTransfer = transactions.find((item) => item.deliveryMode === "now");
+
+  if (!lastTransfer) return null;
+
+  return getMovementSignature(lastTransfer) === getMovementSignature(candidate) ? lastTransfer : null;
 }
 
 function getSimilarPlanIds(plans) {
@@ -187,6 +218,8 @@ function buildTransactionFromPlan(plan, type = "Plan confirmed") {
     routeEstimate: plan.routeEstimate,
     type,
     deliveryMode: plan.deliveryMode,
+    from: DEMO_FROM_ADDRESS,
+    to: `${plan.recipient} · ${plan.phone || "Kenya wallet"}`,
   };
 }
 
@@ -204,28 +237,28 @@ function rememberDemoChoice() {
 
 const demoSteps = [
   {
-    title: "Home starts both flows",
-    copy: "Tap one action to start. Choco asks timing on the next screen.",
+    title: "Home starts the transfer",
+    copy: "One entry point keeps the app simple. Voice or text can send now or schedule.",
   },
   {
-    title: "Choose timing first",
-    copy: "Choco asks if the transfer should happen now or run on a schedule.",
+    title: "Choose timing",
+    copy: "Pick send now or schedule. Choco uses the same command box for both.",
   },
   {
-    title: "Plans is for management",
-    copy: "Scheduled transfers live here. Create a plan once, then update or delete it anytime.",
+    title: "Choco checks repeats",
+    copy: "If a similar plan or send already exists, Choco asks before continuing.",
   },
   {
-    title: "Details shows control",
-    copy: "See route, schedule, retries, and edit or delete the selected plan.",
+    title: "Plans stay light",
+    copy: "Details show the essentials: amount, timing, route, retries, and actions.",
   },
   {
-    title: "Movements keep receipts",
-    copy: "One-time sends and scheduled runs both land in history with receipt proof.",
+    title: "Movements verify proof",
+    copy: "Receipts start short, then expand into QR, from, to, date, and hash.",
   },
   {
-    title: "Share only what matters",
-    copy: "Choose recipient, amount, schedule, or onchain hash before sharing.",
+    title: "Share when needed",
+    copy: "Share the receipt or open the explorer link when family asks for proof.",
   },
 ];
 
@@ -281,6 +314,15 @@ function App() {
     () => findSimilarPlan(plans, previewPlan, reviewMode === "update" ? activePlan?.id : ""),
     [activePlan, plans, previewPlan, reviewMode],
   );
+  const similarTransfer = useMemo(
+    () => findRecentSimilarTransfer(transactions, previewPlan),
+    [previewPlan, transactions],
+  );
+  const duplicateAttempt = reviewMode === "update"
+    ? null
+    : previewPlan.deliveryMode === "now"
+      ? similarTransfer
+      : similarPlan;
   const activeTransaction = useMemo(
     () => transactions.find((item) => item.id === selectedTransactionId) || transactions[0] || null,
     [selectedTransactionId, transactions],
@@ -298,10 +340,10 @@ function App() {
       window.setTimeout(() => setRunStep(1), 320),
       window.setTimeout(() => setRunStep(2), 860),
       window.setTimeout(() => setRunStep(3), 1400),
-      window.setTimeout(() => setScreen("review"), 2450),
+      window.setTimeout(() => setScreen(duplicateAttempt ? "duplicateGuard" : "review"), 2450),
     ];
     return () => timers.forEach((timer) => window.clearTimeout(timer));
-  }, [screen]);
+  }, [duplicateAttempt, screen]);
 
   useEffect(() => {
     if (screen !== "demoTour") return undefined;
@@ -459,6 +501,21 @@ function App() {
     setScreen("history");
   }
 
+  function continueDuplicateAttempt() {
+    if (previewPlan.deliveryMode === "now") {
+      setScreen("review");
+      return;
+    }
+
+    if (similarPlan) {
+      setSelectedPlanId(similarPlan.id);
+      setScreen("planDetail");
+      return;
+    }
+
+    setScreen("review");
+  }
+
   function confirmDeletePlan() {
     if (!activePlan) {
       setScreen("plans");
@@ -482,6 +539,7 @@ function App() {
     if (screen === "deletePlan") return "Delete";
     if (screen === "demoTour") return "Demo";
     if (screen === "processing") return "Planning";
+    if (screen === "duplicateGuard") return "Choco";
     if (screen === "review") return "Quote";
     return "Home";
   }, [deliveryMode, reviewMode, screen]);
@@ -596,17 +654,32 @@ function App() {
               deliveryMode={deliveryMode}
               setDeliveryMode={changeDeliveryMode}
               onBuild={buildPlan}
+              onHome={() => setScreen("plan")}
             />
           )}
           {screen === "deletePlan" && activePlan && (
             <DeletePlanScreen plan={activePlan} onCancel={() => setScreen("planDetail")} onDelete={confirmDeletePlan} />
           )}
-          {screen === "processing" && <ProcessingScreen step={runStep} plan={previewPlan} command={command} />}
+          {screen === "processing" && (
+            <ProcessingScreen
+              step={runStep}
+              plan={previewPlan}
+              command={command}
+              duplicateAttempt={duplicateAttempt}
+            />
+          )}
+          {screen === "duplicateGuard" && duplicateAttempt && (
+            <DuplicateGuardScreen
+              plan={previewPlan}
+              match={duplicateAttempt}
+              onEdit={() => setScreen("planEditor")}
+              onProceed={continueDuplicateAttempt}
+            />
+          )}
           {screen === "review" && (
             <ReviewScreen
               plan={previewPlan}
               mode={reviewMode}
-              similarPlan={similarPlan}
               onEdit={() => setScreen("planEditor")}
               onConfirm={confirmPlan}
             />
@@ -959,9 +1032,12 @@ function DemoVisual({ step }) {
 
   if (step === 2) {
     return (
-      <div className="demo-visual plans-preview">
-        <button type="button"><Plus size={18} />Schedule transfer</button>
-        <button type="button"><ListChecks size={18} />All active plans</button>
+      <div className="demo-visual duplicate-preview">
+        <div className="agent-toast show">
+          <ChocoMark size="tiny" />
+          <span>Repeat check</span>
+        </div>
+        <p>Similar plan already exists for Mom. Open it instead of creating a duplicate.</p>
       </div>
     );
   }
@@ -969,20 +1045,27 @@ function DemoVisual({ step }) {
   if (step === 3) {
     return (
       <div className="demo-visual details-preview">
-        <SummaryCard label="Route" value="USDC to KESm" />
-        <SummaryCard label="Retry" value="3 attempts" />
-        <SummaryCard label="Timing" value="Every 1st" />
-        <SummaryCard label="Receipt" value="Onchain" />
+        <div className="mini-plan-row">
+          <div className="plan-row-icon"><ChocoMark size="tiny" /></div>
+          <div><b>Mom</b><span>50,000 KESm</span></div>
+          <small>Active</small>
+        </div>
+        <DetailLine label="Timing" value="Every 1st" />
+        <DetailLine label="Route" value="USDC to KESm" />
       </div>
     );
   }
 
   if (step === 4) {
     return (
-      <div className="demo-visual history-preview">
-        <div className="receipt-icon"><ReceiptText size={18} /></div>
-        <div><b>Mom</b><span>50,000 KESm - Sent once</span></div>
-        <small>Today</small>
+      <div className="demo-visual verify-preview">
+        <div className="mini-qr" aria-hidden="true">
+          <span /><span /><span /><span /><span /><span /><span /><span /><span />
+        </div>
+        <div>
+          <b>Verify receipt</b>
+          <span>QR + explorer link</span>
+        </div>
       </div>
     );
   }
@@ -990,10 +1073,8 @@ function DemoVisual({ step }) {
   if (step === 5) {
     return (
       <div className="demo-visual share-preview">
-        <label><Check size={16} />Recipient</label>
-        <label><Check size={16} />Amount</label>
-        <label>Timing</label>
-        <label>Hash</label>
+        <label><Share2 size={16} />Share receipt</label>
+        <label><ExternalLink size={16} />Open explorer</label>
       </div>
     );
   }
@@ -1084,6 +1165,35 @@ function HistoryScreen({ transactions, onSelectTransaction, onHome, onPlans }) {
 }
 
 function ReceiptDetailScreen({ transaction, onBack, onHome, onPlans }) {
+  const [shareState, setShareState] = useState("");
+  const [showVerification, setShowVerification] = useState(false);
+  const verifyUrl = getVerifyTransactionUrl(transaction.hash);
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=132x132&margin=0&data=${encodeURIComponent(verifyUrl)}`;
+  const shareText = [
+    `Choco receipt: ${transaction.amount} ${transaction.asset} to ${transaction.recipient}`,
+    `Timing: ${getTimingLabel(transaction)}`,
+    `Status: ${transaction.status}`,
+    `From: ${transaction.from}`,
+    `To: ${transaction.to}`,
+    `Hash: ${transaction.hash}`,
+    `Verify: ${verifyUrl}`,
+  ].join("\n");
+
+  async function shareMovement() {
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "Choco movement receipt", text: shareText });
+        setShareState("Shared");
+        return;
+      }
+
+      await navigator.clipboard?.writeText(shareText);
+      setShareState("Copied");
+    } catch {
+      setShareState("Ready");
+    }
+  }
+
   return (
     <div className="screen receipt-detail-screen">
       <section className="receipt-detail-card">
@@ -1097,9 +1207,40 @@ function ReceiptDetailScreen({ transaction, onBack, onHome, onPlans }) {
           <ReceiptRow icon={<Check size={18} />} label="Status" value={transaction.status} />
           <ReceiptRow icon={<CircleDollarSign size={18} />} label="Amount" value={`${transaction.amount} ${transaction.asset}`} />
           <ReceiptRow icon={<CalendarDays size={18} />} label="Timing" value={getTimingLabel(transaction)} />
-          <ReceiptRow icon={<ReceiptText size={18} />} label="Receipt hash" value={transaction.hash} mono />
         </div>
 
+        <button
+          className="receipt-expand"
+          type="button"
+          onClick={() => setShowVerification((isOpen) => !isOpen)}
+          aria-expanded={showVerification}
+        >
+          <span><QrCode size={18} />Verification</span>
+          {showVerification ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+        </button>
+
+        {showVerification && (
+          <section className="verify-panel" aria-label="Transaction verification">
+            <div className="qr-card">
+              <img src={qrUrl} alt="QR code to verify transaction" />
+              <a href={verifyUrl} target="_blank" rel="noreferrer">
+                Click here to verify transaction
+                <ExternalLink size={15} />
+              </a>
+            </div>
+            <div className="verify-list">
+              <ReceiptRow icon={<Wallet size={18} />} label="From" value={transaction.from} mono />
+              <ReceiptRow icon={<Check size={18} />} label="To" value={transaction.to} />
+              <ReceiptRow icon={<CalendarDays size={18} />} label="Date" value={transaction.date} />
+              <ReceiptRow icon={<ReceiptText size={18} />} label="Hash" value={transaction.hash} mono />
+            </div>
+          </section>
+        )}
+
+        <button className="primary-cta" type="button" onClick={shareMovement}>
+          <Share2 size={18} />
+          {shareState ? `${shareState} receipt` : "Share receipt"}
+        </button>
         <button className="secondary-dark" type="button" onClick={onBack}>Back to movements</button>
       </section>
 
@@ -1116,29 +1257,20 @@ function PlanDetailScreen({ plan, onHome, onHistory, onBack, onEdit, onDelete })
           <div className="asset-icon"><ChocoMark size="small" /></div>
           <div>
             <h2>{plan.recipient}</h2>
-            <p>{plan.routeEstimate} - {plan.fee} network fee</p>
+            <p>{plan.amount} {plan.asset}</p>
           </div>
           <span className="status-chip">{plan.status}</span>
         </div>
 
-        <div className="pay-row">
-          <Wallet size={26} strokeWidth={2.5} />
-          <strong>{plan.amount} {plan.asset}</strong>
-          <span>{plan.nextDate}</span>
+        <div className="plan-timing-row">
+          <CalendarDays size={21} strokeWidth={2.5} />
+          <strong>{getTimingLabel(plan)}</strong>
         </div>
       </section>
 
-      <div className="schedule-bar" aria-label="Transfer schedule">
-        <span>Now</span>
-        <div className="track" />
-        <span>{plan.nextDate}</span>
-      </div>
-
-      <div className="detail-grid" aria-label="Plan details">
-        <SummaryTile label="Route" value={`${plan.payAsset} to ${plan.asset}`} />
-        <SummaryTile label="Retry" value="3 attempts" />
-        <SummaryTile label="Timing" value={getTimingLabel(plan)} />
-        <SummaryTile label="Receipt" value="Onchain" />
+      <div className="detail-list" aria-label="Plan details">
+        <DetailLine label="Route" value={`${plan.payAsset} to ${plan.asset}`} />
+        <DetailLine label="Retries" value="3 attempts if a transfer fails" />
       </div>
 
       <div className="plan-actions">
@@ -1159,6 +1291,7 @@ function PlanEditorScreen({
   deliveryMode,
   setDeliveryMode,
   onBuild,
+  onHome,
 }) {
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -1285,6 +1418,10 @@ function PlanEditorScreen({
           </div>
         )}
       </section>
+
+      {mode !== "update" && (
+        <button className="secondary-dark editor-home-button" type="button" onClick={onHome}>Back home</button>
+      )}
     </div>
   );
 }
@@ -1307,7 +1444,7 @@ function DeletePlanScreen({ plan, onCancel, onDelete }) {
   );
 }
 
-function ProcessingScreen({ step, plan, command }) {
+function ProcessingScreen({ step, plan, command, duplicateAttempt }) {
   const isSendNow = plan.deliveryMode === "now";
   const feed = [
     {
@@ -1322,8 +1459,8 @@ function ProcessingScreen({ step, plan, command }) {
     },
     {
       icon: <ReceiptText size={15} />,
-      title: "Guardrails attached",
-      copy: "Retries, recipient notice, and receipt are ready.",
+      title: "Guardrails checked",
+      copy: duplicateAttempt ? "Choco found a similar movement to review." : "No similar movement was found.",
     },
   ];
 
@@ -1363,15 +1500,49 @@ function ProcessingScreen({ step, plan, command }) {
           ))}
         </div>
 
-        <div className="agent-next">Opening quote review</div>
+        <div className="agent-next">{duplicateAttempt ? "Opening Choco guardrail" : "Opening quote review"}</div>
       </div>
     </div>
   );
 }
 
-function ReviewScreen({ plan, mode, similarPlan, onEdit, onConfirm }) {
+function DuplicateGuardScreen({ plan, match, onEdit, onProceed }) {
   const isSendNow = plan.deliveryMode === "now";
-  const isSimilar = Boolean(similarPlan && !isSendNow);
+
+  return (
+    <div className="screen duplicate-guard-screen">
+      <section className="agent-guard-card">
+        <div className="agent-phone-head">
+          <ChocoMark size="small" />
+          <div>
+            <span>Choco agent</span>
+            <b>Repeat check</b>
+          </div>
+        </div>
+
+        <div className="agent-bubble choco">
+          {isSendNow
+            ? `Similar transfer found for ${plan.recipient}. You already sent ${match.amount} ${match.asset}.`
+            : `Similar plan already exists for ${plan.recipient}. Open it instead of creating a duplicate.`}
+        </div>
+
+        <div className="guard-summary">
+          <span>{isSendNow ? "Last send" : "Existing plan"}</span>
+          <strong>{match.amount} {match.asset}</strong>
+          <small>{getTimingLabel(match)}</small>
+        </div>
+
+        <button className="primary-cta" type="button" onClick={onProceed}>
+          {isSendNow ? "Send again" : "Open existing plan"}
+        </button>
+        <button className="secondary-dark" type="button" onClick={onEdit}>Edit instruction</button>
+      </section>
+    </div>
+  );
+}
+
+function ReviewScreen({ plan, mode, onEdit, onConfirm }) {
+  const isSendNow = plan.deliveryMode === "now";
   const chip = isSendNow ? "SEND NOW" : mode === "update" ? "UPDATE" : mode === "demo" ? "DEMO" : "NEW";
 
   return (
@@ -1408,15 +1579,13 @@ function ReviewScreen({ plan, mode, similarPlan, onEdit, onConfirm }) {
       </div>
 
       <div className="notice">
-        {isSimilar
-          ? `Similar plan already exists for ${similarPlan.recipient}. Open it instead of creating a duplicate.`
-          : isSendNow
+        {isSendNow
           ? "Choco will ask for confirmation before sending once. No private key is stored in this Mini App."
           : "Choco will ask for confirmation before activating the schedule. No private key is stored in this Mini App."}
       </div>
 
       <button className="primary-cta" type="button" onClick={onConfirm}>
-        {isSimilar ? "Open existing plan" : isSendNow ? "Send once" : "Confirm schedule"}
+        {isSendNow ? "Send once" : "Confirm schedule"}
       </button>
       <button className="secondary-cta" type="button" onClick={onEdit}>Edit instruction</button>
     </LightSheet>
@@ -1446,9 +1615,9 @@ function SummaryCard({ label, value }) {
   );
 }
 
-function SummaryTile({ label, value }) {
+function DetailLine({ label, value }) {
   return (
-    <div className="summary-tile">
+    <div className="detail-line">
       <span>{label}</span>
       <b>{value}</b>
     </div>

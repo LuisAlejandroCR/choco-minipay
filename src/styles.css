@@ -1217,6 +1217,26 @@ a {
   font-weight: 700;
 }
 
+.plan-timing-row {
+  margin-top: 18px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 18px;
+  background: rgba(246, 232, 212, 0.08);
+  color: var(--cream);
+}
+
+.plan-timing-row svg {
+  color: var(--latte-300);
+}
+
+.plan-timing-row strong {
+  font-size: 17px;
+  line-height: 1.2;
+}
+
 .schedule-bar {
   min-height: 62px;
   display: grid;
@@ -1241,6 +1261,39 @@ a {
   grid-template-columns: 1fr 1fr;
   gap: 10px;
   margin-bottom: 12px;
+}
+
+.detail-list {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.detail-line {
+  min-height: 66px;
+  padding: 13px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: 20px;
+  background: rgba(16, 9, 6, 0.58);
+}
+
+.detail-line span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.detail-line b {
+  color: var(--cream);
+  font-size: 16px;
+  line-height: 1.2;
+  text-align: right;
 }
 
 .summary-tile {
@@ -1949,7 +2002,9 @@ a {
 .demo-visual.plans-preview,
 .demo-visual.share-preview,
 .demo-visual.home-preview,
-.demo-visual.timing-preview {
+.demo-visual.timing-preview,
+.demo-visual.duplicate-preview,
+.demo-visual.verify-preview {
   grid-template-columns: 1fr;
 }
 
@@ -2009,6 +2064,21 @@ a {
 .demo-visual.timing-preview button.active {
   border-color: rgba(246, 232, 212, 0.46);
   background: rgba(246, 232, 212, 0.12);
+}
+
+.demo-visual.duplicate-preview {
+  align-content: end;
+}
+
+.demo-visual.duplicate-preview p {
+  margin: 0;
+  padding: 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: 18px;
+  background: rgba(5, 3, 2, 0.28);
+  color: var(--cream);
+  font-size: 13px;
+  line-height: 1.4;
 }
 
 .demo-visual.receipt-preview {
@@ -2072,6 +2142,77 @@ a {
 .demo-visual.history-preview small {
   color: var(--muted);
   font-size: 12px;
+}
+
+.demo-visual.details-preview {
+  grid-template-columns: 1fr;
+}
+
+.demo-visual.details-preview .mini-plan-row {
+  min-height: 64px;
+  padding: 11px;
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--line-soft);
+  border-radius: 18px;
+  background: rgba(5, 3, 2, 0.28);
+}
+
+.demo-visual.details-preview .detail-line {
+  min-height: 50px;
+  padding: 10px 12px;
+}
+
+.demo-visual.details-preview .detail-line b {
+  font-size: 13px;
+}
+
+.demo-visual.verify-preview {
+  grid-template-columns: 88px 1fr;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: 18px;
+  background: rgba(5, 3, 2, 0.28);
+}
+
+.demo-visual.verify-preview b,
+.demo-visual.verify-preview span {
+  display: block;
+}
+
+.demo-visual.verify-preview b {
+  color: var(--cream);
+}
+
+.demo-visual.verify-preview span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.mini-qr {
+  width: 70px;
+  height: 70px;
+  padding: 7px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+  border-radius: 14px;
+  background: var(--cream);
+}
+
+.mini-qr span {
+  border-radius: 3px;
+  background: var(--cocoa-800);
+}
+
+.mini-qr span:nth-child(2),
+.mini-qr span:nth-child(4),
+.mini-qr span:nth-child(8) {
+  opacity: 0.22;
 }
 
 .demo-visual.saved-plan small {
@@ -2357,6 +2498,10 @@ a {
   line-height: 1.35;
 }
 
+.editor-home-button {
+  margin-top: auto;
+}
+
 .danger-cta {
   width: 100%;
   margin-bottom: 10px;
@@ -2424,6 +2569,15 @@ a {
   background: var(--cream);
   color: var(--cocoa-900);
   font-weight: 750;
+}
+
+.agent-bubble.choco {
+  align-self: flex-start;
+  max-width: 100%;
+  border-bottom-left-radius: 5px;
+  background: rgba(246, 232, 212, 0.1);
+  color: var(--cream);
+  border: 1px solid rgba(246, 232, 212, 0.14);
 }
 
 .agent-toast {
@@ -2536,6 +2690,53 @@ a {
   margin-top: auto;
   padding-top: 2px;
   text-align: center;
+}
+
+.duplicate-guard-screen {
+  justify-content: center;
+}
+
+.agent-guard-card {
+  min-height: min(540px, calc(100dvh - 230px));
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  border: 1px solid var(--line-soft);
+  border-radius: 30px;
+  background:
+    linear-gradient(135deg, rgba(246, 232, 212, 0.06) 25%, transparent 25%) 0 0 / 42px 42px,
+    linear-gradient(180deg, rgba(58, 36, 21, 0.72), rgba(16, 9, 6, 0.96));
+  box-shadow: inset 0 1px 0 rgba(246, 232, 212, 0.08), 0 28px 80px rgba(0, 0, 0, 0.25);
+}
+
+.guard-summary {
+  padding: 18px;
+  border: 1px solid var(--line-soft);
+  border-radius: 22px;
+  background: rgba(246, 232, 212, 0.08);
+  color: var(--cream);
+}
+
+.guard-summary span,
+.guard-summary small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.guard-summary strong {
+  display: block;
+  margin: 8px 0;
+  font-size: 32px;
+  line-height: 1;
+}
+
+.agent-guard-card .primary-cta {
+  margin-top: auto;
 }
 
 .light-sheet {
@@ -2688,6 +2889,72 @@ a {
 
 .receipt-detail-card .receipt-card {
   margin-bottom: 14px;
+}
+
+.receipt-expand {
+  width: 100%;
+  min-height: 52px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid rgba(58, 36, 21, 0.12);
+  border-radius: 18px;
+  background: rgba(107, 66, 38, 0.07);
+  color: var(--cocoa-800);
+  cursor: pointer;
+  font-weight: 850;
+}
+
+.receipt-expand span {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.verify-panel {
+  margin-top: 12px;
+  padding: 14px;
+  display: grid;
+  gap: 14px;
+  border: 1px solid rgba(58, 36, 21, 0.12);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.36);
+}
+
+.qr-card {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
+
+.qr-card img {
+  width: 132px;
+  height: 132px;
+  padding: 8px;
+  border: 1px solid rgba(58, 36, 21, 0.14);
+  border-radius: 18px;
+  background: var(--paper);
+}
+
+.qr-card a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--cocoa-700);
+  font-size: 13px;
+  font-weight: 850;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.verify-list {
+  display: grid;
+}
+
+.verify-list .receipt-row {
+  padding: 10px 0;
 }
 
 .share-panel {
@@ -2927,6 +3194,6 @@ a {
   }
 
   .composer-box {
-    grid-template-columns: 1fr 40px 40px;
+    grid-template-columns: 1fr 44px;
   }
 }
