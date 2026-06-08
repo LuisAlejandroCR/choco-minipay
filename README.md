@@ -35,6 +35,8 @@ Choco is a MiniPay-native remittance concierge for family transfers, scheduled r
 |   `-- worker.Dockerfile
 |-- docs/
 |   |-- architecture/
+|   |   |-- architecture.md
+|   |   |-- delivery-blocks.md
 |   |   |-- deployment-stages.md
 |   |   `-- useful-files.md
 |   |-- competition-positioning.md
@@ -206,6 +208,8 @@ Before production release:
 
 ## References
 
+- Architecture: [docs/architecture/architecture.md](docs/architecture/architecture.md)
+- Delivery blocks: [docs/architecture/delivery-blocks.md](docs/architecture/delivery-blocks.md)
 - Deployment stages: [docs/architecture/deployment-stages.md](docs/architecture/deployment-stages.md)
 - Useful files: [docs/architecture/useful-files.md](docs/architecture/useful-files.md)
 - Agent registration: [docs/runbook-celo-agent-registration.md](docs/runbook-celo-agent-registration.md)
