@@ -8,6 +8,8 @@ This repository should stay focused on the production MiniPay app. Keep source, 
 | --- | --- |
 | `.github/workflows/ci.yml` | Runs production checks on push and pull requests. |
 | `apps/web` | MiniPay-facing web app shell. |
+| `apps/web/src/modules/wallet/useMiniPayWallet.js` | MiniPay/browser wallet detection and Celo Sepolia testnet verification. |
+| `apps/web/src/modules/wallet/useMiniPayWallet.test.js` | Protects the Celo Sepolia testnet chain ID used by wallet verification. |
 | `packages/core` | Shared intent parsing, duplicate detection, receipt, amount, and Celo config logic. |
 | `services/api` | Backend API shell for quotes, identity, and transfer orchestration. |
 | `services/worker` | Scheduler and reconciliation shell for recurring transfers. |

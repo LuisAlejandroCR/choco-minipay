@@ -81,7 +81,7 @@ Start with the layer where the problem appears, then move inward.
 | --- | --- | --- |
 | Vercel shows 404 | `vercel.json`, GitHub push status, Vercel deployment logs | `dist/web`, build command, output directory |
 | UI is stale | Latest commit pushed to `origin/main` | Vercel redeploy, browser hard refresh |
-| Wallet status is wrong | `apps/web/src/modules/wallet/useMiniPayWallet.js` | MiniPay WebView, `window.ethereum.isMiniPay` |
+| Wallet status is wrong | `apps/web/src/modules/wallet/useMiniPayWallet.js` | Celo Sepolia chain ID `11142220`, MiniPay WebView, `window.ethereum.isMiniPay` |
 | Transfer text parses wrong | `packages/core/src/domain/intent.js` | `packages/core/src/domain/intent.test.js` |
 | Duplicate warning is wrong | `packages/core/src/domain/duplicates.js` | `packages/core/src/domain/duplicates.test.js` |
 | Receipt link is wrong | `packages/core/src/domain/receipts.js` | `packages/core/src/config/celo.js` |

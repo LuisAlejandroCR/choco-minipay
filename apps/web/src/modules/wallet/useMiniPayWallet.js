@@ -1,49 +1,196 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+export const TESTNET_WALLET_NETWORK = {
+  badge: "TESTNET",
+  label: "TESTNET - Celo Sepolia",
+  name: "Celo Sepolia",
+  chainId: 11142220,
+  chainIdHex: "0xaa044c",
+  rpcUrl: "https://forno.celo-sepolia.celo-testnet.org",
+  explorerUrl: "https://celo-sepolia.blockscout.com",
+  nativeCurrency: {
+    name: "CELO",
+    symbol: "CELO",
+    decimals: 18,
+  },
+};
+
+export function normalizeChainId(chainId) {
+  if (typeof chainId === "number") return chainId;
+  if (typeof chainId !== "string" || chainId.trim() === "") return 0;
+  const normalizedChainId = chainId.trim().toLowerCase();
+  return normalizedChainId.startsWith("0x") ? Number.parseInt(normalizedChainId, 16) : Number(normalizedChainId);
+}
+
+export function isCeloSepoliaTestnet(chainId) {
+  return normalizeChainId(chainId) === TESTNET_WALLET_NETWORK.chainId;
+}
+
+export function formatWalletAddress(address) {
+  if (!address) return "";
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
+
+function getProvider() {
+  if (typeof window === "undefined") return null;
+  return window.ethereum || null;
+}
+
+async function readChainId(provider) {
+  try {
+    return await provider.request({ method: "eth_chainId" });
+  } catch {
+    return "";
+  }
+}
+
+async function addCeloSepolia(provider) {
+  await provider.request({
+    method: "wallet_addEthereumChain",
+    params: [
+      {
+        chainId: TESTNET_WALLET_NETWORK.chainIdHex,
+        chainName: TESTNET_WALLET_NETWORK.name,
+        nativeCurrency: TESTNET_WALLET_NETWORK.nativeCurrency,
+        rpcUrls: [TESTNET_WALLET_NETWORK.rpcUrl],
+        blockExplorerUrls: [TESTNET_WALLET_NETWORK.explorerUrl],
+      },
+    ],
+  });
+}
+
+async function ensureCeloSepolia(provider) {
+  const currentChainId = await readChainId(provider);
+  if (isCeloSepoliaTestnet(currentChainId)) return;
+
+  try {
+    await provider.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: TESTNET_WALLET_NETWORK.chainIdHex }],
+    });
+  } catch (error) {
+    if (String(error?.code) === "4902") {
+      await addCeloSepolia(provider);
+      return;
+    }
+    throw error;
+  }
+}
+
+function getWalletErrorMessage(error) {
+  if (String(error?.code) === "4001") return "Wallet verification was cancelled.";
+  if (String(error?.code) === "-32601") return "Switch to Celo Sepolia testnet in your wallet.";
+  return error instanceof Error ? error.message : "Wallet unavailable";
+}
+
 export function useMiniPayWallet() {
   const [address, setAddress] = useState("");
+  const [chainId, setChainId] = useState("");
   const [status, setStatus] = useState("checking");
   const [error, setError] = useState("");
+  const [isMiniPay, setIsMiniPay] = useState(false);
 
-  const isMiniPay = useMemo(() => {
-    if (typeof window === "undefined") return false;
-    return window.ethereum?.isMiniPay === true;
-  }, []);
+  const readWallet = useCallback(async ({ requestAccounts = false, ensureNetwork = false } = {}) => {
+    const provider = getProvider();
 
-  const loadWallet = useCallback(async () => {
-    if (typeof window === "undefined" || !window.ethereum) {
+    if (!provider) {
+      setAddress("");
+      setChainId("");
+      setIsMiniPay(false);
       setStatus("unavailable");
-      return;
+      setError("Open in MiniPay or connect a Celo Sepolia testnet wallet.");
+      return false;
     }
 
     try {
       setError("");
-      setStatus("loading");
-      const method = isMiniPay ? "eth_accounts" : "eth_requestAccounts";
-      let accounts = await window.ethereum.request({ method });
+      setStatus(requestAccounts ? "loading" : "checking");
+      setIsMiniPay(provider.isMiniPay === true);
 
-      if (isMiniPay && (!accounts || accounts.length === 0)) {
-        accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+      if (ensureNetwork) {
+        await ensureCeloSepolia(provider);
       }
 
-      setAddress(accounts?.[0] || "");
-      setStatus(accounts?.[0] ? "ready" : "empty");
+      const nextChainId = await readChainId(provider);
+      const accounts = await provider.request({
+        method: requestAccounts ? "eth_requestAccounts" : "eth_accounts",
+      });
+      const nextAddress = accounts?.[0] || "";
+      const isTestnet = isCeloSepoliaTestnet(nextChainId);
+
+      setAddress(nextAddress);
+      setChainId(nextChainId || "");
+
+      if (!nextAddress) {
+        setStatus("empty");
+        setError("Choose a wallet account to continue on testnet.");
+        return false;
+      }
+
+      if (!isTestnet) {
+        setStatus("wrong-network");
+        setError("Switch to Celo Sepolia testnet before verifying Choco.");
+        return false;
+      }
+
+      setStatus("ready");
+      return true;
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : "Wallet unavailable");
+      const nextChainId = await readChainId(provider);
+      setChainId(nextChainId || "");
       setStatus("error");
+      setError(getWalletErrorMessage(nextError));
+      return false;
     }
-  }, [isMiniPay]);
+  }, []);
 
   useEffect(() => {
-    loadWallet();
-  }, [loadWallet]);
+    const provider = getProvider();
+    void readWallet();
+
+    if (!provider?.on) return undefined;
+
+    const handleWalletChanged = () => {
+      void readWallet();
+    };
+
+    provider.on("accountsChanged", handleWalletChanged);
+    provider.on("chainChanged", handleWalletChanged);
+
+    return () => {
+      provider.removeListener?.("accountsChanged", handleWalletChanged);
+      provider.removeListener?.("chainChanged", handleWalletChanged);
+    };
+  }, [readWallet]);
+
+  const verifyWallet = useCallback(
+    () => readWallet({ requestAccounts: true, ensureNetwork: true }),
+    [readWallet],
+  );
+
+  const isTestnet = isCeloSepoliaTestnet(chainId);
+  const statusLabel = useMemo(() => {
+    if (status === "ready") return `${formatWalletAddress(address)} on ${TESTNET_WALLET_NETWORK.name}`;
+    if (status === "loading") return `Opening ${TESTNET_WALLET_NETWORK.name} wallet`;
+    if (status === "checking") return `Checking ${TESTNET_WALLET_NETWORK.name}`;
+    if (status === "wrong-network") return "Switch wallet to Celo Sepolia testnet";
+    if (status === "empty") return "Choose a wallet account";
+    if (status === "unavailable") return "Open in MiniPay or connect a testnet wallet";
+    if (status === "error") return error || "Wallet unavailable";
+    return `Verify on ${TESTNET_WALLET_NETWORK.name}`;
+  }, [address, error, status]);
 
   return {
     address,
+    chainId,
     error,
     isMiniPay,
-    isReady: status === "ready",
-    loadWallet,
+    isReady: status === "ready" && isTestnet,
+    isTestnet,
+    loadWallet: readWallet,
+    network: TESTNET_WALLET_NETWORK,
     status,
+    statusLabel,
+    verifyWallet,
   };
 }

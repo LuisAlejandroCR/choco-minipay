@@ -24,6 +24,10 @@ import {
   Wallet,
   X,
 } from "lucide-react";
+import {
+  formatWalletAddress,
+  useMiniPayWallet,
+} from "./modules/wallet/useMiniPayWallet.js";
 
 const SPLASH_DURATION_MS = 2600;
 const DEMO_STEP_MS = 5000;
@@ -337,7 +341,8 @@ export function App() {
   const [deliveryMode, setDeliveryMode] = useState("schedule");
   const [showDemoPrompt, setShowDemoPrompt] = useState(shouldShowDemoPrompt);
   const [activeInfoPanel, setActiveInfoPanel] = useState(null);
-  const [isWalletVerified, setIsWalletVerified] = useState(false);
+  const wallet = useMiniPayWallet();
+  const isWalletVerified = wallet.isReady;
 
   const activePlan = useMemo(
     () => plans.find((item) => item.id === selectedPlanId) || plans[0] || null,
@@ -623,7 +628,8 @@ export function App() {
               plans={plans}
               showDemoPrompt={showDemoPrompt}
               isWalletVerified={isWalletVerified}
-              onVerifyWallet={() => setIsWalletVerified(true)}
+              wallet={wallet}
+              onVerifyWallet={wallet.verifyWallet}
               onPlans={() => setScreen("plans")}
               onHistory={() => setScreen("history")}
               onSendNow={openImmediateSend}
@@ -637,7 +643,11 @@ export function App() {
             />
           )}
           {visibleScreen === "walletGate" && (
-            <WalletGateScreen onHome={() => setScreen("plan")} />
+            <WalletGateScreen
+              wallet={wallet}
+              onVerifyWallet={wallet.verifyWallet}
+              onHome={() => setScreen("plan")}
+            />
           )}
           {visibleScreen === "demoTour" && (
             <DemoTourScreen
@@ -773,7 +783,7 @@ function SupportAboutContent() {
   return (
     <div className="support-about">
       <section className="about-card" aria-label="About Choco">
-        <div className="agent-badge">Agent #309 - Celo Sepolia</div>
+        <div className="agent-badge">Agent #309 - Celo Sepolia Testnet</div>
         <h3>Choco helps MiniPay users send family transfers with review, schedules, and receipts.</h3>
         <p>
           The app is production-candidate: support, privacy, terms, and stats stay close to the flow
@@ -937,6 +947,7 @@ function PlanScreen({
   plans,
   showDemoPrompt,
   isWalletVerified,
+  wallet,
   onVerifyWallet,
   onPlans,
   onHistory,
@@ -947,6 +958,10 @@ function PlanScreen({
   onCloseDemo,
 }) {
   const nextPlan = plans[0] || defaultPlan;
+  const isVerifyingWallet = wallet.status === "loading";
+  const walletHelp = isWalletVerified
+    ? `${formatWalletAddress(wallet.address)} - ${wallet.network.name} testnet`
+    : wallet.statusLabel;
 
   return (
     <div className="screen plan-screen">
@@ -956,24 +971,33 @@ function PlanScreen({
           <span className="home-title-pill">Choco</span>
           <button type="button" aria-label="Support"><ShieldCheck size={20} /></button>
         </div>
+        <div className={`home-network-pill ${wallet.isTestnet ? "ready" : ""}`}>
+          <span>{wallet.network.badge}</span>
+          <b>{wallet.network.name}</b>
+        </div>
         <div className="balance-copy">
           <span>{isWalletVerified ? "Next plan" : "Wallet access"}</span>
           <strong>{isWalletVerified ? nextPlan.amount : "Locked"}</strong>
           <p>
             {isWalletVerified
               ? `${nextPlan.asset} to ${nextPlan.recipient} - ${getTimingLabel(nextPlan)}`
-              : "Verify once to unlock transfers, plans, and receipts."}
+              : `Verify on ${wallet.network.name} testnet to unlock transfers, plans, and receipts.`}
           </p>
         </div>
       </div>
 
-      <button className={`home-start-action ${isWalletVerified ? "" : "verify-action"}`} type="button" onClick={isWalletVerified ? onSendNow : onVerifyWallet}>
+      <button
+        className={`home-start-action ${isWalletVerified ? "" : "verify-action"}`}
+        type="button"
+        disabled={!isWalletVerified && isVerifyingWallet}
+        onClick={isWalletVerified ? onSendNow : onVerifyWallet}
+      >
         <span className="home-start-icon">
           {isWalletVerified ? <CircleDollarSign size={20} /> : <ShieldCheck size={20} />}
         </span>
         <span>
-          <b>{isWalletVerified ? "New transfer" : "Verify wallet"}</b>
-          <small>{isWalletVerified ? "Send now or schedule with voice" : "Unlock Choco for this session"}</small>
+          <b>{isWalletVerified ? "New transfer" : isVerifyingWallet ? "Verifying testnet wallet" : "Verify testnet wallet"}</b>
+          <small>{isWalletVerified ? "Send now or schedule with voice" : walletHelp}</small>
         </span>
         <ArrowRight size={21} />
       </button>
@@ -1003,17 +1027,24 @@ function PlanScreen({
   );
 }
 
-function WalletGateScreen({ onHome }) {
+function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
+  const isVerifyingWallet = wallet.status === "loading";
+
   return (
     <div className="screen wallet-gate-screen">
       <section className="wallet-gate-card">
         <span className="guard-icon"><ShieldCheck size={24} /></span>
         <div>
           <span>Wallet access</span>
-          <h2>Verify on Home first</h2>
-          <p>Choco hides plans, movements, and receipts until the wallet is verified for this session.</p>
+          <div className="wallet-network-label">{wallet.network.label}</div>
+          <h2>Verify testnet wallet first</h2>
+          <p>Choco hides plans, movements, and receipts until the wallet is verified on Celo Sepolia testnet.</p>
+          {wallet.error && <p className="wallet-error">{wallet.error}</p>}
         </div>
-        <button className="primary-cta" type="button" onClick={onHome}>
+        <button className="primary-cta" type="button" disabled={isVerifyingWallet} onClick={onVerifyWallet}>
+          {isVerifyingWallet ? "Verifying wallet" : "Verify testnet wallet"}
+        </button>
+        <button className="secondary-dark" type="button" onClick={onHome}>
           Back home
         </button>
       </section>

@@ -939,6 +939,35 @@ a {
   font-weight: 900;
 }
 
+.home-network-pill {
+  width: fit-content;
+  margin-top: 18px;
+  padding: 7px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(139, 220, 154, 0.34);
+  border-radius: 999px;
+  background: rgba(139, 220, 154, 0.1);
+  color: #a8f0b5;
+}
+
+.home-network-pill span {
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+}
+
+.home-network-pill b {
+  color: var(--cream);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.home-network-pill.ready {
+  background: rgba(139, 220, 154, 0.16);
+}
+
 .balance-copy {
   margin-top: auto;
   padding-bottom: 8px;
@@ -984,6 +1013,12 @@ a {
   color: var(--cream);
   text-align: left;
   cursor: pointer;
+}
+
+.home-start-action:disabled,
+.primary-cta:disabled {
+  cursor: wait;
+  opacity: 0.72;
 }
 
 .home-start-icon {
@@ -1748,6 +1783,29 @@ a {
   margin: 0;
   color: var(--muted);
   line-height: 1.45;
+}
+
+.wallet-network-label {
+  width: fit-content;
+  margin: 10px 0 8px;
+  padding: 7px 10px;
+  border: 1px solid rgba(139, 220, 154, 0.34);
+  border-radius: 999px;
+  background: rgba(139, 220, 154, 0.1);
+  color: #a8f0b5;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.wallet-gate-card .wallet-error {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(217, 166, 121, 0.24);
+  border-radius: 14px;
+  background: rgba(217, 166, 121, 0.08);
+  color: var(--latte-300);
+  font-size: 13px;
 }
 
 .wallet-gate-card .primary-cta {

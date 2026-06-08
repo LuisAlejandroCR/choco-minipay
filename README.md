@@ -25,7 +25,8 @@ Choco is a MiniPay-native remittance concierge for family transfers, scheduled r
 |           |-- styles.css
 |           `-- modules/
 |               `-- wallet/
-|                   `-- useMiniPayWallet.js
+|                   |-- useMiniPayWallet.js
+|                   `-- useMiniPayWallet.test.js
 |-- docker/
 |   |-- api.Dockerfile
 |   |-- docker-compose.local.yml
@@ -190,11 +191,12 @@ Use [docs/runbook-celo-agent-registration.md](docs/runbook-celo-agent-registrati
 
 - Detect MiniPay with `window.ethereum.isMiniPay === true`.
 - Do not depend on message-signing auth.
+- Use Celo Sepolia testnet for wallet verification, agent review, and receipt paths until mainnet release.
 - Keep user-facing balances and transfers stablecoin-only: USDC, USDT, USDm.
 - Use MiniPay terms: `Network fee`, `Deposit`, `Withdraw`, `Stablecoin`.
 - Test the web app at 360 x 640.
 - Prefer phone/alias identity; show raw addresses only as secondary technical detail.
-- Use Celo mainnet fee-currency adapter addresses for USDC/USDT.
+- Keep mainnet fee-currency adapter addresses out of active UI until mainnet release.
 - Store sample transaction hashes for every user-facing transaction path.
 
 ## Release Readiness

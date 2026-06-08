@@ -39,16 +39,18 @@ Goal: Replace demo wallet behavior with MiniPay provider behavior.
 Files:
 
 - `apps/web/src/modules/wallet/useMiniPayWallet.js`
+- `apps/web/src/modules/wallet/useMiniPayWallet.test.js`
 - `apps/web/src/App.jsx`
 - `packages/core/src/config/celo.js`
 
 Validation:
 
 - MiniPay detection works in WebView.
+- Verify wallet targets Celo Sepolia testnet chain ID `11142220`.
 - Browser fallback remains readable.
 - No message-signing auth dependency.
 
-Status: Ready
+Status: Implementation ready; MiniPay WebView validation pending after deploy.
 
 ## Next Blocks
 
