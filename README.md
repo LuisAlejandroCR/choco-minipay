@@ -4,22 +4,78 @@ Production-ready Choco MiniPay app for Celo remittance flows.
 
 Repository split:
 
-- MVP static demo: `choco mvp static` -> `LuisAlejandroCR/choco`
+- MVP static demo: `choco` -> `LuisAlejandroCR/choco`
 - Production app: `Choco Minipay` -> `LuisAlejandroCR/choco-minipay`
 
 Choco is a MiniPay-native remittance concierge for family transfers, scheduled runs, phone/alias identity, Celo receipts, and ERC-8004 agent provenance.
 
-## Project Map
+## Project Tree
 
 ```text
-apps/web/                 MiniPay-facing web app
-packages/core/            Shared domain logic and tests
-services/api/             API shell for quotes, identity, and transfer orchestration
-services/worker/          Scheduler, retries, and reconciliation shell
-ops/agent-registry/       ERC-8004 metadata and registration script
-docker/                   Web, API, worker images and compose files
-docs/                     Deployment notes, positioning, and runbooks
-public/                   Agent metadata, icon, legal, support, and stats pages
+.
+|-- .github/
+|   `-- workflows/
+|       `-- ci.yml
+|-- apps/
+|   `-- web/
+|       |-- index.html
+|       `-- src/
+|           |-- App.jsx
+|           |-- main.jsx
+|           |-- styles.css
+|           `-- modules/
+|               `-- wallet/
+|                   `-- useMiniPayWallet.js
+|-- docker/
+|   |-- api.Dockerfile
+|   |-- docker-compose.local.yml
+|   |-- docker-compose.production.yml
+|   |-- nginx.conf
+|   |-- web.Dockerfile
+|   `-- worker.Dockerfile
+|-- docs/
+|   |-- architecture/
+|   |   |-- deployment-stages.md
+|   |   `-- useful-files.md
+|   |-- competition-positioning.md
+|   `-- runbook-celo-agent-registration.md
+|-- ops/
+|   `-- agent-registry/
+|       |-- agent.sepolia.json
+|       `-- register-agent.ts
+|-- packages/
+|   `-- core/
+|       `-- src/
+|           |-- config/
+|           |   `-- celo.js
+|           `-- domain/
+|               |-- amounts.js
+|               |-- duplicates.js
+|               |-- duplicates.test.js
+|               |-- intent.js
+|               |-- intent.test.js
+|               |-- receipts.js
+|               `-- receipts.test.js
+|-- public/
+|   |-- agent.json
+|   |-- icon.svg
+|   |-- privacy.html
+|   |-- stats.html
+|   |-- support.html
+|   `-- terms.html
+|-- services/
+|   |-- api/
+|   |   `-- src/
+|   |       `-- server.js
+|   `-- worker/
+|       `-- src/
+|           `-- scheduler.js
+|-- .dockerignore
+|-- .env.example
+|-- .gitignore
+|-- package.json
+|-- README.md
+`-- vite.config.mjs
 ```
 
 ## 1. Install

@@ -7,7 +7,13 @@ Keep the demo MVP and production app separate.
 Folder:
 
 ```text
-C:\Users\Unknown Booty\Documents\Projects\Claude\Celo\choco mvp static
+C:\Users\Unknown Booty\Documents\Projects\Claude\Celo\choco
+```
+
+GitHub:
+
+```text
+https://github.com/LuisAlejandroCR/choco
 ```
 
 Purpose:
@@ -68,17 +74,19 @@ Do not ship production until:
 
 ## Stage 4: GitHub And Release
 
-Create a new GitHub repo for:
+Production GitHub repo:
 
 ```text
-choco-minipay
+https://github.com/LuisAlejandroCR/choco-minipay
 ```
 
-Push only this folder. Do not push:
+Push only the production folder. Keep out:
 
 - `node_modules`
 - `dist`
-- demo MVP `src/main.jsx`
-- old MVP `src/styles.css`
+- root-level MVP `src`
+- MVP-only `index.html`
+- MVP-only `agent.json`
+- MVP-only `register-agent.ts`
 - local secrets
 - private keys
