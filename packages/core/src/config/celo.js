@@ -61,25 +61,59 @@ export function getCeloNetworkConfig(key = DEFAULT_CELO_NETWORK_KEY) {
 }
 
 export const CELO_STABLECOINS = {
-  USDm: {
-    symbol: "USDm",
-    decimals: 18,
-    tokenAddress: "0x765DE816845861e75A25fCA122bb6898B8B1282a",
-    feeCurrencyAddress: "0x765DE816845861e75A25fCA122bb6898B8B1282a",
+  celoMainnet: {
+    USDm: {
+      symbol: "USDm",
+      decimals: 18,
+      tokenAddress: "0x765DE816845861e75A25fCA122bb6898B8B1282a",
+      feeCurrencyAddress: "0x765DE816845861e75A25fCA122bb6898B8B1282a",
+    },
+    USDC: {
+      symbol: "USDC",
+      decimals: 6,
+      tokenAddress: "0xcebA9300f2b948710d2653dD7B07f33A8B32118C",
+      feeCurrencyAddress: "0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B",
+    },
+    USDT: {
+      symbol: "USDT",
+      decimals: 6,
+      tokenAddress: "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e",
+      feeCurrencyAddress: "0x0e2a3e05bc9a16f5292a6170456a710cb89c6f72",
+    },
   },
-  USDC: {
-    symbol: "USDC",
-    decimals: 6,
-    tokenAddress: "0xcebA9300f2b948710d2653dD7B07f33A8B32118C",
-    feeCurrencyAddress: "0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B",
-  },
-  USDT: {
-    symbol: "USDT",
-    decimals: 6,
-    tokenAddress: "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e",
-    feeCurrencyAddress: "0x0e2a3e05bc9a16f5292a6170456a710cb89c6f72",
+  // Addresses verified on-chain via Blockscout (celo-sepolia.blockscout.com).
+  // feeCurrencyAddress for 6-decimal tokens is null — fee currency adapters are
+  // not yet whitelisted on Celo Sepolia. USDm (18 dec) uses its own address as
+  // a placeholder; confirm adapter deployment before activating gas abstraction.
+  celoSepolia: {
+    USDm: {
+      symbol: "USDm",
+      decimals: 18,
+      tokenAddress: "0xdE9e4C3ce781b4bA68120d6261cbad65ce0aB00b",
+      feeCurrencyAddress: "0xdE9e4C3ce781b4bA68120d6261cbad65ce0aB00b",
+    },
+    USDC: {
+      symbol: "USDC",
+      decimals: 6,
+      tokenAddress: "0x01C5C0122039549AD1493B8220cABEdD739BC44E",
+      feeCurrencyAddress: null,
+    },
+    USDT: {
+      symbol: "USDT",
+      decimals: 6,
+      tokenAddress: "0xd077A400968890Eacc75cdc901F0356c943e4fDb",
+      feeCurrencyAddress: null,
+    },
   },
 };
+
+export function getStablecoinConfig(networkKey, symbol) {
+  return CELO_STABLECOINS[networkKey]?.[symbol] ?? null;
+}
+
+export function getNetworkStablecoins(networkKey) {
+  return CELO_STABLECOINS[networkKey] ?? {};
+}
 
 export const MINIPAY_DEEPLINKS = {
   deposit: "https://link.minipay.xyz/add_cash?tokens=USDm,USDC,USDT",
