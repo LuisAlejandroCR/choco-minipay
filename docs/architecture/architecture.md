@@ -11,15 +11,20 @@ The app is still in production-candidate shape. Some modules are shells that def
 ```text
 MiniPay / Browser
   |
+  +-- Web Speech API (SpeechRecognition / webkitSpeechRecognition)
+  |     streams interim transcript into command state while recording
+  |
   v
 apps/web
   |-- renders the Choco user flow
   |-- detects MiniPay wallet availability
+  |-- captures text and voice transfer commands
+  |-- routes submitted commands to POST /v1/intent/preview
   |-- links public review pages and agent metadata
   |
   v
 packages/core
-  |-- parses transfer intent
+  |-- parses transfer intent (regex; shared by API and local fallback)
   |-- detects duplicate plans
   |-- builds receipt links
   |-- stores Celo and MiniPay constants
@@ -28,13 +33,26 @@ packages/core
 services/api
   |-- health check
   |-- agent metadata endpoint
-  |-- transfer preview endpoint
+  |-- POST /v1/intent/preview  — resolves command to structured intent + quote
+  |-- POST /v1/agent/preflight — four-point wallet/network/gas/recipient check
   |
   v
 services/worker
   |-- scheduled-transfer shell
   |-- retry/reconciliation shell
 ```
+
+## Intent Resolution
+
+Transfer commands go through two passes — one synchronous for live UI preview, one async through the API when the user submits.
+
+**Live preview (while typing):** `buildPlanFromCommand` in `App.jsx` calls `parseTransferIntent` from `packages/core/src/domain/intent.js` inline on every render. No network call. The result drives the real-time plan preview in the editor.
+
+**Submit pass (on text send or voice send):** `buildPlan` in `App.jsx` is async. It POSTs `{ command, deliveryMode }` to `POST /v1/intent/preview`, then builds the committed plan from the API's `intent` response via `buildPlanFromIntent`. The result is stored in `resolvedPreviewPlan` state and is what drives the processing screen, review screen, duplicate guard, and `confirmPlan`. If the API is unreachable, the same local regex serves as a transparent fallback so the user experience is unaffected.
+
+**Voice input:** `PlanEditorScreen` uses `window.SpeechRecognition` or `window.webkitSpeechRecognition` (Android Chrome / MiniPay WebView). Interim results update `command` state in real time so the user sees the transcript as they speak. The send button stops recognition and calls `buildPlan` with the accumulated transcript — entering the same API submit path as text. Errors (permission denied, no-speech, unsupported browser) surface inline below the composer.
+
+**Why the API owns this:** `POST /v1/intent/preview` currently wraps the same `parseTransferIntent` regex as the local path. That is intentional — once intent parsing graduates from regex to an LLM, only `services/api/src/server.js` changes. The frontend and domain layer are unchanged.
 
 ## Folder Roles
 
@@ -86,7 +104,10 @@ Start with the layer where the problem appears, then move inward.
 | Vercel shows 404 | `vercel.json`, GitHub push status, Vercel deployment logs | `dist/web`, build command, output directory |
 | UI is stale | Latest commit pushed to `origin/main` | Vercel redeploy, browser hard refresh |
 | Wallet status is wrong | `apps/web/src/modules/wallet/useMiniPayWallet.js` | `packages/core/src/config/celo.js`, `.env`, MiniPay WebView, `window.ethereum.isMiniPay` |
-| Transfer text parses wrong | `packages/core/src/domain/intent.js` | `packages/core/src/domain/intent.test.js` |
+| Transfer text parses wrong after submit | `services/api/src/server.js` → `/v1/intent/preview` → `parseTransferIntent` | Check API is running at `/health`; local fallback is `packages/core/src/domain/intent.js` |
+| Transfer text parses wrong in live preview | `packages/core/src/domain/intent.js` | `packages/core/src/domain/intent.test.js` |
+| Voice mic shows error or does nothing | `PlanEditorScreen` → `hasSpeechSupport` check | HTTPS or `localhost` required; Chrome / Android for MiniPay WebView; mic permission must be granted in browser |
+| Voice transcript is wrong or garbled | `SpeechRecognition.lang` is `en-US` | Ambient noise; try text input; Phase 2 will add Whisper fallback |
 | Duplicate warning is wrong | `packages/core/src/domain/duplicates.js` | `packages/core/src/domain/duplicates.test.js` |
 | Receipt link is wrong | `packages/core/src/domain/receipts.js` | `packages/core/src/config/celo.js` |
 | Agent metadata is wrong | `public/agent.json` | `ops/agent-registry/agent.sepolia.json`, registration runbook |

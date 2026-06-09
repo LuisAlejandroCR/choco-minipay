@@ -8,6 +8,7 @@ This repository should stay focused on the production MiniPay app. Keep source, 
 | --- | --- |
 | `.github/workflows/ci.yml` | Runs production checks on push and pull requests. |
 | `apps/web` | MiniPay-facing web app shell. |
+| `apps/web/src/App.jsx` | Root app state, screen routing, wallet guard, and the async `buildPlan` flow: POSTs to `/v1/intent/preview`, stores the resolved plan in `resolvedPreviewPlan`, then triggers preflight. Also owns `PlanEditorScreen` which uses `SpeechRecognition` for voice input. |
 | `apps/web/src/components` | Reusable Choco visual components, including pitch and guided-demo visuals. |
 | `apps/web/src/content/demoFlow.js` | Source of truth for pitch/demo copy and guided-demo step timing. |
 | `apps/web/src/content/reviewLinks.js` | Source of truth for in-app support/about copy and public review links. |

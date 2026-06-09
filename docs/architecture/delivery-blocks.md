@@ -48,13 +48,14 @@ Files:
 
 Validation:
 
-- `GET /health` returns 200.
-- `POST /v1/intent/preview` returns a route estimate and fee for a valid intent body.
-- `POST /v1/agent/preflight` returns all four preflight checks.
-- x402 middleware returns 402 with a payment descriptor on unauthenticated requests to paid endpoints.
-- No route-estimate logic runs client-side; all estimates come from the API.
+- [done] `GET /health` returns 200.
+- [done] `POST /v1/intent/preview` is called from the frontend on every command submit; the API `intent` response drives the committed plan via `buildPlanFromIntent`. Local regex serves as a silent fallback if the API is unreachable.
+- [done] `POST /v1/agent/preflight` returns all four preflight checks.
+- [done] Voice input uses `SpeechRecognition` / `webkitSpeechRecognition`; interim transcript streams into command state in real time; submit triggers the same API intent path as text.
+- [ ] x402 middleware returns 402 with a payment descriptor on unauthenticated calls to paid endpoints.
+- [ ] Whisper transcription fallback for non-Chrome or offline environments (`POST /v1/voice/transcribe` + `services/transcriber/`).
 
-Status: Not started.
+Status: Phase 1 complete — text routes through API, voice uses SpeechRecognition. Remaining: x402 middleware, Whisper fallback.
 
 ### 11. Worker And Scheduling
 
