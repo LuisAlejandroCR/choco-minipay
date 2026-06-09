@@ -1,5 +1,5 @@
 import { ShieldCheck } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { BottomNav } from "../components/BottomNav.jsx";
 
 export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
@@ -8,11 +8,26 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
   const needsDesktopWallet = !wallet.isMobile && !wallet.hasProvider;
   const showManualAddress = !wallet.hasProvider;
   const [manualWalletAddress, setManualWalletAddress] = useState("");
+  const [addressError, setAddressError] = useState("");
+  // DOM ref — fallback for mobile WebKit where paste can update the visual
+  // input without firing React's onChange (long-press → Paste on iOS/Edge).
+  const manualAddressInputRef = useRef(null);
+
+  function handleAddressChange(event) {
+    setManualWalletAddress(event.target.value);
+    if (addressError) setAddressError(""); // clear inline error on any edit
+  }
 
   function submitManualWalletAddress(event) {
-    event.preventDefault();
-    if (wallet.useManualAddress(manualWalletAddress)) {
+    event?.preventDefault();
+    // State-first: use React state value. Fall back to the raw DOM value so
+    // paste-without-onChange (iOS/Edge WebKit) still works on the first tap.
+    const value = manualWalletAddress || manualAddressInputRef.current?.value || "";
+    if (wallet.useManualAddress(value.trim())) {
+      setAddressError("");
       onHome();
+    } else {
+      setAddressError("Paste a valid 0x wallet address (42 characters).");
     }
   }
 
@@ -67,6 +82,7 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
             <label htmlFor="manual-wallet-address">Paste wallet address</label>
             <div>
               <input
+                ref={manualAddressInputRef}
                 id="manual-wallet-address"
                 type="text"
                 inputMode="text"
@@ -75,11 +91,15 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
                 spellCheck="false"
                 value={manualWalletAddress}
                 placeholder="0x..."
-                onChange={(event) => setManualWalletAddress(event.target.value)}
+                onChange={handleAddressChange}
+                onInput={handleAddressChange}
               />
               <button type="submit">Use</button>
             </div>
-            <small>For testnet checks only</small>
+            {addressError
+              ? <small className="address-form-error">{addressError}</small>
+              : <small>For testnet checks only</small>
+            }
           </form>
         )}
         <button className="secondary-dark" type="button" onClick={onHome}>

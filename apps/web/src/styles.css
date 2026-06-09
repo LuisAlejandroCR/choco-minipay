@@ -1995,6 +1995,13 @@ a {
   font-weight: 900;
 }
 
+.address-form-error {
+  color: #f59e0b;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.03em;
+}
+
 .demo-overlay {
   position: absolute;
   inset: 0;
