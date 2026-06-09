@@ -255,21 +255,41 @@ export function useMiniPayWallet() {
   }, [isMobile, openMetaMaskMobile]);
 
   useEffect(() => {
-    const provider = getProvider();
+    let provider = getProvider();
     void readWallet();
 
-    if (!provider?.on) return undefined;
+    function attachListeners(p) {
+      if (!p?.on) return;
+      p.on("accountsChanged", handleWalletChanged);
+      p.on("chainChanged", handleWalletChanged);
+    }
 
-    const handleWalletChanged = () => {
+    function handleWalletChanged() {
       void readWallet();
-    };
+    }
 
-    provider.on("accountsChanged", handleWalletChanged);
-    provider.on("chainChanged", handleWalletChanged);
+    if (provider) {
+      attachListeners(provider);
+      return () => {
+        provider.removeListener?.("accountsChanged", handleWalletChanged);
+        provider.removeListener?.("chainChanged", handleWalletChanged);
+      };
+    }
+
+    // MiniPay injects window.ethereum asynchronously; poll once after a short
+    // delay so event listeners are attached even when the provider arrives late.
+    const pollTimer = window.setTimeout(() => {
+      provider = getProvider();
+      if (provider) {
+        void readWallet();
+        attachListeners(provider);
+      }
+    }, 500);
 
     return () => {
-      provider.removeListener?.("accountsChanged", handleWalletChanged);
-      provider.removeListener?.("chainChanged", handleWalletChanged);
+      window.clearTimeout(pollTimer);
+      provider?.removeListener?.("accountsChanged", handleWalletChanged);
+      provider?.removeListener?.("chainChanged", handleWalletChanged);
     };
   }, [readWallet]);
 
