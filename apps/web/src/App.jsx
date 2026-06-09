@@ -403,10 +403,14 @@ export function App() {
   }
 
   function buildPlan(nextCommand = "") {
+    const commandForBuild = nextCommand || command;
     if (nextCommand) {
       setCommand(nextCommand);
     }
+    setAgentPreflight(null);
+    setAgentPreflightStatus("idle");
     setTransferBlockMessage("");
+    void runAgentPreflight(buildPlanFromCommand(commandForBuild, activePlan || defaultPlan, deliveryMode));
     setScreen("processing");
   }
 
@@ -416,7 +420,7 @@ export function App() {
         agent: "Choco Agent AI",
         status: "blocked",
         ok: false,
-        summary: `Connect a ${wallet.network.name} testnet wallet before running agent preflight.`,
+        summary: `Connect a ${wallet.network.name} testnet wallet before checking readiness.`,
         checks: [],
       });
       return;
@@ -447,7 +451,7 @@ export function App() {
         agent: "Choco Agent AI",
         status: "blocked",
         ok: false,
-        summary: "Agent API is not reachable. Start the API service before testnet preflight.",
+        summary: "Readiness check is not reachable. Start the API service before testing wallet readiness.",
         checks: [],
       });
       setAgentPreflightStatus("idle");
@@ -469,12 +473,12 @@ export function App() {
   function confirmPlan() {
     let committedPlan;
 
-    if (previewPlan.deliveryMode === "now") {
-      if (!agentPreflight?.ok) {
-        setTransferBlockMessage("Cannot continue: Choco Agent AI preflight must pass before any testnet send.");
-        return;
-      }
+    if (!agentPreflight?.ok) {
+      setTransferBlockMessage("Cannot continue: Choco needs a passing wallet readiness check before creating a testnet transfer or schedule.");
+      return;
+    }
 
+    if (previewPlan.deliveryMode === "now") {
       setTransferBlockMessage("Testnet transfer execution is not connected yet. Choco prepared the route, but no funds were moved and no receipt was created.");
       return;
     }
@@ -596,10 +600,7 @@ export function App() {
               showDemoPrompt={showDemoPrompt}
               isWalletVerified={isWalletVerified}
               wallet={wallet}
-              agentPreflight={agentPreflight}
-              agentPreflightStatus={agentPreflightStatus}
               onVerifyWallet={wallet.verifyWallet}
-              onRunAgentPreflight={() => runAgentPreflight(activePlan || defaultPlan)}
               onPlans={() => setScreen("plans")}
               onHistory={() => setScreen("history")}
               onSendNow={openImmediateSend}
@@ -704,6 +705,8 @@ export function App() {
             <ReviewScreen
               plan={previewPlan}
               mode={reviewMode}
+              agentPreflight={agentPreflight}
+              agentPreflightStatus={agentPreflightStatus}
               transferBlockMessage={transferBlockMessage}
               onEdit={() => setScreen("planEditor")}
               onConfirm={confirmPlan}
@@ -794,10 +797,7 @@ function PlanScreen({
   showDemoPrompt,
   isWalletVerified,
   wallet,
-  agentPreflight,
-  agentPreflightStatus,
   onVerifyWallet,
-  onRunAgentPreflight,
   onPlans,
   onHistory,
   onSendNow,
@@ -811,22 +811,13 @@ function PlanScreen({
   const walletHelp = isWalletVerified
     ? `${formatWalletAddress(wallet.address)} - ${wallet.network.name} testnet`
     : wallet.statusLabel;
-  const isAgentReady = agentPreflight?.ok === true;
-  const isCheckingAgent = agentPreflightStatus === "loading";
-  const isReadyForTransfer = !isWalletVerified || isAgentReady;
   const actionLabel = isWalletVerified
-    ? isReadyForTransfer
-      ? "New transfer"
-      : isCheckingAgent
-        ? "Agent checking"
-        : "Run agent preflight"
+    ? "New transfer"
     : isVerifyingWallet
       ? "Verifying testnet wallet"
       : "Verify testnet wallet";
   const actionHelp = isWalletVerified
-    ? isReadyForTransfer
-      ? "Send now or schedule with voice"
-      : agentPreflight?.summary || "Choco Agent AI verifies funds and recipient contact"
+    ? "Send now or schedule with voice"
     : walletHelp;
 
   return (
@@ -852,19 +843,10 @@ function PlanScreen({
         </div>
       </div>
 
-      {isWalletVerified && (
-        <AgentPreflight
-          plan={nextPlan}
-          result={agentPreflight}
-          status={agentPreflightStatus}
-          onRun={onRunAgentPreflight}
-        />
-      )}
-
       <button
         className={`home-start-action ${isWalletVerified ? "" : "verify-action"}`}
         type="button"
-        disabled={(!isWalletVerified && isVerifyingWallet) || (isWalletVerified && (!isReadyForTransfer || isCheckingAgent))}
+        disabled={!isWalletVerified && isVerifyingWallet}
         onClick={isWalletVerified ? onSendNow : onVerifyWallet}
       >
         <span className="home-start-icon">
@@ -902,46 +884,35 @@ function PlanScreen({
   );
 }
 
-function AgentPreflight({ plan, result, status, onRun }) {
+function WalletCheckStatus({ result, status }) {
   const isLoading = status === "loading";
-  const [showDetails, setShowDetails] = useState(false);
-  const hasDetails = Boolean(result?.checks?.length);
+  const checks = result?.checks || [];
+  const failedChecks = checks.filter((check) => check.status !== "pass");
+  const isReady = result?.ok === true;
+  const statusTitle = isLoading
+    ? "Choco Agent AI is checking"
+    : isReady
+      ? "Wallet ready"
+      : result
+        ? "Review before continuing"
+        : "Choco Agent AI will check";
+  const statusCopy = isLoading
+    ? "Wallet funds, network, and recipient are checked in the background. No funds move during this step."
+    : result?.summary || "The check starts automatically after Choco understands the transfer.";
 
   return (
-    <section className="ready-checks" aria-label="Choco Agent AI preflight">
-      <div className="section-heading">
+    <section className={`wallet-check-card ${isReady ? "ready" : result ? "blocked" : ""}`} aria-label="Wallet readiness status">
+      <div className="wallet-check-icon">
+        {isLoading ? <ShieldCheck size={18} /> : isReady ? <Check size={18} /> : <ListChecks size={18} />}
+      </div>
+      <div>
         <span>Choco Agent AI</span>
-        {hasDetails ? (
-          <button type="button" onClick={() => setShowDetails((current) => !current)}>
-            {showDetails ? "Hide" : "Details"}
-          </button>
-        ) : (
-          <small>API preflight</small>
+        <b>{statusTitle}</b>
+        <small>{statusCopy}</small>
+        {failedChecks.length > 0 && (
+          <em>{failedChecks.map((check) => check.label).join(", ")}</em>
         )}
       </div>
-
-      <button
-        className={`ready-check-row agent-check ${result?.ok ? "complete" : result ? "blocked" : ""}`}
-        type="button"
-        disabled={isLoading}
-        onClick={onRun}
-      >
-        <span className="ready-check-icon">{result?.ok ? <Check size={18} /> : <ShieldCheck size={18} />}</span>
-        <span>
-          <b>{isLoading ? "Agent checking testnet" : result?.agent || "Run agent preflight"}</b>
-          <small>{result?.summary || `${plan.routeEstimate} test quote. Choco checks wallet readiness before review.`}</small>
-        </span>
-      </button>
-
-      {showDetails && result?.checks?.map((check) => (
-        <div className={`ready-check-row compact ${check.status === "pass" ? "complete" : "blocked"}`} key={check.id}>
-          <span className="ready-check-icon">{check.status === "pass" ? <Check size={18} /> : <X size={18} />}</span>
-          <span>
-            <b>{check.label}</b>
-            <small>{check.detail}</small>
-          </span>
-        </div>
-      ))}
     </section>
   );
 }
@@ -1509,9 +1480,18 @@ function DuplicateGuardScreen({ plan, match, onEdit, onProceed }) {
   );
 }
 
-function ReviewScreen({ plan, mode, transferBlockMessage, onEdit, onConfirm }) {
+function ReviewScreen({ plan, mode, agentPreflight, agentPreflightStatus, transferBlockMessage, onEdit, onConfirm }) {
   const isSendNow = plan.deliveryMode === "now";
   const chip = isSendNow ? "SEND NOW" : mode === "update" ? "UPDATE" : mode === "demo" ? "DEMO" : "NEW";
+  const isWalletCheckLoading = agentPreflightStatus === "loading";
+  const isWalletCheckReady = agentPreflight?.ok === true;
+  const primaryLabel = isWalletCheckLoading
+    ? "Checking wallet"
+    : !isWalletCheckReady
+      ? "Wallet check needed"
+      : isSendNow
+        ? "Prepare testnet send"
+        : "Confirm schedule";
 
   return (
     <LightSheet>
@@ -1546,16 +1526,18 @@ function ReviewScreen({ plan, mode, transferBlockMessage, onEdit, onConfirm }) {
         <SummaryCard label="Retries" value="3 attempts" />
       </div>
 
+      <WalletCheckStatus result={agentPreflight} status={agentPreflightStatus} />
+
       <div className="notice">
         {isSendNow
-          ? "Choco will run a testnet preflight. It will not mark funds sent until a real on-chain transaction succeeds."
+          ? "Choco will prepare the testnet send only after wallet readiness is clear. No funds move in this version."
           : "Choco will ask for confirmation before activating the schedule."}
       </div>
 
       {transferBlockMessage && <div className="notice danger">{transferBlockMessage}</div>}
 
-      <button className="primary-cta" type="button" onClick={onConfirm}>
-        {isSendNow ? "Run testnet preflight" : "Confirm schedule"}
+      <button className="primary-cta" type="button" disabled={!isWalletCheckReady || isWalletCheckLoading} onClick={onConfirm}>
+        {primaryLabel}
       </button>
       <button className="secondary-cta" type="button" onClick={onEdit}>Edit instruction</button>
     </LightSheet>

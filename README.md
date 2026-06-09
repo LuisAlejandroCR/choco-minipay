@@ -202,14 +202,14 @@ Use [docs/runbook-celo-agent-registration.md](docs/runbook-celo-agent-registrati
 
 Choco targets Celo Sepolia testnet until the mainnet release is approved. Network defaults live in `packages/core/src/config/celo.js`; deployment overrides live in `.env`.
 
-For the web app, keep `VITE_CELO_NETWORK_KEY`, `VITE_CELO_CHAIN_ID`, `VITE_CELO_CHAIN_ID_HEX`, `VITE_CELO_RPC_URL`, `VITE_BLOCK_EXPLORER_URL`, and `VITE_BLOCK_EXPLORER_TX_URL` aligned. For the API, keep `RPC_URL` on the same network so wallet verification, preflight balance checks, and receipt links all point to Celo Sepolia.
+For the web app, keep `VITE_CELO_NETWORK_KEY`, `VITE_CELO_CHAIN_ID`, `VITE_CELO_CHAIN_ID_HEX`, `VITE_CELO_RPC_URL`, `VITE_BLOCK_EXPLORER_URL`, and `VITE_BLOCK_EXPLORER_TX_URL` aligned. For the API, keep `RPC_URL` on the same network so wallet verification, background readiness checks, and receipt links all point to Celo Sepolia.
 
 ## Celo And MiniPay Rules
 
 - Detect MiniPay with `window.ethereum.isMiniPay === true`.
 - Do not depend on message-signing auth.
 - Use Celo Sepolia testnet for wallet verification, agent review, and receipt paths until mainnet release.
-- After wallet verification, run Choco Agent AI preflight through `/v1/agent/preflight`.
+- After wallet verification, call Choco Agent AI readiness through `/v1/agent/preflight` in the background when the user reaches quote review.
 - Never mark a send-now movement as `Sent` until a real on-chain transaction hash exists.
 - Keep user-facing balances and transfers stablecoin-only: USDC, USDT, USDm.
 - Use MiniPay terms: `Network fee`, `Deposit`, `Withdraw`, `Stablecoin`.
@@ -223,8 +223,8 @@ For the web app, keep `VITE_CELO_NETWORK_KEY`, `VITE_CELO_CHAIN_ID`, `VITE_CELO_
 Before production release:
 
 - MiniPay detection works in the MiniPay WebView.
-- Wallet-ready flow calls Choco Agent AI preflight before transfer creation.
-- Send-now preflight blocks when the API reports missing Celo Sepolia testnet gas funds or recipient contact.
+- Wallet-ready flow calls Choco Agent AI readiness before transfer creation.
+- Send-now readiness blocks when the API reports missing Celo Sepolia testnet gas funds or recipient contact.
 - Celo Sepolia transaction and receipt paths are verified.
 - ERC-8004 metadata is public and registered.
 - Quote, ODIS, API, worker, and analytics integrations are connected through module boundaries.
@@ -241,7 +241,7 @@ npm run dev:api
 npm run dev:web
 ```
 
-Open the web app, connect a Celo Sepolia testnet wallet, then tap `Run agent preflight`. The API checks Celo Sepolia RPC for wallet gas funds and verifies the recipient contact payload. A blocked response is expected when the wallet has `0 CELO`.
+Open the web app, connect a Celo Sepolia testnet wallet, then start `New transfer`. Choco Agent AI checks wallet readiness in the background when the transfer reaches quote review. The API checks Celo Sepolia RPC for wallet gas funds and verifies the recipient contact payload. A blocked response is expected when the wallet has `0 CELO`.
 
 Direct API test from PowerShell:
 
@@ -263,7 +263,7 @@ curl -X POST http://127.0.0.1:8787/v1/agent/preflight \
   -d "{\"walletAddress\":\"0x0000000000000000000000000000000000000001\",\"chainId\":\"0xaa044c\",\"recipientContact\":\"Mom\"}"
 ```
 
-For Vercel, set `VITE_API_BASE_URL` to the deployed API service. The static web deployment cannot run Choco Agent AI preflight by itself.
+For Vercel, set `VITE_API_BASE_URL` to the deployed API service. The static web deployment cannot run Choco Agent AI readiness by itself.
 
 ## References
 

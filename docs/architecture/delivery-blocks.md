@@ -53,8 +53,8 @@ Validation:
 - MiniPay detection works in WebView.
 - Verify wallet targets Celo Sepolia testnet chain ID `11142220`.
 - Wallet switching, receipt links, API RPC, and public labels read from the shared Celo network config.
-- After wallet verification, the UI calls Choco Agent AI preflight through `/v1/agent/preflight`.
-- Agent preflight checks Celo Sepolia gas funds and recipient contact.
+- After wallet verification, the UI calls Choco Agent AI readiness through `/v1/agent/preflight` in the background when the transfer reaches quote review.
+- Agent readiness checks Celo Sepolia gas funds and recipient contact.
 - Send-now does not create a `Sent` receipt without a real chain transaction hash.
 - Browser fallback remains readable.
 - No message-signing auth dependency.

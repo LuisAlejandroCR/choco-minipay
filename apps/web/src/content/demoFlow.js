@@ -32,7 +32,7 @@ export const DEMO_TOTAL_SECONDS = Math.round((demoSteps.length * DEMO_STEP_MS) /
 export const demoPromptContent = {
   title: `Try Choco in ${DEMO_TOTAL_SECONDS} seconds`,
   copy: "A guided tour shows transfers, schedules, receipts, and sharing. Skip anytime.",
-  liveDemoLabel: "Explore the full live demo",
+  liveDemoLabel: "Open live demo",
 };
 
 export const pitchContent = {

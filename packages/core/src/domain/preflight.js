@@ -83,7 +83,7 @@ export function evaluateAgentPreflight({
     gasBalanceLabel,
     checks,
     summary: ok
-      ? "Agent preflight passed. Choco can continue to quote review on testnet."
-      : "Agent preflight blocked. Fix the failed checks before continuing.",
+      ? "Wallet check passed. Choco can continue to quote review on testnet."
+      : "Wallet check needs attention before continuing.",
   };
 }
