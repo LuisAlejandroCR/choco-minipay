@@ -817,6 +817,7 @@ function PlanScreen({
 }) {
   const nextPlan = plans[0] || defaultPlan;
   const isVerifyingWallet = wallet.status === "loading" || wallet.status === "opening-wallet";
+  const isReadOnlyAddress = wallet.isReadOnly;
   const walletHelp = isWalletVerified
     ? `${formatWalletAddress(wallet.address)} - ${wallet.network.name} testnet`
     : wallet.statusLabel;
@@ -850,11 +851,13 @@ function PlanScreen({
           <b>{wallet.network.name}</b>
         </div>
         <div className="balance-copy">
-          <span>{isWalletVerified ? "Next plan" : "Wallet access"}</span>
-          <strong>{isWalletVerified ? nextPlan.amount : "Locked"}</strong>
+          <span>{isWalletVerified ? isReadOnlyAddress ? "Address review" : "Next plan" : "Wallet access"}</span>
+          <strong>{isWalletVerified ? isReadOnlyAddress ? "Ready" : nextPlan.amount : "Locked"}</strong>
           <p>
             {isWalletVerified
-              ? `${nextPlan.asset} to ${nextPlan.recipient} - ${getTimingLabel(nextPlan)}`
+              ? isReadOnlyAddress
+                ? `${formatWalletAddress(wallet.address)} - connect wallet app before signing.`
+                : `${nextPlan.asset} to ${nextPlan.recipient} - ${getTimingLabel(nextPlan)}`
               : `Verify on ${wallet.network.name} testnet to unlock transfers, plans, and receipts.`}
           </p>
         </div>
@@ -941,6 +944,15 @@ function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
   const isVerifyingWallet = wallet.status === "loading" || wallet.status === "opening-wallet";
   const needsMobileWallet = wallet.needsMobileWallet;
   const needsDesktopWallet = !wallet.isMobile && !wallet.hasProvider;
+  const showManualAddress = !wallet.hasProvider;
+  const [manualWalletAddress, setManualWalletAddress] = useState("");
+
+  function submitManualWalletAddress(event) {
+    event.preventDefault();
+    if (wallet.useManualAddress(manualWalletAddress)) {
+      onHome();
+    }
+  }
 
   return (
     <div className="screen wallet-gate-screen">
@@ -987,6 +999,26 @@ function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
           <button className="primary-cta" type="button" disabled={isVerifyingWallet} onClick={onVerifyWallet}>
             {isVerifyingWallet ? "Verifying wallet" : "Verify testnet wallet"}
           </button>
+        )}
+        {showManualAddress && (
+          <form className="wallet-address-form" onSubmit={submitManualWalletAddress}>
+            <label htmlFor="manual-wallet-address">Paste wallet address</label>
+            <div>
+              <input
+                id="manual-wallet-address"
+                type="text"
+                inputMode="text"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck="false"
+                value={manualWalletAddress}
+                placeholder="0x..."
+                onChange={(event) => setManualWalletAddress(event.target.value)}
+              />
+              <button type="submit">Use</button>
+            </div>
+            <small>For testnet checks only</small>
+          </form>
         )}
         <button className="secondary-dark" type="button" onClick={onHome}>
           Back home

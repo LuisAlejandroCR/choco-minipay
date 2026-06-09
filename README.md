@@ -253,6 +253,7 @@ Browser testing paths:
 - Desktop incognito: enable the wallet extension for incognito/private mode, reload Choco, then verify again.
 - Mobile browser: tap `Open in MetaMask Mobile`; Choco opens the same URL inside the wallet app for connection.
 - MiniPay: open Choco inside MiniPay after MiniApp discovery/publishing is ready.
+- Paste address: use a `0x` wallet address for testnet readiness checks only; signing still requires a wallet app.
 
 For very small testnet trials, use low KESm amounts in the transfer instruction and keep only enough Celo Sepolia CELO for gas. Choco must show `Wallet check needed` when the wallet has no testnet gas.
 

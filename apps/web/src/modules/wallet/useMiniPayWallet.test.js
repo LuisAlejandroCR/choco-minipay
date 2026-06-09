@@ -5,7 +5,9 @@ import {
   isCeloSepoliaTestnet,
   isMobileRuntime,
   isMobileUserAgent,
+  isValidWalletAddress,
   METAMASK_DOWNLOAD_URL,
+  normalizeWalletAddressInput,
   normalizeChainId,
   TESTNET_WALLET_NETWORK,
 } from "./useMiniPayWallet.js";
@@ -33,4 +35,12 @@ test("builds mobile wallet fallback links", () => {
     getMetaMaskMobileDappUrl("https://choco-minipay.vercel.app/path"),
     "https://metamask.app.link/dapp/choco-minipay.vercel.app/path",
   );
+});
+
+test("validates pasted wallet addresses for review mode", () => {
+  const address = "0x282DD05E60fC7fd8DCBaI84C2d5fF9d8d40974be".replace("I", "1");
+  assert.equal(normalizeWalletAddressInput(` ${address} `), address);
+  assert.equal(isValidWalletAddress(address), true);
+  assert.equal(isValidWalletAddress("0x123"), false);
+  assert.equal(isValidWalletAddress("not-a-wallet"), false);
 });

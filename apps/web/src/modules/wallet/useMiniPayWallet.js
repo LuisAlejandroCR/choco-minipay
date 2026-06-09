@@ -40,6 +40,14 @@ export function formatWalletAddress(address) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
+export function normalizeWalletAddressInput(address = "") {
+  return address.trim();
+}
+
+export function isValidWalletAddress(address = "") {
+  return /^0x[a-fA-F0-9]{40}$/.test(normalizeWalletAddressInput(address));
+}
+
 function getProvider() {
   if (typeof window === "undefined") return null;
   return window.ethereum || null;
@@ -137,6 +145,7 @@ export function useMiniPayWallet() {
   const [status, setStatus] = useState("checking");
   const [error, setError] = useState("");
   const [isMiniPay, setIsMiniPay] = useState(false);
+  const [isManualAddress, setIsManualAddress] = useState(false);
   const isMobile = isMobileRuntime(getUserAgent(), getMaxTouchPoints());
   const provider = getProvider();
   const hasProvider = Boolean(provider);
@@ -165,6 +174,24 @@ export function useMiniPayWallet() {
     openExternalUrl(METAMASK_DOWNLOAD_URL, { newTab: true });
   }, []);
 
+  const useManualAddress = useCallback((nextAddress) => {
+    const normalizedAddress = normalizeWalletAddressInput(nextAddress);
+
+    if (!isValidWalletAddress(normalizedAddress)) {
+      setStatus("manual-error");
+      setError("Paste a valid 0x wallet address.");
+      return false;
+    }
+
+    setAddress(normalizedAddress);
+    setChainId(TESTNET_WALLET_NETWORK.chainIdHex);
+    setIsMiniPay(false);
+    setIsManualAddress(true);
+    setStatus("manual-ready");
+    setError("Address added for testnet checks. Connect a wallet app before signing.");
+    return true;
+  }, []);
+
   const readWallet = useCallback(async ({ requestAccounts = false, ensureNetwork = false } = {}) => {
     const provider = getProvider();
 
@@ -172,6 +199,7 @@ export function useMiniPayWallet() {
       setAddress("");
       setChainId("");
       setIsMiniPay(false);
+      setIsManualAddress(false);
       if (requestAccounts && isMobile) {
         openMetaMaskMobile();
         return false;
@@ -187,6 +215,7 @@ export function useMiniPayWallet() {
       setError("");
       setStatus(requestAccounts ? "loading" : "checking");
       setIsMiniPay(provider.isMiniPay === true);
+      setIsManualAddress(false);
 
       if (ensureNetwork) {
         await ensureCeloSepolia(provider);
@@ -257,6 +286,8 @@ export function useMiniPayWallet() {
     if (status === "checking") return `Checking ${TESTNET_WALLET_NETWORK.name}`;
     if (status === "wrong-network") return `Switch wallet to ${TESTNET_WALLET_NETWORK.name} testnet`;
     if (status === "empty") return "Choose a wallet account";
+    if (status === "manual-ready") return `Address review: ${formatWalletAddress(address)} on ${TESTNET_WALLET_NETWORK.name}`;
+    if (status === "manual-error") return error || "Paste a valid wallet address";
     if (status === "unavailable") return isMobile ? "Open in MetaMask Mobile" : "Connect a testnet browser wallet";
     if (status === "error") return error || "Wallet unavailable";
     return `Verify on ${TESTNET_WALLET_NETWORK.name}`;
@@ -267,9 +298,11 @@ export function useMiniPayWallet() {
     chainId,
     error,
     hasProvider,
+    isManualAddress,
     isMiniPay,
     isMobile,
-    isReady: status === "ready" && isTestnet,
+    isReadOnly: status === "manual-ready",
+    isReady: (status === "ready" && isTestnet) || status === "manual-ready",
     isTestnet,
     loadWallet: readWallet,
     mobileWalletLinks,
@@ -277,6 +310,7 @@ export function useMiniPayWallet() {
     openMetaMaskDownload,
     openMetaMaskMobile,
     openMiniPay,
+    useManualAddress,
     needsMobileWallet: isMobile && !hasProvider,
     status,
     statusLabel,

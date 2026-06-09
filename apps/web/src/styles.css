@@ -1916,6 +1916,47 @@ a {
   margin-top: 0;
 }
 
+.wallet-address-form {
+  display: grid;
+  gap: 8px;
+}
+
+.wallet-address-form label,
+.wallet-address-form small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.wallet-address-form div {
+  display: grid;
+  grid-template-columns: 1fr 64px;
+  gap: 8px;
+}
+
+.wallet-address-form input,
+.wallet-address-form button {
+  min-height: 48px;
+  border: 1px solid var(--line-soft);
+  border-radius: 16px;
+}
+
+.wallet-address-form input {
+  min-width: 0;
+  padding: 0 13px;
+  background: rgba(5, 3, 2, 0.38);
+  color: var(--cream);
+}
+
+.wallet-address-form button {
+  cursor: pointer;
+  background: var(--cream);
+  color: var(--cocoa-900);
+  font-weight: 900;
+}
+
 .demo-overlay {
   position: absolute;
   inset: 0;

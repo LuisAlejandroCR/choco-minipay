@@ -58,6 +58,7 @@ Validation:
 - Send-now does not create a `Sent` receipt without a real chain transaction hash.
 - Desktop browser uses an injected wallet extension and routes incognito/no-provider clicks to wallet setup.
 - Mobile browser opens MetaMask Mobile before MiniApps publishing, including desktop-site mode on touch devices.
+- No-provider users can paste a wallet address for read-only Celo Sepolia readiness checks.
 - MiniPay WebView remains the final wallet validation path after Choco is opened inside MiniPay.
 - No message-signing auth dependency.
 
