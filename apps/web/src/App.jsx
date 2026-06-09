@@ -1,13 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Bell, MessageCircleQuestionMark, X } from "lucide-react";
-import {
-  useMiniPayWallet,
-} from "./modules/wallet/useMiniPayWallet.js";
+import { useMiniPayWallet } from "./modules/wallet/useMiniPayWallet.js";
 import { useContacts } from "./modules/contacts/useContacts.js";
-import {
-  DEMO_STEP_MS,
-  demoSteps,
-} from "./content/demoFlow.js";
+import { useAgentPreflight } from "./modules/preflight/useAgentPreflight.js";
 import {
   API_BASE_URL,
   INITIAL_SCREEN,
@@ -46,11 +41,9 @@ import { DuplicateGuardScreen } from "./screens/DuplicateGuardScreen.jsx";
 import { ReviewScreen } from "./screens/ReviewScreen.jsx";
 
 export function App() {
+  // --- Core navigation / editor state ---
   const [screen, setScreen] = useState(INITIAL_SCREEN);
   const [command, setCommand] = useState(DEFAULT_COMMANDS.schedule);
-  const [runStep, setRunStep] = useState(0);
-  const [demoStep, setDemoStep] = useState(0);
-  const [demoElapsedSeconds, setDemoElapsedSeconds] = useState(0);
   const [plans, setPlans] = useState([defaultPlan]);
   const [transactions, setTransactions] = useState([defaultTransaction]);
   const [selectedPlanId, setSelectedPlanId] = useState(defaultPlan.id);
@@ -59,15 +52,15 @@ export function App() {
   const [deliveryMode, setDeliveryMode] = useState("schedule");
   const [showDemoPrompt, setShowDemoPrompt] = useState(shouldShowDemoPrompt);
   const [activeInfoPanel, setActiveInfoPanel] = useState(null);
-  const [agentPreflight, setAgentPreflight] = useState(null);
-  const [agentPreflightStatus, setAgentPreflightStatus] = useState("idle");
-  const [transferBlockMessage, setTransferBlockMessage] = useState("");
   const [resolvedPreviewPlan, setResolvedPreviewPlan] = useState(null);
 
+  // --- Hooks ---
   const wallet = useMiniPayWallet();
   const { getContact, saveContact } = useContacts();
+  const preflight = useAgentPreflight({ wallet, getContact, apiBaseUrl: API_BASE_URL });
   const isWalletVerified = wallet.isReady;
 
+  // --- Derived state ---
   const activePlan = useMemo(
     () => plans.find((item) => item.id === selectedPlanId) || plans[0] || null,
     [plans, selectedPlanId],
@@ -97,53 +90,6 @@ export function App() {
   const guardedScreens = ["plans", "planDetail", "history", "receiptDetail", "planEditor", "deletePlan", "processing", "duplicateGuard", "review"];
   const visibleScreen = !isWalletVerified && guardedScreens.includes(screen) ? "walletGate" : screen;
 
-  // --- Effects ---
-
-  useEffect(() => {
-    if (screen !== "splash") return undefined;
-    const timer = window.setTimeout(() => setScreen("pitch"), SPLASH_DURATION_MS);
-    return () => window.clearTimeout(timer);
-  }, [screen]);
-
-  useEffect(() => {
-    if (screen !== "processing") return undefined;
-    setRunStep(0);
-    const timers = [
-      window.setTimeout(() => setRunStep(1), 320),
-      window.setTimeout(() => setRunStep(2), 860),
-      window.setTimeout(() => setRunStep(3), 1400),
-      window.setTimeout(() => setScreen(duplicateAttempt ? "duplicateGuard" : "review"), 2450),
-    ];
-    return () => timers.forEach((timer) => window.clearTimeout(timer));
-  }, [duplicateAttempt, screen]);
-
-  useEffect(() => {
-    if (screen !== "demoTour") return undefined;
-    setDemoStep(0);
-    setDemoElapsedSeconds(0);
-    return undefined;
-  }, [screen]);
-
-  useEffect(() => {
-    if (screen !== "demoTour") return undefined;
-    const timer = window.setInterval(() => {
-      setDemoElapsedSeconds((seconds) => seconds + 1);
-    }, 1000);
-    return () => window.clearInterval(timer);
-  }, [screen]);
-
-  useEffect(() => {
-    if (screen !== "demoTour") return undefined;
-    const timer = window.setTimeout(() => {
-      if (demoStep === demoSteps.length - 1) {
-        setScreen("plan");
-        return;
-      }
-      setDemoStep((currentStep) => Math.min(currentStep + 1, demoSteps.length - 1));
-    }, DEMO_STEP_MS);
-    return () => window.clearTimeout(timer);
-  }, [demoStep, screen]);
-
   if (import.meta.env.DEV) {
     // eslint-disable-next-line no-console
     console.debug(
@@ -152,6 +98,15 @@ export function App() {
       { recipient: (resolvedPreviewPlan ?? previewPlan).recipient, amount: (resolvedPreviewPlan ?? previewPlan).amount },
     );
   }
+
+  // --- Effects ---
+
+  // Advance splash → pitch automatically.
+  useEffect(() => {
+    if (screen !== "splash") return undefined;
+    const timer = window.setTimeout(() => setScreen("pitch"), SPLASH_DURATION_MS);
+    return () => window.clearTimeout(timer);
+  }, [screen]);
 
   // --- Handlers ---
 
@@ -169,8 +124,6 @@ export function App() {
     setReviewMode("demo");
     setDeliveryMode("schedule");
     setCommand(DEFAULT_COMMANDS.schedule);
-    setDemoStep(0);
-    setDemoElapsedSeconds(0);
     setScreen("demoTour");
   }
 
@@ -223,9 +176,7 @@ export function App() {
   async function buildPlan(nextCommand = "") {
     const commandForBuild = nextCommand || command;
     if (nextCommand) setCommand(nextCommand);
-    setAgentPreflight(null);
-    setAgentPreflightStatus("idle");
-    setTransferBlockMessage("");
+    preflight.reset();
     setResolvedPreviewPlan(null);
 
     let plan;
@@ -244,56 +195,7 @@ export function App() {
     plan ??= buildPlanFromCommand(commandForBuild, activePlan || defaultPlan, deliveryMode);
     setResolvedPreviewPlan(plan);
     setScreen("processing");
-    void runAgentPreflight(plan);
-  }
-
-  // recipientAddressOverride: pass a wallet address when the user has just typed
-  // one into ContactCapture but it hasn't been saved yet (avoids React state delay).
-  async function runAgentPreflight(plan = activePlan || defaultPlan, recipientAddressOverride = null) {
-    if (!wallet.address) {
-      setAgentPreflight({
-        agent: "Choco Agent AI",
-        status: "blocked",
-        ok: false,
-        summary: `Connect a ${wallet.network.name} testnet wallet before checking readiness.`,
-        checks: [],
-      });
-      return;
-    }
-
-    setAgentPreflightStatus("loading");
-    setTransferBlockMessage("");
-
-    // Prefer the override (just entered in ContactCapture), then the stored contact,
-    // then fall back to empty so preflight correctly blocks with "add wallet address".
-    const recipientContact =
-      recipientAddressOverride ?? getContact(plan.recipient)?.walletAddress ?? "";
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/v1/agent/preflight`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          walletAddress: wallet.address,
-          chainId: wallet.chainId,
-          recipientContact,
-          payAsset: plan.payAsset,
-          amount: plan.routeEstimate,
-        }),
-      });
-      const result = await response.json();
-      setAgentPreflight(result);
-      setAgentPreflightStatus("idle");
-    } catch {
-      setAgentPreflight({
-        agent: "Choco Agent AI",
-        status: "blocked",
-        ok: false,
-        summary: "Wallet check is unavailable right now. Try again before sending.",
-        checks: [],
-      });
-      setAgentPreflightStatus("idle");
-    }
+    void preflight.run(plan);
   }
 
   // Save to localStorage and mirror to the API so the worker can read it.
@@ -308,29 +210,17 @@ export function App() {
     } catch { /* non-blocking — API mirror is best-effort on testnet */ }
   }
 
-  function nextDemoStep() {
-    setDemoStep((currentStep) => Math.min(currentStep + 1, demoSteps.length - 1));
-  }
-
-  function previousDemoStep() {
-    setDemoStep((currentStep) => Math.max(currentStep - 1, 0));
-  }
-
-  function finishDemo() {
-    setScreen("plan");
-  }
-
   function confirmPlan() {
     const planToCommit = resolvedPreviewPlan || previewPlan;
     let committedPlan;
 
-    if (!agentPreflight?.ok) {
-      setTransferBlockMessage("Choco needs a completed wallet check before creating a testnet transfer or schedule.");
+    if (!preflight.result?.ok) {
+      preflight.block("Choco needs a completed wallet check before creating a testnet transfer or schedule.");
       return;
     }
 
     if (planToCommit.deliveryMode === "now") {
-      setTransferBlockMessage("Testnet transfer execution is not connected yet. Choco prepared the route, but no funds were moved and no receipt was created.");
+      preflight.block("Testnet transfer execution is not connected yet. Choco prepared the route, but no funds were moved and no receipt was created.");
       return;
     }
 
@@ -477,12 +367,8 @@ export function App() {
           )}
           {visibleScreen === "demoTour" && (
             <DemoTourScreen
-              step={demoStep}
-              elapsedSeconds={demoElapsedSeconds}
               onSkip={() => setScreen("plan")}
-              onPrevious={previousDemoStep}
-              onNext={nextDemoStep}
-              onFinish={finishDemo}
+              onFinish={() => setScreen("plan")}
             />
           )}
           {visibleScreen === "plans" && (
@@ -543,10 +429,10 @@ export function App() {
           )}
           {visibleScreen === "processing" && (
             <ProcessingScreen
-              step={runStep}
               plan={resolvedPreviewPlan ?? previewPlan}
               command={command}
               duplicateAttempt={duplicateAttempt}
+              onComplete={() => setScreen(duplicateAttempt ? "duplicateGuard" : "review")}
             />
           )}
           {visibleScreen === "duplicateGuard" && duplicateAttempt && (
@@ -561,14 +447,14 @@ export function App() {
             <ReviewScreen
               plan={resolvedPreviewPlan ?? previewPlan}
               mode={reviewMode}
-              agentPreflight={agentPreflight}
-              agentPreflightStatus={agentPreflightStatus}
-              transferBlockMessage={transferBlockMessage}
+              agentPreflight={preflight.result}
+              agentPreflightStatus={preflight.status}
+              transferBlockMessage={preflight.blockMessage}
               resolvedContact={getContact((resolvedPreviewPlan ?? previewPlan).recipient)}
               onSaveContact={(address, shouldSave) => {
                 const plan = resolvedPreviewPlan ?? previewPlan;
                 if (shouldSave) void saveContactAndSync(plan.recipient, address);
-                void runAgentPreflight(plan, address);
+                void preflight.run(plan, address);
               }}
               onEdit={() => setScreen("planEditor")}
               onConfirm={confirmPlan}

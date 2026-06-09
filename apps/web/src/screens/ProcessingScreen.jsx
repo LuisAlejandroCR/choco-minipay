@@ -1,9 +1,32 @@
 import { Check, ReceiptText, RefreshCw } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { ChocoMark } from "../components/ChocoMark.jsx";
 import { getTimingLabel } from "../utils/planUtils.js";
 
-export function ProcessingScreen({ step, plan, command, duplicateAttempt }) {
+// ProcessingScreen owns its animation-step timer so it does not cause full-tree
+// re-renders from App root while the steps advance.
+// onComplete is called after the final step delay — App uses it to navigate to
+// "duplicateGuard" or "review" depending on duplicateAttempt.
+export function ProcessingScreen({ plan, command, duplicateAttempt, onComplete }) {
+  const [step, setStep] = useState(0);
   const isSendNow = plan.deliveryMode === "now";
+
+  // Use a ref so the final timeout always calls the latest onComplete without
+  // re-running the effect when onComplete changes reference between renders.
+  const onCompleteRef = useRef(onComplete);
+  useEffect(() => { onCompleteRef.current = onComplete; });
+
+  // Run the step sequence once on mount; clean up if the screen unmounts early.
+  useEffect(() => {
+    const timers = [
+      window.setTimeout(() => setStep(1), 320),
+      window.setTimeout(() => setStep(2), 860),
+      window.setTimeout(() => setStep(3), 1400),
+      window.setTimeout(() => onCompleteRef.current(), 2450),
+    ];
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- intentional: run once on mount
+
   const feed = [
     {
       icon: <Check size={15} />,

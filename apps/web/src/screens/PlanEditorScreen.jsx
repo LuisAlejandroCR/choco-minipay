@@ -1,7 +1,6 @@
 import { ArrowRight, CalendarDays, CircleDollarSign, Mic, Trash2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
 import { ChocoMark } from "../components/ChocoMark.jsx";
-import { normalizeVoiceTranscript } from "../modules/voice/voiceNormalize.js";
+import { useVoiceRecorder } from "../modules/voice/useVoiceRecorder.js";
 import { deliveryModes, formatDemoTime } from "../utils/planUtils.js";
 
 export function PlanEditorScreen({
@@ -14,12 +13,18 @@ export function PlanEditorScreen({
   onHome,
   onBack = null,
 }) {
-  const [isRecording, setIsRecording] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
-  const [recordingSeconds, setRecordingSeconds] = useState(0);
-  const [voiceError, setVoiceError] = useState("");
-  const speechRef = useRef(null);
-  const hasSpeechSupport = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+  const {
+    isRecording,
+    isPaused,
+    recordingSeconds,
+    voiceError,
+    hasSpeechSupport,
+    startRecording,
+    cancelRecording,
+    stopRecording,
+    togglePause,
+  } = useVoiceRecorder({ onTranscript: setCommand });
+
   const hasText = command.trim().length > 0;
   const title = mode === "update"
     ? "Update plan"
@@ -27,107 +32,8 @@ export function PlanEditorScreen({
       ? "Send money"
       : "Schedule transfer";
 
-  useEffect(() => {
-    return () => {
-      speechRef.current?.stop();
-      speechRef.current = null;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!isRecording || isPaused) return undefined;
-
-    const timer = window.setInterval(() => {
-      setRecordingSeconds((seconds) => seconds + 1);
-    }, 1000);
-
-    return () => window.clearInterval(timer);
-  }, [isPaused, isRecording]);
-
-  function startRecording() {
-    setRecordingSeconds(0);
-    setIsPaused(false);
-    setVoiceError("");
-
-    if (!hasSpeechSupport) {
-      setVoiceError("Voice input is not available in this browser. Type your message instead.");
-      return;
-    }
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = "en-US";
-
-    recognition.onresult = (event) => {
-      let transcript = "";
-      for (let i = 0; i < event.results.length; i++) {
-        transcript += event.results[i][0].transcript;
-      }
-      setCommand(normalizeVoiceTranscript(transcript.trim()));
-    };
-
-    // no-speech fires on silence timeout — not a real failure.
-    // Let onend handle the restart rather than surfacing an error.
-    recognition.onerror = (event) => {
-      if (event.error === "no-speech") return;
-      const msg = event.error === "not-allowed"
-        ? "Microphone access was denied."
-        : event.error === "network"
-          ? "Voice requires an internet connection."
-          : event.error === "audio-capture"
-            ? "No microphone found. Connect a mic or type instead."
-            : event.error === "service-not-allowed"
-              ? "Voice is blocked in this browser context."
-              : "Voice input failed. Type your message instead.";
-      setVoiceError(msg);
-      const rec = speechRef.current;
-      speechRef.current = null;
-      rec?.stop();
-      setIsRecording(false);
-      setIsPaused(false);
-      setRecordingSeconds(0);
-    };
-
-    // cancelRecording / submitRecording null speechRef before calling stop(),
-    // so if this fires and speechRef no longer points to this instance it was an
-    // intentional stop — skip the restart. If speechRef still points here the
-    // browser auto-stopped (Safari silence timeout) — restart to stay live.
-    recognition.onend = () => {
-      if (speechRef.current === recognition) {
-        try {
-          recognition.start();
-        } catch {
-          speechRef.current = null;
-          setIsRecording(false);
-          setIsPaused(false);
-          setRecordingSeconds(0);
-        }
-      }
-    };
-
-    speechRef.current = recognition;
-    recognition.start();
-    setIsRecording(true);
-  }
-
-  function cancelRecording() {
-    const rec = speechRef.current;
-    speechRef.current = null;
-    rec?.stop();
-    setIsRecording(false);
-    setIsPaused(false);
-    setRecordingSeconds(0);
-  }
-
   function submitRecording() {
-    const rec = speechRef.current;
-    speechRef.current = null;
-    rec?.stop();
-    setIsRecording(false);
-    setIsPaused(false);
-    setRecordingSeconds(0);
+    stopRecording();
     if (command.trim()) void onBuild();
   }
 
@@ -136,7 +42,6 @@ export function PlanEditorScreen({
       void onBuild();
       return;
     }
-
     startRecording();
   }
 
@@ -184,7 +89,7 @@ export function PlanEditorScreen({
               className={`pause-mark ${isPaused ? "paused" : ""}`}
               type="button"
               aria-label={isPaused ? "Resume recording" : "Pause recording"}
-              onClick={() => setIsPaused((paused) => !paused)}
+              onClick={togglePause}
             >
               <i /><i />
             </button>
