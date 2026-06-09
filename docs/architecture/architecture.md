@@ -34,7 +34,9 @@ services/api
   |-- health check
   |-- agent metadata endpoint
   |-- POST /v1/intent/preview  — resolves command to structured intent + quote
-  |-- POST /v1/agent/preflight — four-point wallet/network/gas/recipient check
+  |-- POST /v1/agent/preflight — four-point wallet/network/gas/recipient wallet check
+  |-- GET  /v1/contacts        — list stored contacts (worker reads for recipient lookup)
+  |-- POST /v1/contacts        — save contact { alias, walletAddress, network } from web app
   |
   v
 services/worker
@@ -107,12 +109,18 @@ Start with the layer where the problem appears, then move inward.
 | Transfer text parses wrong after submit | `services/api/src/server.js` → `/v1/intent/preview` → `parseTransferIntent` | Check API is running at `/health`; local fallback is `packages/core/src/domain/intent.js` |
 | Transfer text parses wrong in live preview | `packages/core/src/domain/intent.js` | `packages/core/src/domain/intent.test.js` |
 | Voice mic shows error or does nothing | `PlanEditorScreen` → `hasSpeechSupport` check | HTTPS or `localhost` required; Chrome / Android for MiniPay WebView; mic permission must be granted in browser |
-| Voice transcript is wrong or garbled | `SpeechRecognition.lang` is `en-US` | Ambient noise; try text input; Phase 2 will add Whisper fallback |
-| Duplicate warning is wrong | `packages/core/src/domain/duplicates.js` | `packages/core/src/domain/duplicates.test.js` |
+| Voice transcript is wrong or garbled | `apps/web/src/modules/voice/voiceNormalize.js` → `normalizeVoiceTranscript` | Run `voiceNormalize.test.js` for regression; `SpeechRecognition.lang` is `en-US`; check ambient noise; Whisper fallback is Block 15 |
+| Recipient wallet address missing in preflight | `ReviewScreen` → `ContactCapture` component | Check `getContact(plan.recipient)` in `useContacts.js`; if null, capture form shows and user must paste a valid `0x...` address before preflight passes |
+| Contact not persisting across reloads | `apps/web/src/modules/contacts/useContacts.js` → `loadFromStorage` | Open DevTools → Application → localStorage → `choco-contacts-v1`; should be a JSON object keyed by lowercased alias |
+| Contact not available to worker | `POST /v1/contacts` sync in `App.jsx::saveContactAndSync` | Check `GET /v1/contacts` on the running API; note: `contactStore` is in-memory and wiped on restart — persistence required before Block 14 |
+| USDC balance wrong or missing (Block 12+) | `packages/core/src/domain/quote.js` → `POST /v1/quote` | Confirm `eth_call` to `balanceOf` on USDC contract; check `celo.js` USDC token address for the active network |
+| Preflight passes but wallet check still shows blocked | `App.jsx::runAgentPreflight` — check `recipientAddressOverride` vs `getContact` path | Inspect the `recipientContact` value sent to `POST /v1/agent/preflight`; if it's an alias (not `0x...`), the contact was not saved or not looked up correctly |
+| Duplicate warning is wrong | `packages/core/src/domain/duplicates.js` | `packages/core/src/domain/duplicates.test.js` — note: Block 14 must reconcile this with `App.jsx::getPlanSignature` which uses a different shape |
 | Receipt link is wrong | `packages/core/src/domain/receipts.js` | `packages/core/src/config/celo.js` |
 | Agent metadata is wrong | `public/agent.json` | `ops/agent-registry/agent.sepolia.json`, registration runbook |
 | API is down | `services/api/src/server.js` and `/health` | Docker compose ports and `.env` |
 | Worker loop is wrong | `services/worker/src/scheduler.js` | `WORKER_INTERVAL_MS`, Docker logs |
+| Screen renders blank (ErrorBoundary) | `apps/web/src/main.jsx` → `AppErrorBoundary` | In dev mode, the error message shows inline; in production, open browser console for the original throw |
 
 ## Validation Commands
 

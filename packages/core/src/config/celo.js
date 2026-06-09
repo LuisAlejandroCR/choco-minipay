@@ -57,6 +57,11 @@ export const CELO_NETWORKS = {
     agentId: 309,
     nativeCurrency: CELO_NATIVE_CURRENCY,
     isTestnet: true,
+    // Block 12 prerequisites — confirm these on celo-sepolia.blockscout.com before starting.
+    // null means "not yet confirmed" — Block 12 must resolve both before wiring the quote.
+    // If cKES is absent on Sepolia, use USDm as destinationAsset for blocks 12–13 testnet runs.
+    mentoBrokerAddress: null,  // TODO Block 12: confirm Mento broker address on Celo Sepolia
+    cKesAddress: null,         // TODO Block 12: confirm cKES ERC-20 address on Celo Sepolia (may be absent)
   },
 };
 

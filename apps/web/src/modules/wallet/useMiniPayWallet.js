@@ -5,6 +5,10 @@ import {
   normalizeChainId,
   toHexChainId,
 } from "../../../../../packages/core/src/config/celo.js";
+// Single source of truth for wallet address validation. contacts.js is the
+// canonical implementation so both the UI (ContactCapture) and the wallet gate
+// (manual-address input) reject the same set of invalid strings.
+export { isValidWalletAddress } from "../../../../../packages/core/src/domain/contacts.js";
 
 const env = import.meta.env || {};
 
@@ -42,10 +46,6 @@ export function formatWalletAddress(address) {
 
 export function normalizeWalletAddressInput(address = "") {
   return address.trim();
-}
-
-export function isValidWalletAddress(address = "") {
-  return /^0x[a-fA-F0-9]{40}$/.test(normalizeWalletAddressInput(address));
 }
 
 function getProvider() {
@@ -313,6 +313,13 @@ export function useMiniPayWallet() {
     return `Verify on ${TESTNET_WALLET_NETWORK.name}`;
   }, [address, error, isMobile, status]);
 
+  // Block 13: sign and broadcast an unsigned transaction prepared by POST /v1/transfer/prepare.
+  // The API builds the tx; the wallet signs it here so private keys never leave the device.
+  // Throws NotImplementedError until Block 13 wires real eth_sendTransaction.
+  const signAndSend = useCallback(async (_unsignedTx) => {
+    throw new Error("signAndSend is not implemented — start with Block 13.");
+  }, []);
+
   return {
     address,
     chainId,
@@ -330,6 +337,7 @@ export function useMiniPayWallet() {
     openMetaMaskDownload,
     openMetaMaskMobile,
     openMiniPay,
+    signAndSend,
     useManualAddress,
     needsMobileWallet: isMobile && !hasProvider,
     status,

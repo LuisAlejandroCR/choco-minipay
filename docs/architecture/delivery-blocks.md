@@ -45,41 +45,13 @@ Status:
 | 8. MiniPay wallet integration | Real MiniPay provider replaces demo behavior. Detection, network switching, agent preflight, MetaMask Mobile fallback, manual-address read-only mode, and send-now guard all verified locally. MiniPay WebView final validation pending deploy. | `apps/web/src/modules/wallet/useMiniPayWallet.js`, `apps/web/src/config/runtime.js`, `.env`, `apps/web/src/App.jsx`, `packages/core/src/domain/preflight.js`, `services/api/src/server.js`, `packages/core/src/config/celo.js` |
 | 9. Agent Metadata And Registration | Agent #309 confirmed live on Celo Sepolia Identity Registry. Metadata URL returns 200. Evidence recorded in `ops/agent-registry/agent.sepolia.json` and runbook. Reputation Registry and `agentId` added to network config. Open item: tokenURI not content-addressed (`https://`); pin to IPFS and call `setAgentURI` before mainnet. | `ops/agent-registry/agent.sepolia.json`, `docs/runbook-celo-agent-registration.md`, `packages/core/src/config/celo.js` |
 | 10. API Contracts | Text and voice commands route through `POST /v1/intent/preview`. API intent drives `buildPlanFromIntent` and the committed plan. Voice uses `SpeechRecognition` with auto-restart on Safari silence timeout and KES homophone normalization. `POST /v1/agent/preflight` returns four checks. Edit-plan back button fixed. x402 (pay-per-request) and Whisper (voice transcription fallback) were scoped but **not implemented** — both are future development, see Block 15. | `apps/web/src/App.jsx`, `services/api/src/server.js`, `docs/architecture/architecture.md` |
+| 11. Recipient Contact | Preflight now requires a real `0x` Celo Sepolia wallet address for the recipient (not just an alias). Review screen shows `ContactCapture` when the recipient has no linked address — user pastes a `0x...` address, optionally saves it under the alias (e.g. "Mom"). Saved contacts persist in `localStorage` and sync to `POST /v1/contacts` so the worker can read them. Receipt shows alias + truncated address. Route card shows `Mom · 0xAb12...ef34` once resolved. | `packages/core/src/domain/contacts.js`, `apps/web/src/modules/contacts/useContacts.js`, `packages/core/src/domain/preflight.js`, `services/api/src/server.js`, `apps/web/src/App.jsx`, `apps/web/src/styles.css` |
 
 ## Current Block
 
-Block: 11. Recipient Contact
+Block: 12. Balance + Quote
 
-Goal: Replace the "Mom" alias with a real Celo Sepolia testnet wallet address so the transfer has a real on-chain destination. This is the minimum needed before any fund movement. On testnet, contacts are stored in `localStorage`. API exposes a contact CRUD surface for the worker to read.
-
-The UX:
-1. User says "send my mum 10 KES."
-2. If Choco has no wallet linked to "Mom", the review screen shows a prompt: "What is Mom's Celo Sepolia wallet address?"
-3. User pastes a `0x...` testnet address.
-4. Choco asks: "Save this address as Mom?" — user confirms or skips.
-5. If saved, all future plans for "Mom" resolve to that address automatically.
-6. Receipt shows both the alias and the wallet address.
-
-ODIS / SocialConnect phone-number lookup is future (Block 15). Testnet only needs a wallet address.
-
-Files:
-
-- `packages/core/src/domain/contacts.js` (new — contact schema: `{ alias, walletAddress, network }` + address validation)
-- `apps/web/src/modules/contacts/useContacts.js` (new — `localStorage` CRUD hook: `getContact(alias)`, `saveContact(alias, address)`, `listContacts()`)
-- `apps/web/src/App.jsx` (contact prompt on review screen; resolved address shown in receipt and preflight)
-- `services/api/src/server.js` (add `GET /v1/contacts`, `POST /v1/contacts` for worker reads)
-
-Validation:
-
-- If "Mom" has no linked address, review screen shows the wallet-address prompt before preflight can pass.
-- User can paste a Celo Sepolia `0x...` address and optionally save it under the alias.
-- Saved contacts persist across page reloads (localStorage).
-- Review screen shows `Mom → 0xAb12...` (alias + truncated address).
-- Receipt shows full alias and address.
-- Preflight "recipient contact" check passes only when a resolved wallet address is present.
-- `GET /v1/contacts` returns the stored contact list.
-
-Status: Not started.
+Goal: Read the sender's actual USDC balance from the connected wallet. Fetch the live USDC → cKES conversion rate from Mento. Show the user exactly what they have and what the recipient gets before confirming.
 
 ## Next Blocks
 
@@ -89,25 +61,31 @@ Goal: Read the sender's actual USDC balance from the connected wallet. Fetch the
 
 The UX: "You have $2.10 USDC — sending 271 cKES to Mom (0xAb12...ef34)."
 
+**Pre-block decision (required before writing any code):**
+Check `https://celo-sepolia.blockscout.com` for cKES ERC-20 and the Mento broker contract.
+- If cKES **exists** on Celo Sepolia: use it as `destinationAsset`. Fill in `cKesAddress` and `mentoBrokerAddress` in `packages/core/src/config/celo.js`.
+- If cKES **does not exist**: use USDm (`0xdE9e4C3ce781b4bA68120d6261cbad65ce0aB00b`) as `destinationAsset` for blocks 12–13. Update `testnetScenario.js` accordingly. Document the substitution clearly.
+This decision gates the block — do not start implementation until it is resolved.
+
 Files:
 
-- `packages/core/src/domain/quote.js` (new — Mento rate fetch, balance read)
+- `packages/core/src/domain/quote.js` (new — Mento rate fetch, USDC balance read)
 - `services/api/src/server.js` (add `POST /v1/quote`)
 - `apps/web/src/App.jsx` (balance + quote in review screen)
-- `packages/core/src/config/celo.js` (add cKES testnet address once confirmed on Celo Sepolia)
+- `packages/core/src/config/celo.js` (fill in `cKesAddress` and `mentoBrokerAddress` once confirmed)
 
 Notes:
 
-- cKES may not be deployed on Celo Sepolia yet — confirm via Blockscout before this block. If absent, mock the swap rate and use USDm as the destination token for testnet only.
 - USDC balance: `eth_call` to `balanceOf(walletAddress)` on the USDC ERC-20 contract (`0x01C5C...` on Sepolia).
 - Mento rate: query the Mento broker or use a mock oracle for testnet.
+- A second check ("USDC balance") should be added to `packages/core/src/domain/preflight.js` in this block. The existing four checks become five.
 
 Validation:
 
 - `POST /v1/quote` returns `{ sourceAsset, sourceAmount, destinationAsset, destinationAmount, rate, expiresInSeconds }`.
-- Review screen shows real available balance.
-- If USDC balance < required amount, preflight blocks with a specific message.
-- Rate is live (not hardcoded).
+- Review screen shows real available balance and what the recipient receives.
+- If USDC balance < required amount, preflight blocks with a specific "insufficient balance" message.
+- Rate is live (not hardcoded). `cKesAddress` or `mentoBrokerAddress` being `null` in `celo.js` must cause the block to throw with a clear setup message, not silently use a wrong value.
 
 ### 13. Transfer Execution
 
@@ -139,11 +117,18 @@ Validation:
 
 Goal: Wire the scheduler worker to execute pending recurring transfers on schedule. Handle retries. Notify the recipient after each transfer.
 
+**Pre-block requirement — contact store persistence:**
+`contactStore` in `services/api/src/server.js` is currently an in-memory `Map`. It is wiped on every server restart. Before the worker can use it reliably, it must be persisted to a JSON file or SQLite. This is a hard prerequisite for Block 14: if the server restarts between scheduling a transfer and its execution date, the worker will find an empty contact store and silently fail to resolve the recipient address.
+Required action before starting Block 14: replace the in-memory Map with a file-backed store (`node:fs` JSON or `better-sqlite3`). The Block 14 validation criteria must include a server-restart test.
+
+**Pre-block requirement — duplicate detection shape:**
+`packages/core/src/domain/duplicates.js` operates on `intent`-shaped objects (`recipientAlias`, `amountMinor`). `App.jsx` uses a parallel implementation (`getPlanSignature`, `findSimilarPlan`) operating on `plan`-shaped objects. These will diverge when the worker checks for duplicates. Before Block 14, reconcile both to use the same shape — the canonical check should live in `packages/core/src/domain/duplicates.js` and `App.jsx` should translate to it.
+
 Files:
 
 - `services/worker/src/scheduler.js`
-- `packages/core/src/domain/duplicates.js`
-- `services/api/src/server.js` (add schedule store endpoints)
+- `packages/core/src/domain/duplicates.js` (reconcile with App.jsx duplicate check)
+- `services/api/src/server.js` (add schedule store + persisted contact store)
 - `.env`
 
 Validation:
@@ -152,6 +137,7 @@ Validation:
 - Failed transfers retry up to 3 times with exponential backoff.
 - Recipient is notified (testnet: log only; future: SMS via Kotani or push notification).
 - Worker dry-run mode logs intended actions without sending.
+- **Server restart test**: stop the API, restart it, confirm the worker can still resolve recipient addresses and scheduled transfers.
 
 ### 15. Mainnet + Channels (Future)
 

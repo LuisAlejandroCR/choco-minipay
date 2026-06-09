@@ -43,7 +43,7 @@ export function evaluateAgentPreflight({
   const isTestnet = normalizedChainId === CELO_SEPOLIA_TESTNET.chainId;
   const hasWallet = /^0x[a-fA-F0-9]{40}$/.test(walletAddress);
   const hasGas = hasPositiveWeiBalance(gasBalanceWei);
-  const hasContact = String(recipientContact).trim().length >= 3;
+  const hasContact = /^0x[a-fA-F0-9]{40}$/.test(String(recipientContact || ""));
   const gasBalanceLabel = formatCeloBalance(gasBalanceWei);
 
   const checks = [
@@ -67,9 +67,11 @@ export function evaluateAgentPreflight({
     ),
     buildCheck(
       "contact",
-      "Recipient contact",
+      "Recipient wallet",
       hasContact,
-      hasContact ? recipientContact : "Confirm the recipient phone, alias, or wallet contact.",
+      hasContact
+        ? `${String(recipientContact).slice(0, 6)}...${String(recipientContact).slice(-4)}`
+        : "Add the recipient's Celo Sepolia wallet address in the review screen.",
     ),
   ];
 

@@ -25,22 +25,36 @@ test("blocks preflight without gas funds", () => {
     walletAddress: "0x0000000000000000000000000000000000000001",
     chainId: "0xaa044c",
     gasBalanceWei: "0x0",
-    recipientContact: "+254 700 000 000",
+    recipientContact: "0x0000000000000000000000000000000000000002",
   });
 
   assert.equal(result.ok, false);
   assert.equal(result.status, "blocked");
   assert.equal(result.checks.find((check) => check.id === "gas").status, "block");
+  assert.equal(result.checks.find((check) => check.id === "contact").status, "pass");
 });
 
-test("passes preflight with testnet network, wallet, gas, and contact", () => {
+test("blocks preflight when recipient has no resolved wallet address", () => {
   const result = evaluateAgentPreflight({
     walletAddress: "0x0000000000000000000000000000000000000001",
     chainId: "11142220",
     gasBalanceWei: "0x1",
-    recipientContact: "Mom +254 700 000 000",
+    recipientContact: "Mom",
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.checks.find((check) => check.id === "contact").status, "block");
+});
+
+test("passes preflight with testnet network, wallet, gas, and resolved wallet address", () => {
+  const result = evaluateAgentPreflight({
+    walletAddress: "0x0000000000000000000000000000000000000001",
+    chainId: "11142220",
+    gasBalanceWei: "0x1",
+    recipientContact: "0x0000000000000000000000000000000000000002",
   });
 
   assert.equal(result.ok, true);
   assert.equal(result.status, "ready");
+  assert.equal(result.checks.find((check) => check.id === "contact").status, "pass");
 });

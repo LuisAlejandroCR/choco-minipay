@@ -28,6 +28,7 @@ import {
   formatWalletAddress,
   useMiniPayWallet,
 } from "./modules/wallet/useMiniPayWallet.js";
+import { useContacts } from "./modules/contacts/useContacts.js";
 import { ChocoMark } from "./components/ChocoMark.jsx";
 import { DemoVisual } from "./components/DemoVisual.jsx";
 import { PitchScreen } from "./components/PitchScreen.jsx";
@@ -43,6 +44,8 @@ import {
   publicReviewLinks,
   supportAboutContent,
 } from "./content/reviewLinks.js";
+import { isValidWalletAddress, formatContactShort } from "@core/domain/contacts.js";
+import { normalizeVoiceTranscript } from "./modules/voice/voiceNormalize.js";
 import { formatKesAmount } from "@core/domain/amounts.js";
 import { parseTransferIntent } from "@core/domain/intent.js";
 import {
@@ -199,7 +202,7 @@ function buildPlanFromCommand(commandText, basePlan = defaultPlan, selectedDeliv
   return buildPlanFromIntent(intent, basePlan);
 }
 
-function buildTransactionFromPlan(plan, type = "Plan confirmed", fromAddress = "") {
+function buildTransactionFromPlan(plan, type = "Plan confirmed", fromAddress = "", toAddress = "") {
   return {
     id: `tx-${Date.now()}`,
     planId: plan.id,
@@ -216,6 +219,7 @@ function buildTransactionFromPlan(plan, type = "Plan confirmed", fromAddress = "
     deliveryMode: plan.deliveryMode,
     from: fromAddress || TESTNET_SCENARIO.senderAddress,
     to: getRecipientContactLabel(plan),
+    toAddress,   // resolved 0x wallet address; "" until Block 11 contact is saved
   };
 }
 
@@ -273,6 +277,7 @@ export function App() {
   const [transferBlockMessage, setTransferBlockMessage] = useState("");
   const [resolvedPreviewPlan, setResolvedPreviewPlan] = useState(null);
   const wallet = useMiniPayWallet();
+  const { getContact, saveContact } = useContacts();
   const isWalletVerified = wallet.isReady;
 
   const activePlan = useMemo(
@@ -445,7 +450,9 @@ export function App() {
     void runAgentPreflight(plan);
   }
 
-  async function runAgentPreflight(plan = activePlan || defaultPlan) {
+  // recipientAddressOverride: pass a wallet address when the user has just typed
+  // one into ContactCapture but it hasn't been saved yet (avoids React state delay).
+  async function runAgentPreflight(plan = activePlan || defaultPlan, recipientAddressOverride = null) {
     if (!wallet.address) {
       setAgentPreflight({
         agent: "Choco Agent AI",
@@ -460,6 +467,11 @@ export function App() {
     setAgentPreflightStatus("loading");
     setTransferBlockMessage("");
 
+    // Prefer the override (just entered in ContactCapture), then the stored contact,
+    // then fall back to empty so preflight correctly blocks with "add wallet address".
+    const recipientContact =
+      recipientAddressOverride ?? getContact(plan.recipient)?.walletAddress ?? "";
+
     try {
       const response = await fetch(`${API_BASE_URL}/v1/agent/preflight`, {
         method: "POST",
@@ -469,7 +481,7 @@ export function App() {
         body: JSON.stringify({
           walletAddress: wallet.address,
           chainId: wallet.chainId,
-          recipientContact: getRecipientContactLabel(plan),
+          recipientContact,
           payAsset: plan.payAsset,
           amount: plan.routeEstimate,
         }),
@@ -487,6 +499,18 @@ export function App() {
       });
       setAgentPreflightStatus("idle");
     }
+  }
+
+  // Save to localStorage and mirror to the API so the worker can read it.
+  async function saveContactAndSync(alias, walletAddress) {
+    saveContact(alias, walletAddress);
+    try {
+      await fetch(`${API_BASE_URL}/v1/contacts`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ alias, walletAddress, network: "celoSepolia" }),
+      });
+    } catch { /* non-blocking — API mirror is best-effort on testnet */ }
   }
 
   function nextDemoStep() {
@@ -539,10 +563,12 @@ export function App() {
     }
 
     setSelectedPlanId(committedPlan.id);
+    const recipientContact = getContact(planToCommit.recipient);
     const transaction = buildTransactionFromPlan(
       committedPlan,
       reviewMode === "update" ? "Plan updated" : "Plan confirmed",
       wallet.address,
+      recipientContact?.walletAddress || "",
     );
     setTransactions((items) => [transaction, ...items]);
     setSelectedTransactionId(transaction.id);
@@ -742,6 +768,12 @@ export function App() {
               agentPreflight={agentPreflight}
               agentPreflightStatus={agentPreflightStatus}
               transferBlockMessage={transferBlockMessage}
+              resolvedContact={getContact((resolvedPreviewPlan ?? previewPlan).recipient)}
+              onSaveContact={(address, shouldSave) => {
+                const plan = resolvedPreviewPlan ?? previewPlan;
+                if (shouldSave) void saveContactAndSync(plan.recipient, address);
+                void runAgentPreflight(plan, address);
+              }}
               onEdit={() => setScreen("planEditor")}
               onConfirm={confirmPlan}
             />
@@ -1279,7 +1311,15 @@ function ReceiptDetailScreen({ transaction, onBack, onHome, onPlans }) {
             </div>
             <div className="verify-list">
               <ReceiptRow icon={<Wallet size={18} />} label="From" value={transaction.from} mono />
-              <ReceiptRow icon={<Check size={18} />} label="To" value={transaction.to} />
+              <ReceiptRow
+                icon={<Check size={18} />}
+                label="To"
+                value={
+                  transaction.toAddress
+                    ? `${transaction.to} · ${transaction.toAddress.slice(0, 6)}...${transaction.toAddress.slice(-4)}`
+                    : transaction.to
+                }
+              />
               <ReceiptRow icon={<CalendarDays size={18} />} label="Date" value={transaction.date} />
               <ReceiptRow icon={<ReceiptText size={18} />} label="Hash" value={transaction.hash} mono />
             </div>
@@ -1333,28 +1373,6 @@ function PlanDetailScreen({ plan, onHome, onHistory, onBack, onEdit, onDelete })
   );
 }
 
-// Web Speech API transcribes financial terms phonetically.
-// These substitutions run on every interim result before the command hits the parser.
-const VOICE_TENS = { twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90 };
-const VOICE_NUMBERS = {
-  one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9,
-  ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15,
-  sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19, ...VOICE_TENS,
-  hundred: 100,
-};
-
-function normalizeVoiceTranscript(text) {
-  return text
-    .replace(
-      /\b(twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)[\s-](one|two|three|four|five|six|seven|eight|nine)\b/gi,
-      (_, tens, ones) => String((VOICE_TENS[tens.toLowerCase()] || 0) + (VOICE_NUMBERS[ones.toLowerCase()] || 0)),
-    )
-    .replace(
-      /\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred)\b/gi,
-      (word) => String(VOICE_NUMBERS[word.toLowerCase()] || word),
-    )
-    .replace(/\b(kiss|case|keys|kez)\b/gi, "KES");
-}
 
 function PlanEditorScreen({
   mode,
@@ -1693,7 +1711,54 @@ function DuplicateGuardScreen({ plan, match, onEdit, onProceed }) {
   );
 }
 
-function ReviewScreen({ plan, mode, agentPreflight, agentPreflightStatus, transferBlockMessage, onEdit, onConfirm }) {
+// ContactCapture — shown in ReviewScreen when the plan's recipient has no stored wallet address.
+// The user pastes a Celo Sepolia 0x address. Optionally saves it under the alias for future plans.
+function ContactCapture({ alias, onSubmit }) {
+  const [address, setAddress] = useState("");
+  const [shouldSave, setShouldSave] = useState(true);
+  const isValid = isValidWalletAddress(address);
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    if (isValid) onSubmit(address, shouldSave);
+  }
+
+  return (
+    <section className="contact-capture" aria-label={`${alias}'s wallet address`}>
+      <span className="contact-capture-eyebrow">Recipient address</span>
+      <b className="contact-capture-heading">{alias}'s Celo Sepolia wallet</b>
+      <form className="wallet-address-form" onSubmit={handleSubmit}>
+        <div>
+          <input
+            type="text"
+            inputMode="text"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck="false"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="0x..."
+            aria-label="Recipient wallet address"
+          />
+          <button type="submit" disabled={!isValid}>Use</button>
+        </div>
+        {isValid && (
+          <label className="contact-save-toggle">
+            <input
+              type="checkbox"
+              checked={shouldSave}
+              onChange={(e) => setShouldSave(e.target.checked)}
+            />
+            Save as {alias}
+          </label>
+        )}
+        <small>Celo Sepolia testnet address</small>
+      </form>
+    </section>
+  );
+}
+
+function ReviewScreen({ plan, mode, agentPreflight, agentPreflightStatus, transferBlockMessage, resolvedContact, onSaveContact, onEdit, onConfirm }) {
   const isSendNow = plan.deliveryMode === "now";
   const chip = isSendNow ? "SEND NOW" : mode === "update" ? "UPDATE" : mode === "demo" ? "DEMO" : "NEW";
   const isWalletCheckLoading = agentPreflightStatus === "loading";
@@ -1728,7 +1793,11 @@ function ReviewScreen({ plan, mode, agentPreflight, agentPreflightStatus, transf
         <div className="route-arrow"><ArrowRight size={22} /></div>
         <div className="route-node">
           <b>{plan.asset}</b>
-          <small>{plan.recipient} - Kenya</small>
+          <small>
+            {resolvedContact
+              ? `${plan.recipient} · ${formatContactShort(resolvedContact)}`
+              : `${plan.recipient} - Kenya`}
+          </small>
         </div>
       </div>
 
@@ -1738,6 +1807,10 @@ function ReviewScreen({ plan, mode, agentPreflight, agentPreflightStatus, transf
         <SummaryCard label="Fee" value={plan.fee} />
         <SummaryCard label="Retries" value="3 attempts" />
       </div>
+
+      {!resolvedContact && (
+        <ContactCapture alias={plan.recipient} onSubmit={onSaveContact} />
+      )}
 
       <WalletCheckStatus result={agentPreflight} status={agentPreflightStatus} />
 
