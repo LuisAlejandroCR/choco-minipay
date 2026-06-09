@@ -44,30 +44,40 @@ Status:
 | 7. Public review pages | Support, privacy, terms, and stats pages are review-ready, mobile-first, and linked from the in-app `?` panel. | `public/*.html`, `public/review.css`, `public/support.js`, `apps/web/src/content/reviewLinks.js`, `apps/web/src/App.jsx`, `apps/web/src/styles.css` |
 | 8. MiniPay wallet integration | Real MiniPay provider replaces demo behavior. Detection, network switching, agent preflight, MetaMask Mobile fallback, manual-address read-only mode, and send-now guard all verified locally. MiniPay WebView final validation pending deploy. | `apps/web/src/modules/wallet/useMiniPayWallet.js`, `apps/web/src/config/runtime.js`, `.env`, `apps/web/src/App.jsx`, `packages/core/src/domain/preflight.js`, `services/api/src/server.js`, `packages/core/src/config/celo.js` |
 | 9. Agent Metadata And Registration | Agent #309 confirmed live on Celo Sepolia Identity Registry. Metadata URL returns 200. Evidence recorded in `ops/agent-registry/agent.sepolia.json` and runbook. Reputation Registry and `agentId` added to network config. Open item: tokenURI not content-addressed (`https://`); pin to IPFS and call `setAgentURI` before mainnet. | `ops/agent-registry/agent.sepolia.json`, `docs/runbook-celo-agent-registration.md`, `packages/core/src/config/celo.js` |
-| 10. API Contracts | Text and voice commands route through `POST /v1/intent/preview`. API intent drives `buildPlanFromIntent` and the committed plan. Voice uses `SpeechRecognition` with auto-restart on Safari silence timeout and KES homophone normalization. `POST /v1/agent/preflight` returns four checks. Edit-plan back button fixed. x402 and Whisper transcription fallback deferred — see notes in blocks 14 and 15. | `apps/web/src/App.jsx`, `services/api/src/server.js`, `docs/architecture/architecture.md` |
+| 10. API Contracts | Text and voice commands route through `POST /v1/intent/preview`. API intent drives `buildPlanFromIntent` and the committed plan. Voice uses `SpeechRecognition` with auto-restart on Safari silence timeout and KES homophone normalization. `POST /v1/agent/preflight` returns four checks. Edit-plan back button fixed. x402 (pay-per-request) and Whisper (voice transcription fallback) were scoped but **not implemented** — both are future development, see Block 15. | `apps/web/src/App.jsx`, `services/api/src/server.js`, `docs/architecture/architecture.md` |
 
 ## Current Block
 
 Block: 11. Recipient Contact
 
-Goal: Replace the "Mom" alias with a real contact record — phone number or wallet address — so the transfer has a real destination. This is the minimum needed before any real fund movement. On testnet: contacts stored in `localStorage`. API exposes a contact CRUD surface for the worker to read.
+Goal: Replace the "Mom" alias with a real Celo Sepolia testnet wallet address so the transfer has a real on-chain destination. This is the minimum needed before any fund movement. On testnet, contacts are stored in `localStorage`. API exposes a contact CRUD surface for the worker to read.
 
-The UX: if the user says "send my mum 10 KES" and Choco has no contact linked to "Mom", the review screen prompts to add one. Once linked, all plans for "Mom" resolve automatically.
+The UX:
+1. User says "send my mum 10 KES."
+2. If Choco has no wallet linked to "Mom", the review screen shows a prompt: "What is Mom's Celo Sepolia wallet address?"
+3. User pastes a `0x...` testnet address.
+4. Choco asks: "Save this address as Mom?" — user confirms or skips.
+5. If saved, all future plans for "Mom" resolve to that address automatically.
+6. Receipt shows both the alias and the wallet address.
+
+ODIS / SocialConnect phone-number lookup is future (Block 15). Testnet only needs a wallet address.
 
 Files:
 
-- `packages/core/src/domain/contacts.js` (new — contact schema and validation)
-- `apps/web/src/modules/contacts/useContacts.js` (new — localStorage CRUD hook)
-- `apps/web/src/App.jsx` (contact prompt in review, show resolved contact in receipt)
-- `services/api/src/server.js` (add `GET/POST /v1/contacts`)
+- `packages/core/src/domain/contacts.js` (new — contact schema: `{ alias, walletAddress, network }` + address validation)
+- `apps/web/src/modules/contacts/useContacts.js` (new — `localStorage` CRUD hook: `getContact(alias)`, `saveContact(alias, address)`, `listContacts()`)
+- `apps/web/src/App.jsx` (contact prompt on review screen; resolved address shown in receipt and preflight)
+- `services/api/src/server.js` (add `GET /v1/contacts`, `POST /v1/contacts` for worker reads)
 
 Validation:
 
-- User can link "Mom" to a phone number (`+254 7xx xxx xxx`) or wallet (`0x...`).
-- Review screen shows the resolved contact address, not just the alias.
-- Receipt shows actual destination alongside the alias.
-- Preflight "recipient contact" check passes only when a real contact is linked.
-- `GET /v1/contacts` returns the stored contacts list.
+- If "Mom" has no linked address, review screen shows the wallet-address prompt before preflight can pass.
+- User can paste a Celo Sepolia `0x...` address and optionally save it under the alias.
+- Saved contacts persist across page reloads (localStorage).
+- Review screen shows `Mom → 0xAb12...` (alias + truncated address).
+- Receipt shows full alias and address.
+- Preflight "recipient contact" check passes only when a resolved wallet address is present.
+- `GET /v1/contacts` returns the stored contact list.
 
 Status: Not started.
 
@@ -77,7 +87,7 @@ Status: Not started.
 
 Goal: Read the sender's actual USDC balance from the connected wallet. Fetch the live USDC → cKES conversion rate from Mento. Show the user exactly what they have and what the recipient gets before confirming.
 
-The UX: "You have $2.10 USDC — sending 271 cKES to Mom (+254 7xx xxx xxx)."
+The UX: "You have $2.10 USDC — sending 271 cKES to Mom (0xAb12...ef34)."
 
 Files:
 
@@ -136,11 +146,6 @@ Files:
 - `services/api/src/server.js` (add schedule store endpoints)
 - `.env`
 
-Notes:
-
-- x402 pay-per-API-call middleware (deferred from block 10) fits here — the worker is the internal caller so it needs a funded wallet address, not a per-request payment. x402 is more relevant when opening the API to third-party agents. Defer to block 15 or a standalone block.
-- Whisper transcription fallback (deferred from block 10) fits here as an optional `services/transcriber/` Python service. Only add if MiniPay WebView is confirmed non-Chrome.
-
 Validation:
 
 - Worker polls the schedule store and fires transfers on the correct day.
@@ -157,8 +162,14 @@ Notes:
 - Requires production approval, KYC/AML review, and Mento mainnet liquidity verification.
 - Kotani Pay API handles cKES → M-Pesa conversion for recipients without a crypto wallet.
 - UK → NGN corridor is the second target (cNGN via Mento; off-ramp via Yellow Card).
-- x402 and ERC-8004 Reputation Registry integration belong here — agent charges micro-fees per route and builds on-chain trust score.
+- ERC-8004 Reputation Registry integration — agent builds on-chain trust score across transfers.
 - IPFS-pinned agent.json + `setAgentURI(309, "ipfs://...")` for ERC-8004 compliance before mainnet registration.
+- ODIS / SocialConnect: phone number → wallet address lookup on Celo. Lets recipients use a phone number instead of a wallet address. Required for non-crypto-native recipients.
+
+**Future Development (not yet implemented — do not start before Block 15):**
+
+- **x402 pay-per-request**: HTTP 402 middleware on the API so third-party agents pay per `/v1/intent/preview` or `/v1/quote` call in USDC. Not needed for Choco's own frontend or worker (same owner). Relevant when the API is opened to external ERC-8004 agents. Reference: `https://portal.thirdweb.com/x402`.
+- **Whisper voice transcription fallback**: `services/transcriber/` Python FastAPI service loading the local `whisper-base` model. Fallback for environments where `SpeechRecognition` is unavailable (non-Chrome, offline). Add `initial_prompt` with financial vocabulary ("USDC, KES, cKES, MiniPay, every 1st") to improve accuracy. Use `POST /v1/voice/transcribe` as the API endpoint.
 
 Validation:
 
