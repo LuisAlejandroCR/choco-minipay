@@ -713,6 +713,7 @@ export function App() {
               setDeliveryMode={changeDeliveryMode}
               onBuild={buildPlan}
               onHome={() => setScreen("plan")}
+              onBack={reviewMode === "update" ? () => setScreen("planDetail") : null}
             />
           )}
           {visibleScreen === "deletePlan" && activePlan && (
@@ -1363,6 +1364,7 @@ function PlanEditorScreen({
   setDeliveryMode,
   onBuild,
   onHome,
+  onBack = null,
 }) {
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -1567,7 +1569,9 @@ function PlanEditorScreen({
 
       {voiceError && <p className="wallet-error">{voiceError}</p>}
 
-      {mode !== "update" && (
+      {mode === "update" ? (
+        <button className="secondary-dark editor-home-button" type="button" onClick={onBack}>Back to plan</button>
+      ) : (
         <button className="secondary-dark editor-home-button" type="button" onClick={onHome}>Back home</button>
       )}
     </div>
