@@ -5,6 +5,10 @@ import {
   parseKesAmount,
 } from "./amounts.js";
 
+export const DEFAULT_CORRIDOR = "US to Kenya";
+export const DEFAULT_SOURCE_ASSET = "USDC";
+export const DEFAULT_DESTINATION_ASSET = "KESm";
+
 export function parseRecipientAlias(text) {
   const normalized = String(text || "").toLowerCase();
   if (normalized.includes("sister")) return "Sister";
@@ -24,7 +28,7 @@ export function parseSchedule(text, deliveryMode = "schedule") {
     return { deliveryMode: "schedule", cadence: "weekly", dayLabel: "Monday" };
   }
 
-  if (/15/.test(normalized)) {
+  if (/\b15(th)?\b/.test(normalized)) {
     return { deliveryMode: "schedule", cadence: "monthly", dayLabel: "15th" };
   }
 
@@ -40,11 +44,11 @@ export function parseTransferIntent(commandText, options = {}) {
     rawCommand: commandText,
     recipientAlias: parseRecipientAlias(commandText),
     amountMinor,
-    sourceAsset: options.sourceAsset || "USDC",
-    destinationAsset: options.destinationAsset || "KESm",
+    sourceAsset: options.sourceAsset || DEFAULT_SOURCE_ASSET,
+    destinationAsset: options.destinationAsset || DEFAULT_DESTINATION_ASSET,
     estimatedSourceAmount: estimateUsdcForKes(amountMinor, kesPerUsdc),
     kesPerUsdc,
-    corridor: options.corridor || "US to Kenya",
+    corridor: options.corridor || DEFAULT_CORRIDOR,
     ...schedule,
   };
 }

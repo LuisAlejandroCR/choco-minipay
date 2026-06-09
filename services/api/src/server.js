@@ -23,9 +23,16 @@ function sendJson(response, statusCode, body) {
   response.end(JSON.stringify(body));
 }
 
+const MAX_BODY_BYTES = 4096;
+
 async function readRequestJson(request) {
   const chunks = [];
-  for await (const chunk of request) chunks.push(chunk);
+  let totalBytes = 0;
+  for await (const chunk of request) {
+    totalBytes += chunk.length;
+    if (totalBytes > MAX_BODY_BYTES) throw new Error("Request body too large");
+    chunks.push(chunk);
+  }
   if (chunks.length === 0) return {};
   return JSON.parse(Buffer.concat(chunks).toString("utf8"));
 }
@@ -80,7 +87,8 @@ const server = createServer(async (request, response) => {
   }
 
   if (request.method === "POST" && url.pathname === "/v1/intent/preview") {
-    const body = await readRequestJson(request);
+    let body;
+    try { body = await readRequestJson(request); } catch { sendJson(response, 413, { error: "payload_too_large" }); return; }
     const intent = parseTransferIntent(body.command || "", {
       deliveryMode: body.deliveryMode || "schedule",
     });
@@ -99,7 +107,8 @@ const server = createServer(async (request, response) => {
   }
 
   if (request.method === "POST" && url.pathname === "/v1/agent/preflight") {
-    const body = await readRequestJson(request);
+    let body;
+    try { body = await readRequestJson(request); } catch { sendJson(response, 413, { error: "payload_too_large" }); return; }
     let gasBalanceWei = "0x0";
 
     try {
