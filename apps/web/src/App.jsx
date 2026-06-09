@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -174,16 +174,7 @@ function getTransactionStatus(plan, type) {
   return "Scheduled";
 }
 
-function buildPlanFromCommand(commandText, basePlan = defaultPlan, selectedDeliveryMode = "") {
-  const intent = parseTransferIntent(commandText, {
-    deliveryMode: selectedDeliveryMode,
-    fallbackAmount: basePlan.amount,
-    sourceAsset: basePlan.payAsset,
-    destinationAsset: basePlan.asset,
-    corridor: basePlan.corridor,
-    kesPerUsdc: KES_PER_USDC,
-  });
-
+function buildPlanFromIntent(intent, basePlan = defaultPlan) {
   return {
     ...basePlan,
     amount: formatKesAmount(intent.amountMinor),
@@ -194,6 +185,18 @@ function buildPlanFromCommand(commandText, basePlan = defaultPlan, selectedDeliv
     status: intent.deliveryMode === "now" ? "Ready" : "Active",
     deliveryMode: intent.deliveryMode,
   };
+}
+
+function buildPlanFromCommand(commandText, basePlan = defaultPlan, selectedDeliveryMode = "") {
+  const intent = parseTransferIntent(commandText, {
+    deliveryMode: selectedDeliveryMode,
+    fallbackAmount: basePlan.amount,
+    sourceAsset: basePlan.payAsset,
+    destinationAsset: basePlan.asset,
+    corridor: basePlan.corridor,
+    kesPerUsdc: KES_PER_USDC,
+  });
+  return buildPlanFromIntent(intent, basePlan);
 }
 
 function buildTransactionFromPlan(plan, type = "Plan confirmed", fromAddress = "") {
@@ -268,6 +271,7 @@ export function App() {
   const [agentPreflight, setAgentPreflight] = useState(null);
   const [agentPreflightStatus, setAgentPreflightStatus] = useState("idle");
   const [transferBlockMessage, setTransferBlockMessage] = useState("");
+  const [resolvedPreviewPlan, setResolvedPreviewPlan] = useState(null);
   const wallet = useMiniPayWallet();
   const isWalletVerified = wallet.isReady;
 
@@ -366,6 +370,7 @@ export function App() {
   }
 
   function openNewPlan() {
+    setResolvedPreviewPlan(null);
     setReviewMode("create");
     setDeliveryMode("schedule");
     setCommand("");
@@ -373,6 +378,7 @@ export function App() {
   }
 
   function openImmediateSend() {
+    setResolvedPreviewPlan(null);
     setReviewMode("create");
     setDeliveryMode("now");
     setCommand("");
@@ -390,6 +396,7 @@ export function App() {
 
   function openEditPlan() {
     const targetPlan = activePlan || defaultPlan;
+    setResolvedPreviewPlan(null);
     setReviewMode("update");
     setDeliveryMode(targetPlan.deliveryMode || "schedule");
     setCommand(DEFAULT_COMMANDS.edit(targetPlan.recipient));
@@ -411,16 +418,31 @@ export function App() {
     });
   }
 
-  function buildPlan(nextCommand = "") {
+  async function buildPlan(nextCommand = "") {
     const commandForBuild = nextCommand || command;
-    if (nextCommand) {
-      setCommand(nextCommand);
-    }
+    if (nextCommand) setCommand(nextCommand);
     setAgentPreflight(null);
     setAgentPreflightStatus("idle");
     setTransferBlockMessage("");
-    void runAgentPreflight(buildPlanFromCommand(commandForBuild, activePlan || defaultPlan, deliveryMode));
+    setResolvedPreviewPlan(null);
+
+    let plan;
+    try {
+      const res = await fetch(`${API_BASE_URL}/v1/intent/preview`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ command: commandForBuild, deliveryMode }),
+      });
+      if (res.ok) {
+        const { intent } = await res.json();
+        plan = buildPlanFromIntent(intent, activePlan || defaultPlan);
+      }
+    } catch { /* API unavailable — local parse below */ }
+
+    plan ??= buildPlanFromCommand(commandForBuild, activePlan || defaultPlan, deliveryMode);
+    setResolvedPreviewPlan(plan);
     setScreen("processing");
+    void runAgentPreflight(plan);
   }
 
   async function runAgentPreflight(plan = activePlan || defaultPlan) {
@@ -480,6 +502,7 @@ export function App() {
   }
 
   function confirmPlan() {
+    const planToCommit = resolvedPreviewPlan || previewPlan;
     let committedPlan;
 
     if (!agentPreflight?.ok) {
@@ -487,7 +510,7 @@ export function App() {
       return;
     }
 
-    if (previewPlan.deliveryMode === "now") {
+    if (planToCommit.deliveryMode === "now") {
       setTransferBlockMessage("Testnet transfer execution is not connected yet. Choco prepared the route, but no funds were moved and no receipt was created.");
       return;
     }
@@ -501,14 +524,14 @@ export function App() {
     if (reviewMode === "update" && activePlan) {
       committedPlan = {
         ...activePlan,
-        ...previewPlan,
+        ...planToCommit,
         id: activePlan.id,
         hash: TESTNET_SCENARIO.hashes.updated,
       };
       setPlans((items) => items.map((item) => (item.id === activePlan.id ? committedPlan : item)));
     } else {
       committedPlan = {
-        ...previewPlan,
+        ...planToCommit,
         id: `plan-${Date.now()}`,
         hash: TESTNET_SCENARIO.hashes.default,
       };
@@ -698,14 +721,14 @@ export function App() {
           {visibleScreen === "processing" && (
             <ProcessingScreen
               step={runStep}
-              plan={previewPlan}
+              plan={resolvedPreviewPlan ?? previewPlan}
               command={command}
               duplicateAttempt={duplicateAttempt}
             />
           )}
           {visibleScreen === "duplicateGuard" && duplicateAttempt && (
             <DuplicateGuardScreen
-              plan={previewPlan}
+              plan={resolvedPreviewPlan ?? previewPlan}
               match={duplicateAttempt}
               onEdit={() => setScreen("planEditor")}
               onProceed={continueDuplicateAttempt}
@@ -713,7 +736,7 @@ export function App() {
           )}
           {visibleScreen === "review" && (
             <ReviewScreen
-              plan={previewPlan}
+              plan={resolvedPreviewPlan ?? previewPlan}
               mode={reviewMode}
               agentPreflight={agentPreflight}
               agentPreflightStatus={agentPreflightStatus}
@@ -1321,15 +1344,22 @@ function PlanEditorScreen({
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [voiceError, setVoiceError] = useState("");
+  const speechRef = useRef(null);
+  const hasSpeechSupport = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
   const hasText = command.trim().length > 0;
   const title = mode === "update"
     ? "Update plan"
     : deliveryMode === "now"
       ? "Send money"
       : "Schedule transfer";
-  const voiceTranscript = deliveryMode === "now"
-    ? DEFAULT_COMMANDS.now
-    : DEFAULT_COMMANDS.schedule;
+
+  useEffect(() => {
+    return () => {
+      speechRef.current?.stop();
+      speechRef.current = null;
+    };
+  }, []);
 
   useEffect(() => {
     if (!isRecording || isPaused) return undefined;
@@ -1344,25 +1374,74 @@ function PlanEditorScreen({
   function startRecording() {
     setRecordingSeconds(0);
     setIsPaused(false);
+    setVoiceError("");
+
+    if (!hasSpeechSupport) {
+      setVoiceError("Voice input is not available in this browser. Type your message instead.");
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+
+    recognition.onresult = (event) => {
+      let transcript = "";
+      for (let i = 0; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+      setCommand(transcript.trim());
+    };
+
+    recognition.onerror = (event) => {
+      const msg = event.error === "not-allowed"
+        ? "Microphone access was denied."
+        : event.error === "no-speech"
+          ? "No speech detected. Tap the mic to try again."
+          : "Voice input failed. Type your message instead.";
+      setVoiceError(msg);
+      speechRef.current = null;
+      setIsRecording(false);
+      setIsPaused(false);
+      setRecordingSeconds(0);
+    };
+
+    recognition.onend = () => {
+      if (speechRef.current) {
+        speechRef.current = null;
+        setIsRecording(false);
+        setIsPaused(false);
+        setRecordingSeconds(0);
+      }
+    };
+
+    speechRef.current = recognition;
+    recognition.start();
     setIsRecording(true);
   }
 
   function cancelRecording() {
+    speechRef.current?.stop();
+    speechRef.current = null;
     setIsRecording(false);
     setIsPaused(false);
     setRecordingSeconds(0);
   }
 
   function submitRecording() {
+    speechRef.current?.stop();
+    speechRef.current = null;
     setIsRecording(false);
     setIsPaused(false);
     setRecordingSeconds(0);
-    onBuild(voiceTranscript);
+    if (command.trim()) void onBuild();
   }
 
   function submitComposer() {
     if (hasText) {
-      onBuild();
+      void onBuild();
       return;
     }
 
@@ -1427,7 +1506,7 @@ function PlanEditorScreen({
               value={command}
               onChange={(event) => setCommand(event.target.value)}
               onKeyDown={(event) => {
-                if (event.key === "Enter" && hasText) onBuild();
+                if (event.key === "Enter" && hasText) void onBuild();
               }}
               placeholder="Type a message"
               aria-label="Transfer instruction"
@@ -1443,6 +1522,8 @@ function PlanEditorScreen({
           </div>
         )}
       </section>
+
+      {voiceError && <p className="wallet-error">{voiceError}</p>}
 
       {mode !== "update" && (
         <button className="secondary-dark editor-home-button" type="button" onClick={onHome}>Back home</button>
