@@ -1,6 +1,10 @@
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { getCeloNetworkConfig } from "../../../packages/core/src/config/celo.js";
+
+const AGENT_JSON_PATH = join(dirname(fileURLToPath(import.meta.url)), "../../../public/agent.json");
 import { parseTransferIntent } from "../../../packages/core/src/domain/intent.js";
 import { evaluateAgentPreflight } from "../../../packages/core/src/domain/preflight.js";
 
@@ -70,7 +74,7 @@ const server = createServer(async (request, response) => {
   }
 
   if (request.method === "GET" && url.pathname === "/v1/agent") {
-    const content = await readFile("public/agent.json", "utf8");
+    const content = await readFile(AGENT_JSON_PATH, "utf8");
     sendJson(response, 200, JSON.parse(content));
     return;
   }
@@ -125,6 +129,7 @@ const server = createServer(async (request, response) => {
   sendJson(response, 404, { error: "not_found" });
 });
 
-server.listen(port, "127.0.0.1", () => {
-  console.log(`choco-api listening on http://127.0.0.1:${port}`);
+const host = process.env.NODE_ENV === "production" ? "0.0.0.0" : "127.0.0.1";
+server.listen(port, host, () => {
+  console.log(`choco-api listening on http://${host}:${port}`);
 });
