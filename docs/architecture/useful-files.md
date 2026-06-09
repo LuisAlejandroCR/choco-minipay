@@ -8,7 +8,9 @@ This repository should stay focused on the production MiniPay app. Keep source, 
 | --- | --- |
 | `.github/workflows/ci.yml` | Runs production checks on push and pull requests. |
 | `apps/web` | MiniPay-facing web app shell. |
-| `apps/web/src/App.jsx` | Root app state, screen routing, wallet guard, and the async `buildPlan` flow: POSTs to `/v1/intent/preview`, stores the resolved plan in `resolvedPreviewPlan`, then triggers preflight. Owns `PlanEditorScreen` (voice input), `ContactCapture` (recipient wallet prompt), and `ReviewScreen` (contact-resolved route card + wallet check). |
+| `apps/web/src/App.jsx` | Root app state (~350 lines), screen routing, wallet guard, and the async `buildPlan` flow: POSTs to `/v1/intent/preview`, stores the resolved plan in `resolvedPreviewPlan`, then triggers preflight. All screen components have been extracted to `apps/web/src/screens/`; all pure helpers to `apps/web/src/utils/planUtils.js`. |
+| `apps/web/src/screens/` | One file per screen: `SplashScreen`, `PlanScreen`, `WalletGateScreen`, `DemoTourScreen`, `PlansScreen`, `HistoryScreen`, `ReceiptDetailScreen`, `PlanDetailScreen`, `PlanEditorScreen` (voice input), `DeletePlanScreen`, `ProcessingScreen`, `DuplicateGuardScreen`, `ReviewScreen`, `QuickInfoPanel`. Each file owns only its own JSX, local state, and local effects. |
+| `apps/web/src/utils/planUtils.js` | Pure module-scope helpers extracted from App.jsx: timestamp formatters, plan/transaction builders, duplicate-detection helpers, demo timer formatter. No React imports. Importable by both screen files and App.jsx. |
 | `apps/web/src/modules/contacts/useContacts.js` | `localStorage` CRUD hook for Block 11 contacts. `getContact(alias)` returns a stored `{ alias, walletAddress, network }` record or null. `saveContact(alias, walletAddress)` validates and persists. App.jsx calls `saveContactAndSync` to also mirror to `POST /v1/contacts`. |
 | `apps/web/src/components` | Reusable Choco visual components, including pitch and guided-demo visuals. |
 | `apps/web/src/content/demoFlow.js` | Source of truth for pitch/demo copy and guided-demo step timing. |
@@ -61,15 +63,17 @@ This repository should stay focused on the production MiniPay app. Keep source, 
 
 These are not blocking any current block but should be completed before the codebase is handed to a larger team or opened to external contributors.
 
-| Refactor | File | Why |
-| --- | --- | --- |
-| Extract screen components | `apps/web/src/App.jsx` (1,900 lines) → `apps/web/src/screens/` | Single Responsibility. Each screen (`PlanEditorScreen`, `ReviewScreen`, `ReceiptDetailScreen`, `WalletGateScreen`, etc.) should be its own file. `App.jsx` becomes a router that wires state to screens. |
-| Extract voice recorder hook | `PlanEditorScreen` voice logic → `apps/web/src/modules/voice/useVoiceRecorder.js` | SpeechRecognition lifecycle is 120+ lines inside a screen component. Extracting it makes it independently testable and reusable. |
-| Consolidate duplicate detection | `App.jsx::getPlanSignature` + `packages/core/src/domain/duplicates.js` | Two implementations with different object shapes. The worker will use `duplicates.js`; the frontend uses the App.jsx version. Must converge before Block 14 or the worker will have divergent behavior. |
-| Replace three-piece preflight state | `agentPreflight`, `agentPreflightStatus`, `transferBlockMessage` → `useAgentPreflight()` hook | A tightly coupled triple that always changes together. A single hook returning `{ status, result, blockMessage, run }` reduces `App` state from 14 useState to 11 and makes the loading/error/ready cycle easier to reason about. |
-| Move timer state down | `demoElapsedSeconds`, `demoStep`, `runStep`, `isRecording`/`isPaused`/`recordingSeconds` | These are currently in App and cause full-tree re-renders on every second tick. Each should live in its local screen component. |
-| `isValidWalletAddress` canonical source | **Done** — `packages/core/src/domain/contacts.js` is now the single source. `useMiniPayWallet.js` re-exports it. | Previously duplicated with slightly different trim behavior. |
-| `normalizeVoiceTranscript` canonical source | **Done** — `apps/web/src/modules/voice/voiceNormalize.js` is now the single source. Imported by `App.jsx`. Tested. | Previously an untestable inline function in a 1,900-line component file. |
+| Refactor | File | Why | Status |
+| --- | --- | --- | --- |
+| Extract screen components | `apps/web/src/App.jsx` → `apps/web/src/screens/` + `apps/web/src/utils/planUtils.js` | Single Responsibility. Each screen is its own file. `App.jsx` becomes a ~350-line router. Pure helpers live in `planUtils.js`. | **Done** |
+| Consolidate duplicate detection | `packages/core/src/domain/duplicates.js` | `planSignature` now handles both intent-shape (`recipientAlias`, `amountMinor`) and plan-shape (`recipient`, `amount`) via `??` fallbacks. `buildPlanFromIntent` preserves raw intent fields (`amountMinor`, `cadence`, `dayLabel`) on every committed plan so worker and frontend produce identical signatures. Block 14 prerequisite met. | **Done** |
+| `contactStore` file-backed persistence | `services/api/src/server.js` | Replaced in-memory `Map` with a JSON file store (`services/api/contacts.json`). Contacts survive server restarts. Block 14 prerequisite met. | **Done** |
+| DEV debug logging | `apps/web/src/App.jsx` | Added `import.meta.env.DEV` guard for `console.debug` logging the `resolvedPreviewPlan` vs `previewPlan` resolution path on every render. | **Done** |
+| Extract voice recorder hook | `PlanEditorScreen` voice logic → `apps/web/src/modules/voice/useVoiceRecorder.js` | SpeechRecognition lifecycle is 120+ lines inside a screen component. Extracting it makes it independently testable and reusable. | Pending (before Block 15) |
+| Replace three-piece preflight state | `agentPreflight`, `agentPreflightStatus`, `transferBlockMessage` → `useAgentPreflight()` hook | A tightly coupled triple that always changes together. A single hook returning `{ status, result, blockMessage, run }` reduces `App` state from 14 useState to 11 and makes the loading/error/ready cycle easier to reason about. | Pending (before Block 15) |
+| Move demo/processing timer state down | `demoElapsedSeconds`, `demoStep`, `runStep` in App root | Timers drive full-tree re-renders every second. Move to local state in `DemoTourScreen` and `ProcessingScreen`. The screen-level `screen` state dependency makes this a larger refactor than the others. | Pending (before Block 15) |
+| `isValidWalletAddress` canonical source | `packages/core/src/domain/contacts.js` | Single source. `useMiniPayWallet.js` re-exports it. Previously duplicated with slightly different trim behavior. | **Done** |
+| `normalizeVoiceTranscript` canonical source | `apps/web/src/modules/voice/voiceNormalize.js` | Single source. Imported by `PlanEditorScreen`. Tested. Previously an untestable inline function. | **Done** |
 
 ## Finish Before Release
 

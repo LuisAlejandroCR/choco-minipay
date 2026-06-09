@@ -1,10 +1,11 @@
 import { createServer } from "node:http";
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { getCeloNetworkConfig } from "../../../packages/core/src/config/celo.js";
 
 const AGENT_JSON_PATH = join(dirname(fileURLToPath(import.meta.url)), "../../../public/agent.json");
+const CONTACTS_FILE = join(dirname(fileURLToPath(import.meta.url)), "../contacts.json");
 import { parseTransferIntent } from "../../../packages/core/src/domain/intent.js";
 import { evaluateAgentPreflight } from "../../../packages/core/src/domain/preflight.js";
 
@@ -12,11 +13,27 @@ const port = Number(process.env.PORT || 8787);
 const testnetNetwork = getCeloNetworkConfig("celoSepolia");
 const rpcUrl = process.env.RPC_URL || testnetNetwork.rpcUrl;
 
-// In-memory contact store — testnet only.
-// Populated when the web app saves a contact (POST /v1/contacts).
-// The worker reads this to resolve recipient addresses without hitting the browser.
-// Persisted to disk or a DB in Block 14 when recurring transfers need durability.
-const contactStore = new Map();
+// File-backed contact store — survives server restarts.
+// Key: lowercased alias → value: { alias, walletAddress, network, createdAt }.
+// Required for Block 14: the worker must be able to resolve recipient addresses
+// after a restart without losing contacts saved before the restart.
+let contactStore = new Map();
+try {
+  const raw = await readFile(CONTACTS_FILE, "utf8");
+  contactStore = new Map(Object.entries(JSON.parse(raw)));
+  console.log(`choco-api: loaded ${contactStore.size} contact(s) from ${CONTACTS_FILE}`);
+} catch {
+  // contacts.json does not exist yet — start with an empty store.
+}
+
+async function persistContacts() {
+  try {
+    await writeFile(CONTACTS_FILE, JSON.stringify(Object.fromEntries(contactStore), null, 2), "utf8");
+  } catch (err) {
+    // Non-fatal: in-memory store still serves the current session.
+    console.warn("choco-api: could not persist contacts.json:", err.message);
+  }
+}
 
 function sendJson(response, statusCode, body) {
   response.writeHead(statusCode, {
@@ -176,6 +193,7 @@ const server = createServer(async (request, response) => {
       createdAt: new Date().toISOString(),
     };
     contactStore.set(contact.alias.toLowerCase(), contact);
+    void persistContacts();
     sendJson(response, 200, { contact });
     return;
   }

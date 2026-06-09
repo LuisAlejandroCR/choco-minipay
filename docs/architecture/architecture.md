@@ -61,7 +61,9 @@ Transfer commands go through two passes — one synchronous for live UI preview,
 | Path | Role |
 | --- | --- |
 | `apps/web` | User-facing MiniPay web app. Keep UI, wallet status, navigation, and review links here. |
-| `apps/web/src/components` | Reusable visual components for the Choco mark, pitch screen, and guided demo visuals. |
+| `apps/web/src/screens` | One file per screen. Each screen is a self-contained React component that owns its local state, local effects, and JSX. App.jsx passes state and callbacks as props. |
+| `apps/web/src/utils` | Pure helper functions shared across screens and App.jsx. Currently: `planUtils.js` (timestamp formatters, plan/transaction builders, duplicate-detection, demo timer). No React imports — independently testable. |
+| `apps/web/src/components` | Reusable visual components: Choco mark, pitch screen, guided demo visuals, and extracted shared primitives (`BottomNav`, `LightSheet`, `SheetPrimitives`, `WalletCheckStatus`, `ContactCapture`). |
 | `apps/web/src/content` | Pitch, guided-demo, and public-review copy separated from app routing. |
 | `apps/web/src/config` | Runtime environment contract used by Vite and web modules. |
 | `apps/web/src/data` | Low-value Celo Sepolia test scenario used by the UI. |
@@ -108,14 +110,14 @@ Start with the layer where the problem appears, then move inward.
 | Wallet status is wrong | `apps/web/src/modules/wallet/useMiniPayWallet.js` | `packages/core/src/config/celo.js`, `.env`, MiniPay WebView, `window.ethereum.isMiniPay` |
 | Transfer text parses wrong after submit | `services/api/src/server.js` → `/v1/intent/preview` → `parseTransferIntent` | Check API is running at `/health`; local fallback is `packages/core/src/domain/intent.js` |
 | Transfer text parses wrong in live preview | `packages/core/src/domain/intent.js` | `packages/core/src/domain/intent.test.js` |
-| Voice mic shows error or does nothing | `PlanEditorScreen` → `hasSpeechSupport` check | HTTPS or `localhost` required; Chrome / Android for MiniPay WebView; mic permission must be granted in browser |
+| Voice mic shows error or does nothing | `apps/web/src/screens/PlanEditorScreen.jsx` → `hasSpeechSupport` check | HTTPS or `localhost` required; Chrome / Android for MiniPay WebView; mic permission must be granted in browser |
 | Voice transcript is wrong or garbled | `apps/web/src/modules/voice/voiceNormalize.js` → `normalizeVoiceTranscript` | Run `voiceNormalize.test.js` for regression; `SpeechRecognition.lang` is `en-US`; check ambient noise; Whisper fallback is Block 15 |
 | Recipient wallet address missing in preflight | `ReviewScreen` → `ContactCapture` component | Check `getContact(plan.recipient)` in `useContacts.js`; if null, capture form shows and user must paste a valid `0x...` address before preflight passes |
 | Contact not persisting across reloads | `apps/web/src/modules/contacts/useContacts.js` → `loadFromStorage` | Open DevTools → Application → localStorage → `choco-contacts-v1`; should be a JSON object keyed by lowercased alias |
-| Contact not available to worker | `POST /v1/contacts` sync in `App.jsx::saveContactAndSync` | Check `GET /v1/contacts` on the running API; note: `contactStore` is in-memory and wiped on restart — persistence required before Block 14 |
+| Contact not available to worker | `POST /v1/contacts` sync in `App.jsx::saveContactAndSync` | Check `GET /v1/contacts` on the running API; contacts are now persisted to `services/api/contacts.json` and survive server restarts |
 | USDC balance wrong or missing (Block 12+) | `packages/core/src/domain/quote.js` → `POST /v1/quote` | Confirm `eth_call` to `balanceOf` on USDC contract; check `celo.js` USDC token address for the active network |
 | Preflight passes but wallet check still shows blocked | `App.jsx::runAgentPreflight` — check `recipientAddressOverride` vs `getContact` path | Inspect the `recipientContact` value sent to `POST /v1/agent/preflight`; if it's an alias (not `0x...`), the contact was not saved or not looked up correctly |
-| Duplicate warning is wrong | `packages/core/src/domain/duplicates.js` | `packages/core/src/domain/duplicates.test.js` — note: Block 14 must reconcile this with `App.jsx::getPlanSignature` which uses a different shape |
+| Duplicate warning is wrong | `packages/core/src/domain/duplicates.js` | `packages/core/src/domain/duplicates.test.js` — `planSignature` now handles both intent-shape and plan-shape via `??` fallbacks; Block 14 convergence is complete |
 | Receipt link is wrong | `packages/core/src/domain/receipts.js` | `packages/core/src/config/celo.js` |
 | Agent metadata is wrong | `public/agent.json` | `ops/agent-registry/agent.sepolia.json`, registration runbook |
 | API is down | `services/api/src/server.js` and `/health` | Docker compose ports and `.env` |
