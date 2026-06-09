@@ -31,6 +31,7 @@ import {
 import { ChocoMark } from "./components/ChocoMark.jsx";
 import { DemoVisual } from "./components/DemoVisual.jsx";
 import { PitchScreen } from "./components/PitchScreen.jsx";
+import { QrCanvas } from "./components/QrCode.jsx";
 import {
   DEMO_STEP_MS,
   DEMO_TOTAL_SECONDS,
@@ -51,7 +52,6 @@ import {
   LIVE_DEMO_URL,
   SHOW_DEMO_PROMPT,
   WORLD_MAP_URL,
-  getQrCodeUrl,
   getVerifyTransactionUrl,
 } from "./config/runtime.js";
 import {
@@ -1194,7 +1194,6 @@ function ReceiptDetailScreen({ transaction, onBack, onHome, onPlans }) {
   const [shareState, setShareState] = useState("");
   const [showVerification, setShowVerification] = useState(false);
   const verifyUrl = getVerifyTransactionUrl(transaction.hash);
-  const qrUrl = getQrCodeUrl(verifyUrl);
   const shareText = [
     `Choco receipt: ${transaction.amount} ${transaction.asset} to ${transaction.recipient}`,
     `Timing: ${getTimingLabel(transaction)}`,
@@ -1248,7 +1247,7 @@ function ReceiptDetailScreen({ transaction, onBack, onHome, onPlans }) {
         {showVerification && (
           <section className="verify-panel" aria-label="Transaction verification">
             <div className="qr-card">
-              <img src={qrUrl} alt="QR code to verify transaction" />
+              <QrCanvas data={verifyUrl} size={132} />
               <a href={verifyUrl} target="_blank" rel="noreferrer">
                 Click here to verify transaction
                 <ExternalLink size={15} />
