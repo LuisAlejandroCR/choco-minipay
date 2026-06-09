@@ -196,7 +196,7 @@ function buildPlanFromCommand(commandText, basePlan = defaultPlan, selectedDeliv
   };
 }
 
-function buildTransactionFromPlan(plan, type = "Plan confirmed") {
+function buildTransactionFromPlan(plan, type = "Plan confirmed", fromAddress = "") {
   return {
     id: `tx-${Date.now()}`,
     planId: plan.id,
@@ -211,7 +211,7 @@ function buildTransactionFromPlan(plan, type = "Plan confirmed") {
     routeEstimate: plan.routeEstimate,
     type,
     deliveryMode: plan.deliveryMode,
-    from: TESTNET_SCENARIO.senderAddress,
+    from: fromAddress || TESTNET_SCENARIO.senderAddress,
     to: getRecipientContactLabel(plan),
   };
 }
@@ -519,6 +519,7 @@ export function App() {
     const transaction = buildTransactionFromPlan(
       committedPlan,
       reviewMode === "update" ? "Plan updated" : "Plan confirmed",
+      wallet.address,
     );
     setTransactions((items) => [transaction, ...items]);
     setSelectedTransactionId(transaction.id);
