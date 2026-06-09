@@ -9,10 +9,10 @@ export const TESTNET_SCENARIO = {
   scheduledTimeLabel: "9:00 AM",
   defaultAmountKes: 10,
   kesPerUsdc: DEFAULT_KES_PER_USDC,
-  scheduledTimestamp: "07/01/2026 09:00 AM Local",
+  scheduledTimestamp: "Next 1st · 9:00 AM Local",
   scheduledTimestampsByDate: {
-    "July 15": "07/15/2026 09:00 AM Local",
-    "Next Monday": "06/15/2026 09:00 AM Local",
+    "15th": "Next 15th · 9:00 AM Local",
+    "Next Monday": "Next Monday · 9:00 AM Local",
   },
   hashes: {
     default: "0x8f34...celo-sepolia-309",
@@ -39,8 +39,8 @@ export function getScheduleLabelForIntent(intent) {
 export function getNextDateForIntent(intent) {
   if (intent.deliveryMode === "now") return "Today";
   if (intent.cadence === "weekly") return "Next Monday";
-  if (intent.dayLabel === "15th") return "July 15";
-  return "July 1";
+  if (intent.dayLabel === "15th") return "15th";
+  return "1st";
 }
 
 export const defaultPlan = {
@@ -51,7 +51,7 @@ export const defaultPlan = {
   payAsset: "USDC",
   recipient: "Mom",
   schedule: `Every 1st - ${TESTNET_SCENARIO.scheduledTimeLabel}`,
-  nextDate: "July 1",
+  nextDate: "1st",
   fee: "0.1%",
   routeEstimate: formatRouteEstimate(TESTNET_SCENARIO.defaultAmountKes),
   hash: TESTNET_SCENARIO.hashes.default,
