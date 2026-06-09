@@ -29,44 +29,11 @@ Status:
 | 5. UI/UX restore | Production app uses the richer Choco MVP interface while keeping production modules. | `apps/web/src/App.jsx`, `apps/web/src/styles.css` |
 | 6. Documentation operating model | Delivery blocks and architecture docs explain how to continue and debug the app. | `docs/architecture/delivery-blocks.md`, `docs/architecture/architecture.md`, `README.md` |
 | 7. Public review pages | Support, privacy, terms, and stats pages are review-ready, mobile-first, and linked from the in-app `?` panel. | `public/*.html`, `public/review.css`, `public/support.js`, `apps/web/src/content/reviewLinks.js`, `apps/web/src/App.jsx`, `apps/web/src/styles.css` |
+| 8. MiniPay wallet integration | Real MiniPay provider replaces demo behavior. Detection, network switching, agent preflight, MetaMask Mobile fallback, manual-address read-only mode, and send-now guard all verified locally. MiniPay WebView final validation pending deploy. | `apps/web/src/modules/wallet/useMiniPayWallet.js`, `apps/web/src/config/runtime.js`, `.env`, `apps/web/src/App.jsx`, `packages/core/src/domain/preflight.js`, `services/api/src/server.js`, `packages/core/src/config/celo.js` |
 
 ## Current Block
 
-Block: 8. MiniPay wallet integration
-
-Goal: Replace demo wallet behavior with MiniPay provider behavior.
-
-Files:
-
-- `apps/web/src/modules/wallet/useMiniPayWallet.js`
-- `apps/web/src/modules/wallet/useMiniPayWallet.test.js`
-- `apps/web/src/config/runtime.js`
-- `.env`
-- `apps/web/src/App.jsx`
-- `packages/core/src/domain/preflight.js`
-- `packages/core/src/domain/preflight.test.js`
-- `services/api/src/server.js`
-- `packages/core/src/config/celo.js`
-
-Validation:
-
-- MiniPay detection works in WebView.
-- Verify wallet targets Celo Sepolia testnet chain ID `11142220`.
-- Wallet switching, receipt links, API RPC, and public labels read from the shared Celo network config.
-- After wallet verification, the UI calls Choco Agent AI readiness through `/v1/agent/preflight` in the background when the transfer reaches quote review.
-- Agent readiness checks Celo Sepolia gas funds and recipient contact.
-- Send-now does not create a `Sent` receipt without a real chain transaction hash.
-- Desktop browser uses an injected wallet extension and routes incognito/no-provider clicks to wallet setup.
-- Mobile browser opens MetaMask Mobile before MiniApps publishing, including desktop-site mode on touch devices.
-- No-provider users can paste a wallet address for read-only Celo Sepolia readiness checks.
-- MiniPay WebView remains the final wallet validation path after Choco is opened inside MiniPay.
-- No message-signing auth dependency.
-
-Status: Locally complete; MiniPay WebView validation pending after deploy.
-
-## Next Blocks
-
-### 9. Agent Metadata And Registration
+Block: 9. Agent Metadata And Registration
 
 Goal: Confirm public metadata, owner wallet, agent ID, and registry evidence.
 
@@ -81,6 +48,10 @@ Validation:
 
 - `https://choco-minipay.vercel.app/agent.json` returns 200.
 - Agent registry transaction hash and agent ID are recorded.
+
+Status: Not started.
+
+## Next Blocks
 
 ### 10. API Contracts
 
