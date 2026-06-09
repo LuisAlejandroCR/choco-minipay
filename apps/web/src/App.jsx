@@ -1332,6 +1332,29 @@ function PlanDetailScreen({ plan, onHome, onHistory, onBack, onEdit, onDelete })
   );
 }
 
+// Web Speech API transcribes financial terms phonetically.
+// These substitutions run on every interim result before the command hits the parser.
+const VOICE_TENS = { twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90 };
+const VOICE_NUMBERS = {
+  one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9,
+  ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15,
+  sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19, ...VOICE_TENS,
+  hundred: 100,
+};
+
+function normalizeVoiceTranscript(text) {
+  return text
+    .replace(
+      /\b(twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)[\s-](one|two|three|four|five|six|seven|eight|nine)\b/gi,
+      (_, tens, ones) => String((VOICE_TENS[tens.toLowerCase()] || 0) + (VOICE_NUMBERS[ones.toLowerCase()] || 0)),
+    )
+    .replace(
+      /\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred)\b/gi,
+      (word) => String(VOICE_NUMBERS[word.toLowerCase()] || word),
+    )
+    .replace(/\b(kiss|case|keys|kez)\b/gi, "KES");
+}
+
 function PlanEditorScreen({
   mode,
   command,
@@ -1392,28 +1415,45 @@ function PlanEditorScreen({
       for (let i = 0; i < event.results.length; i++) {
         transcript += event.results[i][0].transcript;
       }
-      setCommand(transcript.trim());
+      setCommand(normalizeVoiceTranscript(transcript.trim()));
     };
 
+    // no-speech fires on silence timeout — not a real failure.
+    // Let onend handle the restart rather than surfacing an error.
     recognition.onerror = (event) => {
+      if (event.error === "no-speech") return;
       const msg = event.error === "not-allowed"
         ? "Microphone access was denied."
-        : event.error === "no-speech"
-          ? "No speech detected. Tap the mic to try again."
-          : "Voice input failed. Type your message instead.";
+        : event.error === "network"
+          ? "Voice requires an internet connection."
+          : event.error === "audio-capture"
+            ? "No microphone found. Connect a mic or type instead."
+            : event.error === "service-not-allowed"
+              ? "Voice is blocked in this browser context."
+              : "Voice input failed. Type your message instead.";
       setVoiceError(msg);
+      const rec = speechRef.current;
       speechRef.current = null;
+      rec?.stop();
       setIsRecording(false);
       setIsPaused(false);
       setRecordingSeconds(0);
     };
 
+    // cancelRecording / submitRecording null speechRef before calling stop(),
+    // so if this fires and speechRef no longer points to this instance it was an
+    // intentional stop — skip the restart. If speechRef still points here the
+    // browser auto-stopped (Safari silence timeout) — restart to stay live.
     recognition.onend = () => {
-      if (speechRef.current) {
-        speechRef.current = null;
-        setIsRecording(false);
-        setIsPaused(false);
-        setRecordingSeconds(0);
+      if (speechRef.current === recognition) {
+        try {
+          recognition.start();
+        } catch {
+          speechRef.current = null;
+          setIsRecording(false);
+          setIsPaused(false);
+          setRecordingSeconds(0);
+        }
       }
     };
 
@@ -1423,16 +1463,18 @@ function PlanEditorScreen({
   }
 
   function cancelRecording() {
-    speechRef.current?.stop();
+    const rec = speechRef.current;
     speechRef.current = null;
+    rec?.stop();
     setIsRecording(false);
     setIsPaused(false);
     setRecordingSeconds(0);
   }
 
   function submitRecording() {
-    speechRef.current?.stop();
+    const rec = speechRef.current;
     speechRef.current = null;
+    rec?.stop();
     setIsRecording(false);
     setIsPaused(false);
     setRecordingSeconds(0);
