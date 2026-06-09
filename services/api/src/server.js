@@ -8,6 +8,7 @@ const AGENT_JSON_PATH = join(dirname(fileURLToPath(import.meta.url)), "../../../
 const CONTACTS_FILE = join(dirname(fileURLToPath(import.meta.url)), "../contacts.json");
 import { parseTransferIntent } from "../../../packages/core/src/domain/intent.js";
 import { evaluateAgentPreflight } from "../../../packages/core/src/domain/preflight.js";
+import { buildQuote, readUsdcBalance } from "../../../packages/core/src/domain/quote.js";
 
 const port = Number(process.env.PORT || 8787);
 const testnetNetwork = getCeloNetworkConfig("celoSepolia");
@@ -137,6 +138,24 @@ const server = createServer(async (request, response) => {
     return;
   }
 
+  if (request.method === "POST" && url.pathname === "/v1/quote") {
+    let body;
+    try { body = await readRequestJson(request); } catch (err) { sendJson(response, err.code === "PAYLOAD_TOO_LARGE" ? 413 : 400, { error: err.code?.toLowerCase() || "bad_request" }); return; }
+    const walletAddress = String(body.walletAddress || "");
+    const amountMinor = Number(body.amountMinor) || 0;
+    if (!/^0x[a-fA-F0-9]{40}$/.test(walletAddress) || amountMinor <= 0) {
+      sendJson(response, 400, { error: "invalid_params", message: "walletAddress (0x…) and amountMinor (positive number) are required." });
+      return;
+    }
+    try {
+      const quote = await buildQuote({ walletAddress, amountMinor, networkKey: "celoSepolia", callRpc });
+      sendJson(response, 200, quote);
+    } catch (err) {
+      sendJson(response, 502, { error: "quote_failed", message: err instanceof Error ? err.message : "Quote unavailable." });
+    }
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/v1/agent/preflight") {
     let body;
     try { body = await readRequestJson(request); } catch (err) { sendJson(response, err.code === "PAYLOAD_TOO_LARGE" ? 413 : 400, { error: err.code?.toLowerCase() || "bad_request" }); return; }
@@ -157,11 +176,31 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    // Block 12: read USDC balance for the 5th preflight check.
+    // Non-fatal — if the read fails, balance params are omitted and the check is skipped.
+    let usdcBalanceMinor = null;
+    let requiredUsdcMinor = null;
+    const amountMinor = Number(body.amountMinor) || 0;
+    if (body.walletAddress && amountMinor > 0) {
+      try {
+        const usdcBalance = await readUsdcBalance(body.walletAddress, "celoSepolia", callRpc);
+        usdcBalanceMinor = usdcBalance.wei;
+        // Use a conservative mock rate (130 cKES/USDC) for the preflight check.
+        // The /v1/quote endpoint provides the accurate live rate for display.
+        const MOCK_RATE = 130;
+        requiredUsdcMinor = String(Math.ceil(amountMinor / MOCK_RATE * 1_000_000));
+      } catch {
+        // Non-fatal: balance check is skipped rather than blocking the preflight.
+      }
+    }
+
     sendJson(response, 200, evaluateAgentPreflight({
       walletAddress: body.walletAddress || "",
       chainId: body.chainId || "",
       gasBalanceWei,
       recipientContact: body.recipientContact || "",
+      usdcBalanceMinor,
+      requiredUsdcMinor,
     }));
     return;
   }

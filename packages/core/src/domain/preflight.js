@@ -33,11 +33,25 @@ function buildCheck(id, label, pass, detail) {
   };
 }
 
+/**
+ * Block 12: Format a USDC amount in 6-decimal minor units to a display string.
+ * Used in the USDC balance check detail message.
+ * @param {string | bigint} minorValue
+ */
+function formatUsdcBalance(minorValue) {
+  const n = typeof minorValue === "bigint" ? minorValue : BigInt(String(minorValue));
+  const whole = n / 1_000_000n;
+  const frac = (n % 1_000_000n).toString().padStart(6, "0").replace(/0+$/, "");
+  return `${whole}${frac ? `.${frac}` : ""} USDC`;
+}
+
 export function evaluateAgentPreflight({
   walletAddress = "",
   chainId = "",
   gasBalanceWei = "0x0",
   recipientContact = "",
+  usdcBalanceMinor = null,   // Block 12: string or BigInt. Omit to skip the balance check.
+  requiredUsdcMinor = null,  // Block 12: string or BigInt. Omit to skip the balance check.
 } = {}) {
   const normalizedChainId = normalizeChainId(chainId);
   const isTestnet = normalizedChainId === CELO_SEPOLIA_TESTNET.chainId;
@@ -74,6 +88,27 @@ export function evaluateAgentPreflight({
         : "Add the recipient's Celo Sepolia wallet address in the review screen.",
     ),
   ];
+
+  // Block 12: 5th check — USDC balance vs required amount.
+  // Only added when both values are provided; omitting either skips the check
+  // so existing callers that do not read USDC balance remain unaffected.
+  if (usdcBalanceMinor !== null && requiredUsdcMinor !== null) {
+    try {
+      const balanceBigInt = BigInt(String(usdcBalanceMinor));
+      const requiredBigInt = BigInt(String(requiredUsdcMinor));
+      const hasSufficientUsdc = balanceBigInt >= requiredBigInt;
+      checks.push(buildCheck(
+        "balance",
+        "USDC balance",
+        hasSufficientUsdc,
+        hasSufficientUsdc
+          ? `${formatUsdcBalance(balanceBigInt)} available.`
+          : `Insufficient USDC. Need ${formatUsdcBalance(requiredBigInt)}, have ${formatUsdcBalance(balanceBigInt)}.`,
+      ));
+    } catch {
+      // BigInt conversion failed — omit the check rather than crashing.
+    }
+  }
 
   const ok = checks.every((check) => check.status === "pass");
 

@@ -57,11 +57,10 @@ export const CELO_NETWORKS = {
     agentId: 309,
     nativeCurrency: CELO_NATIVE_CURRENCY,
     isTestnet: true,
-    // Block 12 prerequisites — confirm these on celo-sepolia.blockscout.com before starting.
-    // null means "not yet confirmed" — Block 12 must resolve both before wiring the quote.
-    // If cKES is absent on Sepolia, use USDm as destinationAsset for blocks 12–13 testnet runs.
-    mentoBrokerAddress: null,  // TODO Block 12: confirm Mento broker address on Celo Sepolia
-    cKesAddress: null,         // TODO Block 12: confirm cKES ERC-20 address on Celo Sepolia (may be absent)
+    // Block 12: confirmed on celo-sepolia.blockscout.com
+    mentoBrokerAddress: "0xB9Ae2065142EB79b6c5EB1E8778F883fad6B07Ba", // Mento Broker v2
+    cKesAddress: "0x140114B70cf23C265e8EB0DcFcada2a6aC4999b0",         // cKES ERC-20 (Celo Kenyan Shilling, 18 dec)
+    sortedOraclesAddress: "0xfaa7Ca2B056E60F6733aE75AA0709140a6eAfD20", // Celo SortedOracles — used for live cKES/USDm rate in Block 12
   },
 };
 

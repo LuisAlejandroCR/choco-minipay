@@ -11,7 +11,7 @@
     "dev:worker": "node services/worker/src/scheduler.js",
     "build": "npm run build:web",
     "build:web": "vite build",
-    "test": "node --test packages/core/src/domain/intent.test.js packages/core/src/domain/duplicates.test.js packages/core/src/domain/receipts.test.js packages/core/src/domain/preflight.test.js packages/core/src/domain/amounts.test.js apps/web/src/modules/wallet/useMiniPayWallet.test.js apps/web/src/modules/voice/voiceNormalize.test.js",
+    "test": "node --test packages/core/src/domain/intent.test.js packages/core/src/domain/duplicates.test.js packages/core/src/domain/receipts.test.js packages/core/src/domain/preflight.test.js packages/core/src/domain/quote.test.js packages/core/src/domain/amounts.test.js apps/web/src/modules/wallet/useMiniPayWallet.test.js apps/web/src/modules/voice/voiceNormalize.test.js",
     "check": "npm run test && npm run build:web",
     "agent:generate": "tsx ops/agent-registry/register-agent.ts",
     "agent:register": "tsx ops/agent-registry/register-agent.ts"

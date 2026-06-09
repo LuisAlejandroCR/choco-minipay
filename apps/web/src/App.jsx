@@ -53,6 +53,8 @@ export function App() {
   const [showDemoPrompt, setShowDemoPrompt] = useState(shouldShowDemoPrompt);
   const [activeInfoPanel, setActiveInfoPanel] = useState(null);
   const [resolvedPreviewPlan, setResolvedPreviewPlan] = useState(null);
+  // Block 12: live balance + quote fetched from POST /v1/quote when review screen opens.
+  const [quote, setQuote] = useState(null);
 
   // --- Hooks ---
   const wallet = useMiniPayWallet();
@@ -173,11 +175,29 @@ export function App() {
     });
   }
 
+  // Block 12: fetch balance + live quote from POST /v1/quote and store in state.
+  // Non-blocking — quote is displayed in ReviewScreen when available.
+  async function fetchQuote(plan) {
+    if (!wallet.address || !plan.amountMinor) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/v1/quote`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          walletAddress: wallet.address,
+          amountMinor: plan.amountMinor,
+        }),
+      });
+      if (res.ok) setQuote(await res.json());
+    } catch { /* non-blocking — ReviewScreen shows "—" placeholders */ }
+  }
+
   async function buildPlan(nextCommand = "") {
     const commandForBuild = nextCommand || command;
     if (nextCommand) setCommand(nextCommand);
     preflight.reset();
     setResolvedPreviewPlan(null);
+    setQuote(null);
 
     let plan;
     try {
@@ -196,6 +216,7 @@ export function App() {
     setResolvedPreviewPlan(plan);
     setScreen("processing");
     void preflight.run(plan);
+    void fetchQuote(plan); // Block 12: fire-and-forget; shows up in ReviewScreen when ready
   }
 
   // Save to localStorage and mirror to the API so the worker can read it.
@@ -447,6 +468,7 @@ export function App() {
             <ReviewScreen
               plan={resolvedPreviewPlan ?? previewPlan}
               mode={reviewMode}
+              quote={quote}
               agentPreflight={preflight.result}
               agentPreflightStatus={preflight.status}
               transferBlockMessage={preflight.blockMessage}

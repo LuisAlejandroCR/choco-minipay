@@ -7,7 +7,7 @@ import { WalletCheckStatus } from "../components/WalletCheckStatus.jsx";
 import { formatContactShort } from "@core/domain/contacts.js";
 import { TESTNET_SCENARIO } from "../data/testnetScenario.js";
 
-export function ReviewScreen({ plan, mode, agentPreflight, agentPreflightStatus, transferBlockMessage, resolvedContact, onSaveContact, onEdit, onConfirm }) {
+export function ReviewScreen({ plan, mode, quote, agentPreflight, agentPreflightStatus, transferBlockMessage, resolvedContact, onSaveContact, onEdit, onConfirm }) {
   const isSendNow = plan.deliveryMode === "now";
   const chip = isSendNow ? "SEND NOW" : mode === "update" ? "UPDATE" : mode === "demo" ? "DEMO" : "NEW";
   const isWalletCheckLoading = agentPreflightStatus === "loading";
@@ -19,6 +19,14 @@ export function ReviewScreen({ plan, mode, agentPreflight, agentPreflightStatus,
       : isSendNow
         ? "Prepare testnet send"
         : "Confirm schedule";
+
+  // Block 12: live values — fall back to plan values while quote is loading.
+  const displayAmount = quote
+    ? `${quote.destinationAmount} ${quote.destinationAsset}`
+    : `${plan.amount} ${plan.asset}`;
+  const displayCost = quote
+    ? `≈${quote.sourceAmount} ${quote.sourceAsset}`
+    : plan.routeEstimate ?? "—";
 
   return (
     <LightSheet>
@@ -37,11 +45,12 @@ export function ReviewScreen({ plan, mode, agentPreflight, agentPreflightStatus,
       <div className="route-card">
         <div className="route-node">
           <b>{plan.payAsset}</b>
-          <small>Pay on Celo</small>
+          {/* Block 12: show live USDC balance while quote is available */}
+          <small>{quote ? quote.balanceUsdc : "Pay on Celo"}</small>
         </div>
         <div className="route-arrow"><ArrowRight size={22} /></div>
         <div className="route-node">
-          <b>{plan.asset}</b>
+          <b>{displayAmount}</b>
           <small>
             {resolvedContact
               ? `${plan.recipient} · ${formatContactShort(resolvedContact)}`
@@ -50,11 +59,23 @@ export function ReviewScreen({ plan, mode, agentPreflight, agentPreflightStatus,
         </div>
       </div>
 
+      {/* Block 12: balance + cost summary banner */}
+      {quote && (
+        <div className={`quote-banner${quote.hasEnoughUsdc ? "" : " quote-banner--warn"}`}>
+          <span>You have <strong>{quote.balanceUsdc}</strong></span>
+          <span aria-hidden="true">—</span>
+          <span>sending <strong>{quote.destinationAmount} {quote.destinationAsset}</strong> to {plan.recipient}</span>
+          {!quote.hasEnoughUsdc && (
+            <span className="quote-banner__warn">Insufficient USDC — add funds before sending</span>
+          )}
+        </div>
+      )}
+
       <div className="summary-grid">
-        <SummaryCard label="Amount" value={`${plan.amount} ${plan.asset}`} />
+        <SummaryCard label="Amount" value={displayAmount} />
         <SummaryCard label="Timing" value={isSendNow ? "Send once now" : plan.schedule.replace(` - ${TESTNET_SCENARIO.scheduledTimeLabel}`, "")} />
-        <SummaryCard label="Fee" value={plan.fee} />
-        <SummaryCard label="Retries" value="3 attempts" />
+        <SummaryCard label="Costs" value={displayCost} />
+        <SummaryCard label="Your balance" value={quote?.balanceUsdc ?? "—"} />
       </div>
 
       {!resolvedContact && (

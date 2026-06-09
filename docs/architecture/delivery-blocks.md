@@ -46,46 +46,15 @@ Status:
 | 9. Agent Metadata And Registration | Agent #309 confirmed live on Celo Sepolia Identity Registry. Metadata URL returns 200. Evidence recorded in `ops/agent-registry/agent.sepolia.json` and runbook. Reputation Registry and `agentId` added to network config. Open item: tokenURI not content-addressed (`https://`); pin to IPFS and call `setAgentURI` before mainnet. | `ops/agent-registry/agent.sepolia.json`, `docs/runbook-celo-agent-registration.md`, `packages/core/src/config/celo.js` |
 | 10. API Contracts | Text and voice commands route through `POST /v1/intent/preview`. API intent drives `buildPlanFromIntent` and the committed plan. Voice uses `SpeechRecognition` with auto-restart on Safari silence timeout and KES homophone normalization. `POST /v1/agent/preflight` returns four checks. Edit-plan back button fixed. x402 (pay-per-request) and Whisper (voice transcription fallback) were scoped but **not implemented** — both are future development, see Block 15. | `apps/web/src/App.jsx`, `services/api/src/server.js`, `docs/architecture/architecture.md` |
 | 11. Recipient Contact | Preflight now requires a real `0x` Celo Sepolia wallet address for the recipient (not just an alias). Review screen shows `ContactCapture` when the recipient has no linked address — user pastes a `0x...` address, optionally saves it under the alias (e.g. "Mom"). Saved contacts persist in `localStorage` and sync to `POST /v1/contacts` so the worker can read them. Receipt shows alias + truncated address. Route card shows `Mom · 0xAb12...ef34` once resolved. | `packages/core/src/domain/contacts.js`, `apps/web/src/modules/contacts/useContacts.js`, `packages/core/src/domain/preflight.js`, `services/api/src/server.js`, `apps/web/src/App.jsx`, `apps/web/src/styles.css` |
+| 12. Balance + Quote | cKES confirmed on Celo Sepolia (`0x140114B70cf23C265e8EB0DcFcada2a6aC4999b0`); Mento broker v2 confirmed (`0xB9Ae2065142EB79b6c5EB1E8778F883fad6B07Ba`). Real USDC balance via `eth_call` to `balanceOf`. Live cKES/USDC rate via SortedOracles `medianRate` (mock fallback if unavailable). `POST /v1/quote` returns `{ sourceAsset, sourceAmount, destinationAsset, destinationAmount, rate, rateSource, balanceUsdc, hasEnoughUsdc, expiresInSeconds }`. Review screen shows balance banner: "You have {balance} — sending {amount} cKES to {recipient}". Preflight gains a 5th check (USDC balance vs required); existing 4-check callers are unaffected. | `packages/core/src/domain/quote.js` (new), `packages/core/src/domain/quote.test.js` (new), `packages/core/src/config/celo.js`, `packages/core/src/domain/preflight.js`, `packages/core/src/domain/preflight.test.js`, `services/api/src/server.js`, `apps/web/src/modules/preflight/useAgentPreflight.js`, `apps/web/src/App.jsx`, `apps/web/src/screens/ReviewScreen.jsx` |
 
 ## Current Block
 
-Block: 12. Balance + Quote
+Block: 13. Transfer Execution
 
-Goal: Read the sender's actual USDC balance from the connected wallet. Fetch the live USDC → cKES conversion rate from Mento. Show the user exactly what they have and what the recipient gets before confirming.
+Goal: Execute the actual USDC → cKES swap and send on Celo Sepolia testnet. File a real transaction receipt with a real Blockscout hash. "Send now" becomes a real on-chain action.
 
 ## Next Blocks
-
-### 12. Balance + Quote
-
-Goal: Read the sender's actual USDC balance from the connected wallet. Fetch the live USDC → cKES conversion rate from Mento. Show the user exactly what they have and what the recipient gets before confirming.
-
-The UX: "You have $2.10 USDC — sending 271 cKES to Mom (0xAb12...ef34)."
-
-**Pre-block decision (required before writing any code):**
-Check `https://celo-sepolia.blockscout.com` for cKES ERC-20 and the Mento broker contract.
-- If cKES **exists** on Celo Sepolia: use it as `destinationAsset`. Fill in `cKesAddress` and `mentoBrokerAddress` in `packages/core/src/config/celo.js`.
-- If cKES **does not exist**: use USDm (`0xdE9e4C3ce781b4bA68120d6261cbad65ce0aB00b`) as `destinationAsset` for blocks 12–13. Update `testnetScenario.js` accordingly. Document the substitution clearly.
-This decision gates the block — do not start implementation until it is resolved.
-
-Files:
-
-- `packages/core/src/domain/quote.js` (new — Mento rate fetch, USDC balance read)
-- `services/api/src/server.js` (add `POST /v1/quote`)
-- `apps/web/src/App.jsx` (balance + quote in review screen)
-- `packages/core/src/config/celo.js` (fill in `cKesAddress` and `mentoBrokerAddress` once confirmed)
-
-Notes:
-
-- USDC balance: `eth_call` to `balanceOf(walletAddress)` on the USDC ERC-20 contract (`0x01C5C...` on Sepolia).
-- Mento rate: query the Mento broker or use a mock oracle for testnet.
-- A second check ("USDC balance") should be added to `packages/core/src/domain/preflight.js` in this block. The existing four checks become five.
-
-Validation:
-
-- `POST /v1/quote` returns `{ sourceAsset, sourceAmount, destinationAsset, destinationAmount, rate, expiresInSeconds }`.
-- Review screen shows real available balance and what the recipient receives.
-- If USDC balance < required amount, preflight blocks with a specific "insufficient balance" message.
-- Rate is live (not hardcoded). `cKesAddress` or `mentoBrokerAddress` being `null` in `celo.js` must cause the block to throw with a clear setup message, not silently use a wrong value.
 
 ### 13. Transfer Execution
 

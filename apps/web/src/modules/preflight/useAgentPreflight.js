@@ -51,6 +51,8 @@ export function useAgentPreflight({ wallet, getContact, apiBaseUrl }) {
           recipientContact,
           payAsset: plan.payAsset,
           amount: plan.routeEstimate,
+          // Block 12: pass amountMinor so the server can do the USDC balance check.
+          amountMinor: plan.amountMinor ?? null,
         }),
       });
       const preflightResult = await response.json();
