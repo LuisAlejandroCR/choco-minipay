@@ -4,6 +4,8 @@ import {
   formatUsdcAmount,
 } from "@core/domain/amounts.js";
 
+// Block 10: replace senderAddress with wallet.address at the call site once
+// real transactions are wired. Replace hashes with live tx hashes from the chain.
 export const TESTNET_SCENARIO = {
   senderAddress: "0xb7b2...0426d",
   scheduledTimeLabel: "9:00 AM",
