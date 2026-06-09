@@ -30,43 +30,31 @@ Status:
 | 6. Documentation operating model | Delivery blocks and architecture docs explain how to continue and debug the app. | `docs/architecture/delivery-blocks.md`, `docs/architecture/architecture.md`, `README.md` |
 | 7. Public review pages | Support, privacy, terms, and stats pages are review-ready, mobile-first, and linked from the in-app `?` panel. | `public/*.html`, `public/review.css`, `public/support.js`, `apps/web/src/content/reviewLinks.js`, `apps/web/src/App.jsx`, `apps/web/src/styles.css` |
 | 8. MiniPay wallet integration | Real MiniPay provider replaces demo behavior. Detection, network switching, agent preflight, MetaMask Mobile fallback, manual-address read-only mode, and send-now guard all verified locally. MiniPay WebView final validation pending deploy. | `apps/web/src/modules/wallet/useMiniPayWallet.js`, `apps/web/src/config/runtime.js`, `.env`, `apps/web/src/App.jsx`, `packages/core/src/domain/preflight.js`, `services/api/src/server.js`, `packages/core/src/config/celo.js` |
+| 9. Agent Metadata And Registration | Agent #309 confirmed live on Celo Sepolia Identity Registry. Metadata URL returns 200. Evidence recorded in `ops/agent-registry/agent.sepolia.json` and runbook. Reputation Registry and `agentId` added to network config. Open item: tokenURI not content-addressed (`https://`); pin to IPFS and call `setAgentURI` before mainnet. | `ops/agent-registry/agent.sepolia.json`, `docs/runbook-celo-agent-registration.md`, `packages/core/src/config/celo.js` |
 
 ## Current Block
 
-Block: 9. Agent Metadata And Registration
+Block: 10. API Contracts
 
-Goal: Confirm public metadata, owner wallet, agent ID, and registry evidence.
-
-Files:
-
-- `public/agent.json`
-- `ops/agent-registry/agent.sepolia.json`
-- `ops/agent-registry/register-agent.ts`
-- `docs/runbook-celo-agent-registration.md`
-
-Validation:
-
-- `https://choco-minipay.vercel.app/agent.json` returns 200.
-- Agent registry transaction hash and agent ID are recorded.
-
-Status: Not started.
-
-## Next Blocks
-
-### 10. API Contracts
-
-Goal: Move quote, identity, and transfer preview flows behind API contracts.
+Goal: Move quote, identity, and transfer preview behind real API endpoints. Add x402 pay-per-request middleware so the API can charge per call without managing accounts.
 
 Files:
 
 - `services/api/src/server.js`
-- `packages/core/src/domain/*`
+- `packages/core/src/domain/intent.js`
+- `packages/core/src/domain/preflight.js`
+- `apps/web/src/App.jsx`
 - `.env`
 
 Validation:
 
-- `/health` returns 200.
-- API preview endpoint has tests or documented request examples.
+- `GET /health` returns 200.
+- `POST /v1/intent/preview` returns a route estimate and fee for a valid intent body.
+- `POST /v1/agent/preflight` returns all four preflight checks.
+- x402 middleware returns 402 with a payment descriptor on unauthenticated requests to paid endpoints.
+- No route-estimate logic runs client-side; all estimates come from the API.
+
+Status: Not started.
 
 ### 11. Worker And Scheduling
 

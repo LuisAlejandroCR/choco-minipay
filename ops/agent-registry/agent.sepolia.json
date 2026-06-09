@@ -1,20 +1,27 @@
 {
-  "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
-  "name": "Choco",
-  "description": "MiniPay-native remittance concierge. Choco schedules USDC to KESm family transfers on Celo, retries failures, notifies recipients, and files receipts.",
-  "image": "https://choco-minipay.vercel.app/icon.svg",
-  "services": [
-    {
-      "name": "web",
-      "endpoint": "https://choco-minipay.vercel.app",
-      "version": "1.0"
-    },
-    {
-      "name": "wallet",
-      "endpoint": "eip155:11142220:0x282DD05E60fC7fd8DCBa184C2d5fF9d8d40974be"
-    }
-  ],
-  "supportedTrust": [
-    "reputation"
-  ]
+  "network": "celoSepolia",
+  "chainId": 11142220,
+  "agentId": 309,
+  "owner": "0x282DD05E60fC7fd8DCBa184C2d5fF9d8d40974be",
+  "registry": "0x8004A818BFB912233c491871b3d84c89A494BD9e",
+  "metadataUri": "https://choco-minipay.vercel.app/agent.json",
+  "agentScanUrl": "https://testnet.8004scan.io/agents/celo-sepolia/309",
+  "txHash": "0x5af39c6473d818be68baded32892f9e171b0559ee676e6df16ff103714e19efc",
+  "blockNumber": 27333237,
+  "registeredAt": "2026-06-05T01:27:37.000Z",
+  "metadataSnapshot": {
+    "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
+    "name": "Choco",
+    "description": "MiniPay-native remittance concierge. Choco schedules USDC to KESm family transfers on Celo, retries failures, notifies recipients, and files receipts.",
+    "image": "https://choco-minipay.vercel.app/icon.svg",
+    "services": [
+      { "name": "web", "endpoint": "https://choco-minipay.vercel.app", "version": "1.0" },
+      { "name": "wallet", "endpoint": "eip155:11142220:0x282DD05E60fC7fd8DCBa184C2d5fF9d8d40974be" }
+    ],
+    "supportedTrust": ["reputation"]
+  },
+  "flags": {
+    "contentAddressed": false,
+    "note": "Registered with https:// tokenURI — not content-addressed. Before mainnet: pin public/agent.json to IPFS and call setAgentURI(309, 'ipfs://...') on the registry."
+  }
 }
