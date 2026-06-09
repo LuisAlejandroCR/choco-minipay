@@ -118,6 +118,7 @@ docker compose -f docker/docker-compose.local.yml up --build
 ```
 
 Use `.env` as the environment contract for local and deployed services.
+Keep `VITE_INITIAL_SCREEN=splash` when validating the Docker build so the intro animation is visible before the pitch screen.
 
 ## 2. Local Node Path
 
@@ -207,6 +208,9 @@ For the web app, keep `VITE_CELO_NETWORK_KEY`, `VITE_CELO_CHAIN_ID`, `VITE_CELO_
 ## Celo And MiniPay Rules
 
 - Detect MiniPay with `window.ethereum.isMiniPay === true`.
+- Desktop browser testing uses an injected wallet extension on Celo Sepolia.
+- Mobile browser testing opens the current Choco URL in MetaMask Mobile before MiniApps publishing.
+- MiniPay wallet validation is tested when Choco is opened inside the MiniPay WebView.
 - Do not depend on message-signing auth.
 - Use Celo Sepolia testnet for wallet verification, agent review, and receipt paths until mainnet release.
 - After wallet verification, call Choco Agent AI readiness through `/v1/agent/preflight` in the background when the user reaches quote review.
@@ -242,6 +246,14 @@ npm run dev:web
 ```
 
 Open the web app, connect a Celo Sepolia testnet wallet, then start `New transfer`. Choco Agent AI checks wallet readiness in the background when the transfer reaches quote review. The API checks Celo Sepolia RPC for wallet gas funds and verifies the recipient contact payload. A blocked response is expected when the wallet has `0 CELO`.
+
+Browser testing paths:
+
+- Desktop browser: install or enable a wallet extension, switch it to Celo Sepolia, then verify the wallet in Choco.
+- Mobile browser: tap `Open in MetaMask Mobile`; Choco opens the same URL inside the wallet app for connection.
+- MiniPay: open Choco inside MiniPay after MiniApp discovery/publishing is ready.
+
+For very small testnet trials, use low KESm amounts in the transfer instruction and keep only enough Celo Sepolia CELO for gas. Choco must show `Wallet check needed` when the wallet has no testnet gas.
 
 Direct API test from PowerShell:
 

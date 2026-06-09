@@ -451,7 +451,7 @@ export function App() {
         agent: "Choco Agent AI",
         status: "blocked",
         ok: false,
-        summary: "Readiness check is not reachable. Start the API service before testing wallet readiness.",
+        summary: "Wallet check is unavailable right now. Try again before sending.",
         checks: [],
       });
       setAgentPreflightStatus("idle");
@@ -474,7 +474,7 @@ export function App() {
     let committedPlan;
 
     if (!agentPreflight?.ok) {
-      setTransferBlockMessage("Cannot continue: Choco needs a passing wallet readiness check before creating a testnet transfer or schedule.");
+      setTransferBlockMessage("Choco needs a completed wallet check before creating a testnet transfer or schedule.");
       return;
     }
 
@@ -807,17 +807,25 @@ function PlanScreen({
   onCloseDemo,
 }) {
   const nextPlan = plans[0] || defaultPlan;
-  const isVerifyingWallet = wallet.status === "loading";
+  const isVerifyingWallet = wallet.status === "loading" || wallet.status === "opening-wallet";
   const walletHelp = isWalletVerified
     ? `${formatWalletAddress(wallet.address)} - ${wallet.network.name} testnet`
     : wallet.statusLabel;
   const actionLabel = isWalletVerified
     ? "New transfer"
+    : wallet.needsMobileWallet
+      ? "Open in MetaMask Mobile"
+    : !wallet.hasProvider
+      ? "Connect wallet extension"
     : isVerifyingWallet
       ? "Verifying testnet wallet"
       : "Verify testnet wallet";
   const actionHelp = isWalletVerified
     ? "Send now or schedule with voice"
+    : wallet.needsMobileWallet
+      ? "Mobile preview stays open; wallet opens in app"
+    : !wallet.hasProvider
+      ? "Desktop needs MetaMask or another browser wallet"
     : walletHelp;
 
   return (
@@ -889,16 +897,19 @@ function WalletCheckStatus({ result, status }) {
   const checks = result?.checks || [];
   const failedChecks = checks.filter((check) => check.status !== "pass");
   const isReady = result?.ok === true;
+  const hasCheckDetails = checks.length > 0;
   const statusTitle = isLoading
-    ? "Choco Agent AI is checking"
+    ? "Checking wallet"
     : isReady
       ? "Wallet ready"
       : result
-        ? "Review before continuing"
-        : "Choco Agent AI will check";
+        ? hasCheckDetails
+          ? "Wallet check needed"
+          : "Check unavailable"
+        : "Wallet check starts after quote";
   const statusCopy = isLoading
-    ? "Wallet funds, network, and recipient are checked in the background. No funds move during this step."
-    : result?.summary || "The check starts automatically after Choco understands the transfer.";
+    ? "Checking network, gas, and recipient before the testnet transfer."
+    : result?.summary || "Choco checks network, funds, and recipient before continuing.";
 
   return (
     <section className={`wallet-check-card ${isReady ? "ready" : result ? "blocked" : ""}`} aria-label="Wallet readiness status">
@@ -918,7 +929,9 @@ function WalletCheckStatus({ result, status }) {
 }
 
 function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
-  const isVerifyingWallet = wallet.status === "loading";
+  const isVerifyingWallet = wallet.status === "loading" || wallet.status === "opening-wallet";
+  const needsMobileWallet = wallet.needsMobileWallet;
+  const needsDesktopWallet = !wallet.isMobile && !wallet.hasProvider;
 
   return (
     <div className="screen wallet-gate-screen">
@@ -927,13 +940,36 @@ function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
         <div>
           <span>Wallet access</span>
           <div className="wallet-network-label">{wallet.network.label}</div>
-          <h2>Verify testnet wallet first</h2>
-          <p>Choco hides plans, movements, and receipts until the wallet is verified on {wallet.network.name} testnet.</p>
+          <h2>
+            {needsMobileWallet
+              ? "Connect from a mobile wallet"
+              : needsDesktopWallet
+                ? "Connect a browser wallet"
+                : "Verify testnet wallet first"}
+          </h2>
+          <p>
+            {needsMobileWallet
+              ? "This mobile browser can preview Choco. Wallet actions open in MetaMask Mobile now, or MiniPay when Choco is opened there."
+              : needsDesktopWallet
+                ? `Install or enable a wallet extension, reload Choco, then verify on ${wallet.network.name}.`
+                : `Choco hides plans, movements, and receipts until the wallet is verified on ${wallet.network.name} testnet.`}
+          </p>
           {wallet.error && <p className="wallet-error">{wallet.error}</p>}
         </div>
-        <button className="primary-cta" type="button" disabled={isVerifyingWallet} onClick={onVerifyWallet}>
-          {isVerifyingWallet ? "Verifying wallet" : "Verify testnet wallet"}
-        </button>
+        {needsMobileWallet ? (
+          <div className="wallet-mobile-actions">
+            <button className="primary-cta" type="button" disabled={isVerifyingWallet} onClick={wallet.openMetaMaskMobile}>
+              {isVerifyingWallet ? "Opening wallet" : "Open in MetaMask Mobile"}
+            </button>
+            <button className="secondary-dark" type="button" onClick={wallet.openMiniPay}>
+              Open in MiniPay
+            </button>
+          </div>
+        ) : (
+          <button className="primary-cta" type="button" disabled={isVerifyingWallet} onClick={onVerifyWallet}>
+            {isVerifyingWallet ? "Verifying wallet" : needsDesktopWallet ? "Check wallet extension" : "Verify testnet wallet"}
+          </button>
+        )}
         <button className="secondary-dark" type="button" onClick={onHome}>
           Back home
         </button>
@@ -1530,7 +1566,7 @@ function ReviewScreen({ plan, mode, agentPreflight, agentPreflightStatus, transf
 
       <div className="notice">
         {isSendNow
-          ? "Choco will prepare the testnet send only after wallet readiness is clear. No funds move in this version."
+          ? "Testnet only. Choco prepares a draft after the wallet check passes."
           : "Choco will ask for confirmation before activating the schedule."}
       </div>
 

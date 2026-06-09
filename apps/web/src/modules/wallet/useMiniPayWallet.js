@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   getCeloNetworkConfig,
+  MINIPAY_DEEPLINKS,
   normalizeChainId,
   toHexChainId,
 } from "../../../../../packages/core/src/config/celo.js";
@@ -41,6 +42,30 @@ export function formatWalletAddress(address) {
 function getProvider() {
   if (typeof window === "undefined") return null;
   return window.ethereum || null;
+}
+
+export function isMobileUserAgent(userAgent = "") {
+  return /android|iphone|ipad|ipod|mobile/i.test(userAgent);
+}
+
+function getUserAgent() {
+  if (typeof navigator === "undefined") return "";
+  return navigator.userAgent || "";
+}
+
+function getCurrentDappUrl() {
+  if (typeof window === "undefined") return "";
+  return window.location.href;
+}
+
+export function getMetaMaskMobileDappUrl(dappUrl = "") {
+  const normalizedUrl = dappUrl.replace(/^https?:\/\//i, "").replace(/\/$/, "");
+  return normalizedUrl ? `https://metamask.app.link/dapp/${normalizedUrl}` : "https://metamask.app.link";
+}
+
+function openExternalUrl(url) {
+  if (typeof window === "undefined") return;
+  window.location.href = url;
 }
 
 async function readChainId(provider) {
@@ -96,6 +121,27 @@ export function useMiniPayWallet() {
   const [status, setStatus] = useState("checking");
   const [error, setError] = useState("");
   const [isMiniPay, setIsMiniPay] = useState(false);
+  const isMobile = isMobileUserAgent(getUserAgent());
+  const provider = getProvider();
+  const hasProvider = Boolean(provider);
+  const mobileWalletLinks = useMemo(() => ({
+    metaMask: getMetaMaskMobileDappUrl(getCurrentDappUrl()),
+    miniPay: MINIPAY_DEEPLINKS.discover,
+    miniPayAndroid: MINIPAY_DEEPLINKS.android,
+    miniPayIos: MINIPAY_DEEPLINKS.ios,
+  }), []);
+
+  const openMiniPay = useCallback(() => {
+    setStatus("opening-wallet");
+    setError("Opening MiniPay. Before MiniApp publishing, MetaMask Mobile is the mobile browser test path.");
+    openExternalUrl(mobileWalletLinks.miniPay);
+  }, [mobileWalletLinks.miniPay]);
+
+  const openMetaMaskMobile = useCallback(() => {
+    setStatus("opening-wallet");
+    setError("Opening MetaMask Mobile. Approve the wallet connection there.");
+    openExternalUrl(mobileWalletLinks.metaMask);
+  }, [mobileWalletLinks.metaMask]);
 
   const readWallet = useCallback(async ({ requestAccounts = false, ensureNetwork = false } = {}) => {
     const provider = getProvider();
@@ -104,8 +150,14 @@ export function useMiniPayWallet() {
       setAddress("");
       setChainId("");
       setIsMiniPay(false);
+      if (requestAccounts && isMobile) {
+        openMetaMaskMobile();
+        return false;
+      }
       setStatus("unavailable");
-      setError(`Open in MiniPay or connect a ${TESTNET_WALLET_NETWORK.name} testnet wallet.`);
+      setError(isMobile
+        ? "This mobile browser can preview Choco. Open MetaMask Mobile to connect now, or MiniPay when Choco is opened there."
+        : `Install or enable a browser wallet, then verify on ${TESTNET_WALLET_NETWORK.name} testnet.`);
       return false;
     }
 
@@ -149,7 +201,7 @@ export function useMiniPayWallet() {
       setError(getWalletErrorMessage(nextError));
       return false;
     }
-  }, []);
+  }, [isMobile, openMetaMaskMobile]);
 
   useEffect(() => {
     const provider = getProvider();
@@ -179,23 +231,30 @@ export function useMiniPayWallet() {
   const statusLabel = useMemo(() => {
     if (status === "ready") return `${formatWalletAddress(address)} on ${TESTNET_WALLET_NETWORK.name}`;
     if (status === "loading") return `Opening ${TESTNET_WALLET_NETWORK.name} wallet`;
+    if (status === "opening-wallet") return "Opening wallet app";
     if (status === "checking") return `Checking ${TESTNET_WALLET_NETWORK.name}`;
     if (status === "wrong-network") return `Switch wallet to ${TESTNET_WALLET_NETWORK.name} testnet`;
     if (status === "empty") return "Choose a wallet account";
-    if (status === "unavailable") return "Open in MiniPay or connect a testnet wallet";
+    if (status === "unavailable") return isMobile ? "Open in MetaMask Mobile" : "Connect a testnet browser wallet";
     if (status === "error") return error || "Wallet unavailable";
     return `Verify on ${TESTNET_WALLET_NETWORK.name}`;
-  }, [address, error, status]);
+  }, [address, error, isMobile, status]);
 
   return {
     address,
     chainId,
     error,
+    hasProvider,
     isMiniPay,
+    isMobile,
     isReady: status === "ready" && isTestnet,
     isTestnet,
     loadWallet: readWallet,
+    mobileWalletLinks,
     network: TESTNET_WALLET_NETWORK,
+    openMetaMaskMobile,
+    openMiniPay,
+    needsMobileWallet: isMobile && !hasProvider,
     status,
     statusLabel,
     verifyWallet,

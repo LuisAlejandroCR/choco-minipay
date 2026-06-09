@@ -86,6 +86,8 @@ export const MINIPAY_DEEPLINKS = {
   discover: "https://link.minipay.xyz/discover",
   balance: "https://link.minipay.xyz/balance",
   qr: "https://link.minipay.xyz/qr",
+  android: "https://play.google.com/store/apps/details?id=com.opera.minipay",
+  ios: "https://apps.apple.com/de/app/minipay-easy-global-wallet/id6504087257",
 };
 
 export const MINIPAY_TRUSTED_ISSUER = "0x7888612486844Bb9BE598668081c59A9f7367FBc";

@@ -20,7 +20,7 @@ export const ACTIVE_CELO_NETWORK = {
 };
 export const BLOCKSCOUT_TX_BASE_URL = ACTIVE_CELO_NETWORK.explorerTxUrl;
 export const API_BASE_URL = env.VITE_API_BASE_URL || "http://127.0.0.1:8787";
-export const INITIAL_SCREEN = ["splash", "pitch", "plan"].includes(env.VITE_INITIAL_SCREEN) ? env.VITE_INITIAL_SCREEN : "pitch";
+export const INITIAL_SCREEN = ["splash", "pitch", "plan"].includes(env.VITE_INITIAL_SCREEN) ? env.VITE_INITIAL_SCREEN : "splash";
 export const LIVE_DEMO_URL = env.VITE_LIVE_DEMO_URL || "https://choco-azure.vercel.app/";
 export const QR_CODE_BASE_URL = env.VITE_QR_CODE_BASE_URL || "https://api.qrserver.com/v1/create-qr-code/";
 export const KES_PER_USDC = Number(env.VITE_KES_PER_USDC || DEFAULT_KES_PER_USDC);

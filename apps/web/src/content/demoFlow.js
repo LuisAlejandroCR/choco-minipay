@@ -44,6 +44,6 @@ export const pitchContent = {
   headlinePrefix: "Send USA to Kenya by",
   headlineEmphasis: "voice",
   memory: "Plan once. Send now or on schedule.",
-  support: "Choco handles the rest. Full demo lives under ? Support.",
+  support: "Choco handles the rest",
   cta: "Continue",
 };

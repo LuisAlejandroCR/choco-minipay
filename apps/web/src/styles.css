@@ -202,6 +202,8 @@ a {
   overflow: visible;
   background: transparent;
   box-shadow: none;
+  transform: translateZ(0);
+  will-change: transform;
   animation: cacaoFloat 3.6s ease-in-out infinite;
 }
 
@@ -224,6 +226,7 @@ a {
   position: absolute;
   left: 18%;
   bottom: 3%;
+  will-change: transform, opacity;
   animation: cacaoShadow 3.6s ease-in-out infinite;
 }
 
@@ -264,6 +267,7 @@ a {
   background: var(--cream);
   border: 3px solid var(--cocoa-900);
   position: absolute;
+  will-change: transform, opacity;
   animation: nibPulse 3.6s ease-in-out infinite;
 }
 
@@ -1900,6 +1904,16 @@ a {
 
 .wallet-gate-card .primary-cta {
   margin-top: 8px;
+}
+
+.wallet-mobile-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.wallet-mobile-actions .primary-cta,
+.wallet-mobile-actions .secondary-dark {
+  margin-top: 0;
 }
 
 .demo-overlay {
