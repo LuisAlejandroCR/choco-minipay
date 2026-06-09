@@ -1956,6 +1956,19 @@ a {
   line-height: 1.45;
 }
 
+.demo-live-link {
+  width: fit-content;
+  margin: -4px 0 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--cocoa-700);
+  font-size: 12px;
+  font-weight: 850;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .demo-actions {
   display: grid;
   grid-template-columns: 1fr 0.7fr;

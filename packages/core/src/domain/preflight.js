@@ -1,14 +1,10 @@
-export const CELO_SEPOLIA_TESTNET = {
-  name: "Celo Sepolia",
-  chainId: 11142220,
-};
+import { getCeloNetworkConfig, normalizeChainId } from "../config/celo.js";
 
-export function normalizeChainId(chainId) {
-  if (typeof chainId === "number") return chainId;
-  if (typeof chainId !== "string" || chainId.trim() === "") return 0;
-  const normalizedChainId = chainId.trim().toLowerCase();
-  return normalizedChainId.startsWith("0x") ? Number.parseInt(normalizedChainId, 16) : Number(normalizedChainId);
-}
+export { normalizeChainId } from "../config/celo.js";
+
+export const CELO_SEPOLIA_TESTNET = getCeloNetworkConfig("celoSepolia");
+
+const PREFLIGHT_NETWORK_LABEL = `${CELO_SEPOLIA_TESTNET.name} testnet`;
 
 export function hasPositiveWeiBalance(balanceWei) {
   if (!balanceWei) return false;
@@ -53,9 +49,9 @@ export function evaluateAgentPreflight({
   const checks = [
     buildCheck(
       "network",
-      "Celo Sepolia testnet",
+      PREFLIGHT_NETWORK_LABEL,
       isTestnet,
-      isTestnet ? "Wallet is on Celo Sepolia." : "Switch wallet to Celo Sepolia testnet.",
+      isTestnet ? `Wallet is on ${CELO_SEPOLIA_TESTNET.name}.` : `Switch wallet to ${PREFLIGHT_NETWORK_LABEL}.`,
     ),
     buildCheck(
       "wallet",
@@ -67,7 +63,7 @@ export function evaluateAgentPreflight({
       "gas",
       "Testnet gas funds",
       hasGas,
-      hasGas ? `${gasBalanceLabel} available for network fees.` : "Add Celo Sepolia CELO before testing send or schedule.",
+      hasGas ? `${gasBalanceLabel} available for network fees.` : `Add ${CELO_SEPOLIA_TESTNET.name} CELO before testing send or schedule.`,
     ),
     buildCheck(
       "contact",

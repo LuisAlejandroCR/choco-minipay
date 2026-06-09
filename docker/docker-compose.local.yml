@@ -6,7 +6,7 @@ services:
       context: ..
       dockerfile: docker/api.Dockerfile
     env_file:
-      - ../.env.example
+      - ../.env
     ports:
       - "8787:8787"
 
@@ -15,6 +15,6 @@ services:
       context: ..
       dockerfile: docker/worker.Dockerfile
     env_file:
-      - ../.env.example
+      - ../.env
     environment:
       WORKER_INTERVAL_MS: "30000"

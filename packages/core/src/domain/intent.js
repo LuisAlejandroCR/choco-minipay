@@ -1,4 +1,9 @@
-import { estimateUsdcForKes, parseKesAmount } from "./amounts.js";
+import {
+  DEFAULT_KES_PER_USDC,
+  DEFAULT_TEST_KES_AMOUNT,
+  estimateUsdcForKes,
+  parseKesAmount,
+} from "./amounts.js";
 
 export function parseRecipientAlias(text) {
   const normalized = String(text || "").toLowerCase();
@@ -28,7 +33,8 @@ export function parseSchedule(text, deliveryMode = "schedule") {
 
 export function parseTransferIntent(commandText, options = {}) {
   const schedule = parseSchedule(commandText, options.deliveryMode);
-  const amountMinor = parseKesAmount(commandText, options.fallbackAmount || 50000);
+  const amountMinor = parseKesAmount(commandText, options.fallbackAmount ?? DEFAULT_TEST_KES_AMOUNT);
+  const kesPerUsdc = Number(options.kesPerUsdc || DEFAULT_KES_PER_USDC);
 
   return {
     rawCommand: commandText,
@@ -36,7 +42,8 @@ export function parseTransferIntent(commandText, options = {}) {
     amountMinor,
     sourceAsset: options.sourceAsset || "USDC",
     destinationAsset: options.destinationAsset || "KESm",
-    estimatedSourceAmount: estimateUsdcForKes(amountMinor),
+    estimatedSourceAmount: estimateUsdcForKes(amountMinor, kesPerUsdc),
+    kesPerUsdc,
     corridor: options.corridor || "US to Kenya",
     ...schedule,
   };

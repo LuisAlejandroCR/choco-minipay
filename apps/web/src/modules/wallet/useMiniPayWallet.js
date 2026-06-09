@@ -1,26 +1,33 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  getCeloNetworkConfig,
+  normalizeChainId,
+  toHexChainId,
+} from "../../../../../packages/core/src/config/celo.js";
 
-export const TESTNET_WALLET_NETWORK = {
-  badge: "TESTNET",
-  label: "TESTNET - Celo Sepolia",
-  name: "Celo Sepolia",
-  chainId: 11142220,
-  chainIdHex: "0xaa044c",
-  rpcUrl: "https://forno.celo-sepolia.celo-testnet.org",
-  explorerUrl: "https://celo-sepolia.blockscout.com",
-  nativeCurrency: {
-    name: "CELO",
-    symbol: "CELO",
-    decimals: 18,
-  },
-};
+const env = import.meta.env || {};
 
-export function normalizeChainId(chainId) {
-  if (typeof chainId === "number") return chainId;
-  if (typeof chainId !== "string" || chainId.trim() === "") return 0;
-  const normalizedChainId = chainId.trim().toLowerCase();
-  return normalizedChainId.startsWith("0x") ? Number.parseInt(normalizedChainId, 16) : Number(normalizedChainId);
+function buildWalletNetwork() {
+  const defaultNetwork = getCeloNetworkConfig("celoSepolia");
+  const chainId = normalizeChainId(env.VITE_CELO_CHAIN_ID || defaultNetwork.chainId);
+  const chainIdHex = env.VITE_CELO_CHAIN_ID_HEX || toHexChainId(chainId);
+
+  return {
+    ...defaultNetwork,
+    name: env.VITE_CELO_NETWORK_NAME || defaultNetwork.name,
+    badge: env.VITE_CELO_NETWORK_BADGE || defaultNetwork.badge,
+    label: env.VITE_CELO_NETWORK_LABEL || defaultNetwork.label,
+    chainId,
+    chainIdHex,
+    rpcUrl: env.VITE_CELO_RPC_URL || defaultNetwork.rpcUrl,
+    explorerUrl: env.VITE_BLOCK_EXPLORER_URL || defaultNetwork.explorerUrl,
+    explorerTxUrl: env.VITE_BLOCK_EXPLORER_TX_URL || defaultNetwork.explorerTxUrl,
+  };
 }
+
+export { normalizeChainId } from "../../../../../packages/core/src/config/celo.js";
+
+export const TESTNET_WALLET_NETWORK = buildWalletNetwork();
 
 export function isCeloSepoliaTestnet(chainId) {
   return normalizeChainId(chainId) === TESTNET_WALLET_NETWORK.chainId;
@@ -79,7 +86,7 @@ async function ensureCeloSepolia(provider) {
 
 function getWalletErrorMessage(error) {
   if (String(error?.code) === "4001") return "Wallet verification was cancelled.";
-  if (String(error?.code) === "-32601") return "Switch to Celo Sepolia testnet in your wallet.";
+  if (String(error?.code) === "-32601") return `Switch to ${TESTNET_WALLET_NETWORK.name} testnet in your wallet.`;
   return error instanceof Error ? error.message : "Wallet unavailable";
 }
 
@@ -98,7 +105,7 @@ export function useMiniPayWallet() {
       setChainId("");
       setIsMiniPay(false);
       setStatus("unavailable");
-      setError("Open in MiniPay or connect a Celo Sepolia testnet wallet.");
+      setError(`Open in MiniPay or connect a ${TESTNET_WALLET_NETWORK.name} testnet wallet.`);
       return false;
     }
 
@@ -129,7 +136,7 @@ export function useMiniPayWallet() {
 
       if (!isTestnet) {
         setStatus("wrong-network");
-        setError("Switch to Celo Sepolia testnet before verifying Choco.");
+        setError(`Switch to ${TESTNET_WALLET_NETWORK.name} testnet before verifying Choco.`);
         return false;
       }
 
@@ -173,7 +180,7 @@ export function useMiniPayWallet() {
     if (status === "ready") return `${formatWalletAddress(address)} on ${TESTNET_WALLET_NETWORK.name}`;
     if (status === "loading") return `Opening ${TESTNET_WALLET_NETWORK.name} wallet`;
     if (status === "checking") return `Checking ${TESTNET_WALLET_NETWORK.name}`;
-    if (status === "wrong-network") return "Switch wallet to Celo Sepolia testnet";
+    if (status === "wrong-network") return `Switch wallet to ${TESTNET_WALLET_NETWORK.name} testnet`;
     if (status === "empty") return "Choose a wallet account";
     if (status === "unavailable") return "Open in MiniPay or connect a testnet wallet";
     if (status === "error") return error || "Wallet unavailable";

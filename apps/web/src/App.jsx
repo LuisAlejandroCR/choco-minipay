@@ -28,14 +28,44 @@ import {
   formatWalletAddress,
   useMiniPayWallet,
 } from "./modules/wallet/useMiniPayWallet.js";
+import { ChocoMark } from "./components/ChocoMark.jsx";
+import { DemoVisual } from "./components/DemoVisual.jsx";
+import { PitchScreen } from "./components/PitchScreen.jsx";
+import {
+  DEMO_STEP_MS,
+  DEMO_TOTAL_SECONDS,
+  demoPromptContent,
+  demoSteps,
+} from "./content/demoFlow.js";
+import {
+  infoPanels,
+  publicReviewLinks,
+  supportAboutContent,
+} from "./content/reviewLinks.js";
+import { formatKesAmount } from "@core/domain/amounts.js";
+import { parseTransferIntent } from "@core/domain/intent.js";
+import {
+  API_BASE_URL,
+  INITIAL_SCREEN,
+  KES_PER_USDC,
+  LIVE_DEMO_URL,
+  SHOW_DEMO_PROMPT,
+  WORLD_MAP_URL,
+  getQrCodeUrl,
+  getVerifyTransactionUrl,
+} from "./config/runtime.js";
+import {
+  DEFAULT_COMMANDS,
+  TESTNET_SCENARIO,
+  defaultPlan,
+  defaultTransaction,
+  formatRouteEstimate,
+  getNextDateForIntent,
+  getScenarioTimestamp,
+  getScheduleLabelForIntent,
+} from "./data/testnetScenario.js";
 
 const SPLASH_DURATION_MS = 2600;
-const DEMO_STEP_MS = 5000;
-const WORLD_MAP_URL = "https://upload.wikimedia.org/wikipedia/commons/5/51/BlankMap-Equirectangular.svg";
-const VERIFY_BASE_URL = "https://celo-sepolia.blockscout.com/tx";
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8787";
-const DEMO_FROM_ADDRESS = "0xb7b2...0426d";
-const DEFAULT_SCHEDULED_TIMESTAMP = "07/01/2026 09:00 AM Local";
 
 function formatLocalTimestamp(date = new Date()) {
   const timestamp = new Intl.DateTimeFormat("en-US", {
@@ -69,9 +99,7 @@ function formatHistoryDate(timestamp) {
 
 function getMovementTimestamp(plan) {
   if (plan.deliveryMode === "now") return formatLocalTimestamp();
-  if (plan.nextDate === "July 15") return "07/15/2026 09:00 AM Local";
-  if (plan.nextDate === "Next Monday") return "06/15/2026 09:00 AM Local";
-  return DEFAULT_SCHEDULED_TIMESTAMP;
+  return getScenarioTimestamp(plan.nextDate);
 }
 
 const deliveryModes = {
@@ -85,45 +113,12 @@ const deliveryModes = {
   },
 };
 
-const defaultPlan = {
-  id: "mom-monthly",
-  amount: "50,000",
-  asset: "KESm",
-  corridor: "US to Kenya",
-  payAsset: "USDC",
-  recipient: "Mom",
-  phone: "+254 7xx xxx 214",
-  schedule: "Every 1st - 9:00 AM",
-  nextDate: "July 1",
-  fee: "0.1%",
-  routeEstimate: "$386.42 USDC",
-  hash: "0x8f34...celo-sepolia-309",
-  status: "Active",
-  phone: "+254 7xx xxx 214",
-  schedule: "Every 1st - 9:00 AM",
-  deliveryMode: "schedule",
-};
-
-const defaultTransaction = {
-  id: "tx-july-1",
-  planId: defaultPlan.id,
-  recipient: defaultPlan.recipient,
-  amount: defaultPlan.amount,
-  asset: defaultPlan.asset,
-  payAsset: defaultPlan.payAsset,
-  schedule: defaultPlan.schedule,
-  date: DEFAULT_SCHEDULED_TIMESTAMP,
-  status: "Scheduled",
-  hash: defaultPlan.hash,
-  routeEstimate: defaultPlan.routeEstimate,
-  type: "Scheduled run",
-  deliveryMode: defaultPlan.deliveryMode,
-  from: DEMO_FROM_ADDRESS,
-  to: "Mom - +254 7xx xxx 214",
-};
-
 function getTimingLabel(item) {
   return item.deliveryMode === "now" ? "Send once now" : item.schedule;
+}
+
+function getRecipientContactLabel(plan) {
+  return plan.recipientContact || plan.recipient;
 }
 
 function getPlanSignature(plan) {
@@ -142,10 +137,6 @@ function getMovementSignature(item) {
     item.asset,
     item.deliveryMode || "schedule",
   ].join("|").toLowerCase();
-}
-
-function getVerifyTransactionUrl(hash) {
-  return `${VERIFY_BASE_URL}/${encodeURIComponent(hash)}`;
 }
 
 function findSimilarPlan(plans, candidate, excludeId = "") {
@@ -177,28 +168,6 @@ function getSimilarPlanIds(plans) {
   );
 }
 
-function formatKesAmount(value) {
-  return Math.round(value).toLocaleString("en-US");
-}
-
-function parseKesAmount(text, fallbackAmount) {
-  const kMatch = text.match(/(\d+(?:[.,]\d+)?)\s*k\b/i);
-  if (kMatch) {
-    return Number(kMatch[1].replace(",", ".")) * 1000;
-  }
-
-  const kesMatch = text.match(/(\d{4,})\s*(kes|kesm)\b/i);
-  if (kesMatch) {
-    return Number(kesMatch[1].replace(/,/g, ""));
-  }
-
-  return Number(String(fallbackAmount).replace(/,/g, "")) || 50000;
-}
-
-function getRouteEstimate(amountValue) {
-  return `$${(amountValue / 129.39).toFixed(2)} USDC`;
-}
-
 function getTransactionStatus(plan, type) {
   if (plan.deliveryMode === "now") return "Preflight";
   if (type === "Plan updated") return "Updated";
@@ -206,41 +175,24 @@ function getTransactionStatus(plan, type) {
 }
 
 function buildPlanFromCommand(commandText, basePlan = defaultPlan, selectedDeliveryMode = "") {
-  const text = commandText.toLowerCase();
-  const deliveryMode = selectedDeliveryMode || (/now|today|immediate|once/.test(text) ? "now" : "schedule");
-  const recipient = text.includes("sister")
-    ? "Sister"
-    : text.includes("aunt")
-      ? "Auntie"
-      : text.includes("dad")
-        ? "Dad"
-        : "Mom";
-  const amountValue = parseKesAmount(text, basePlan.amount);
-  const amount = formatKesAmount(amountValue);
-  const day = text.includes("15") ? "15th" : text.includes("monday") ? "Monday" : "1st";
-  const schedule = deliveryMode === "now"
-    ? "Send once now"
-    : day === "Monday"
-      ? "Every Monday - 9:00 AM"
-      : `Every ${day} - 9:00 AM`;
-  const nextDate = deliveryMode === "now"
-    ? "Today"
-    : day === "15th"
-      ? "July 15"
-      : day === "Monday"
-        ? "Next Monday"
-        : "July 1";
-  const routeEstimate = getRouteEstimate(amountValue);
+  const intent = parseTransferIntent(commandText, {
+    deliveryMode: selectedDeliveryMode,
+    fallbackAmount: basePlan.amount,
+    sourceAsset: basePlan.payAsset,
+    destinationAsset: basePlan.asset,
+    corridor: basePlan.corridor,
+    kesPerUsdc: KES_PER_USDC,
+  });
 
   return {
     ...basePlan,
-    amount,
-    recipient,
-    schedule,
-    nextDate,
-    routeEstimate,
-    status: deliveryMode === "now" ? "Ready" : "Active",
-    deliveryMode,
+    amount: formatKesAmount(intent.amountMinor),
+    recipient: intent.recipientAlias,
+    schedule: getScheduleLabelForIntent(intent),
+    nextDate: getNextDateForIntent(intent),
+    routeEstimate: formatRouteEstimate(intent.amountMinor, intent.sourceAsset, KES_PER_USDC),
+    status: intent.deliveryMode === "now" ? "Ready" : "Active",
+    deliveryMode: intent.deliveryMode,
   };
 }
 
@@ -259,13 +211,13 @@ function buildTransactionFromPlan(plan, type = "Plan confirmed") {
     routeEstimate: plan.routeEstimate,
     type,
     deliveryMode: plan.deliveryMode,
-    from: DEMO_FROM_ADDRESS,
-    to: `${plan.recipient} - ${plan.phone || "Kenya wallet"}`,
+    from: TESTNET_SCENARIO.senderAddress,
+    to: getRecipientContactLabel(plan),
   };
 }
 
 function shouldShowDemoPrompt() {
-  return true;
+  return SHOW_DEMO_PROMPT;
 }
 
 function rememberDemoChoice() {
@@ -276,61 +228,32 @@ function rememberDemoChoice() {
   }
 }
 
-const demoSteps = [
-  {
-    title: "Home starts the transfer",
-    copy: "One entry point keeps the app simple. Voice or text can send now or schedule.",
-  },
-  {
-    title: "Choose timing",
-    copy: "Pick send now or schedule. Choco uses the same command box for both.",
-  },
-  {
-    title: "Choco checks repeats",
-    copy: "If a similar plan or send already exists, Choco asks before continuing.",
-  },
-  {
-    title: "Plans stay light",
-    copy: "Details show the essentials: amount, timing, route, retries, and actions.",
-  },
-  {
-    title: "Movements verify proof",
-    copy: "Receipts start short, then expand into QR, from, to, date, and hash.",
-  },
-  {
-    title: "Share when needed",
-    copy: "Share the receipt or open the explorer link when family asks for proof.",
-  },
-];
-
-const DEMO_TOTAL_SECONDS = Math.round((demoSteps.length * DEMO_STEP_MS) / 1000);
-
 function formatDemoTime(totalSeconds) {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = String(totalSeconds % 60).padStart(2, "0");
   return `${minutes}:${seconds}`;
 }
 
-const infoPanels = {
-  future: {
-    eyebrow: "Future development",
-    title: "More corridors, more channels",
-    copy: "Choco lives in Mini Apps now. The next layer is social chat access and another remittance corridor.",
-    items: ["UK to NGN corridor", "WhatsApp, Telegram, Messenger", "Recipient status alerts"],
-    Icon: Bell,
-  },
-  support: {
-    eyebrow: "Support first",
-    title: "Support and about",
-    copy: "Start here for help, review pages, and the short Choco story.",
-    items: [],
-    Icon: MessageCircleQuestionMark,
-  },
+const infoPanelIcons = {
+  future: Bell,
+  support: MessageCircleQuestionMark,
 };
 
+const publicReviewIcons = {
+  external: ExternalLink,
+  privacy: ShieldCheck,
+  stats: ListChecks,
+  support: MessageCircleQuestionMark,
+  terms: ReceiptText,
+};
+
+function getPublicReviewHref(link) {
+  return link.href === "live-demo" ? LIVE_DEMO_URL : link.href;
+}
+
 export function App() {
-  const [screen, setScreen] = useState("splash");
-  const [command, setCommand] = useState("send my mum 50k KES every 1st");
+  const [screen, setScreen] = useState(INITIAL_SCREEN);
+  const [command, setCommand] = useState(DEFAULT_COMMANDS.schedule);
   const [runStep, setRunStep] = useState(0);
   const [demoStep, setDemoStep] = useState(0);
   const [demoElapsedSeconds, setDemoElapsedSeconds] = useState(0);
@@ -436,7 +359,7 @@ export function App() {
     skipDemoPrompt();
     setReviewMode("demo");
     setDeliveryMode("schedule");
-    setCommand("send my mum 50k KES every 1st");
+    setCommand(DEFAULT_COMMANDS.schedule);
     setDemoStep(0);
     setDemoElapsedSeconds(0);
     setScreen("demoTour");
@@ -460,7 +383,7 @@ export function App() {
     const targetPlan = activePlan || defaultPlan;
     setReviewMode("update");
     setDeliveryMode(targetPlan.deliveryMode || "schedule");
-    setCommand(`change ${targetPlan.recipient}'s plan to 75k KES every 15th`);
+    setCommand(DEFAULT_COMMANDS.edit(targetPlan.recipient));
     setScreen("planEditor");
   }
 
@@ -468,11 +391,11 @@ export function App() {
     setDeliveryMode(nextMode);
     setCommand((currentCommand) => {
       if (nextMode === "now" && /every|weekly|monthly|monday|1st|15th/i.test(currentCommand)) {
-        return "send my mum 50k KES now";
+        return DEFAULT_COMMANDS.now;
       }
 
       if (nextMode === "schedule" && /now|today|immediate|once/i.test(currentCommand)) {
-        return "send my mum 50k KES every 1st";
+        return DEFAULT_COMMANDS.schedule;
       }
 
       return currentCommand;
@@ -493,7 +416,7 @@ export function App() {
         agent: "Choco Agent AI",
         status: "blocked",
         ok: false,
-        summary: "Connect a Celo Sepolia testnet wallet before running agent preflight.",
+        summary: `Connect a ${wallet.network.name} testnet wallet before running agent preflight.`,
         checks: [],
       });
       return;
@@ -511,7 +434,7 @@ export function App() {
         body: JSON.stringify({
           walletAddress: wallet.address,
           chainId: wallet.chainId,
-          recipientContact: `${plan.recipient} ${plan.phone || ""}`.trim(),
+          recipientContact: getRecipientContactLabel(plan),
           payAsset: plan.payAsset,
           amount: plan.routeEstimate,
         }),
@@ -567,14 +490,14 @@ export function App() {
         ...activePlan,
         ...previewPlan,
         id: activePlan.id,
-        hash: "0x43b2...celo-sepolia-309",
+        hash: TESTNET_SCENARIO.hashes.updated,
       };
       setPlans((items) => items.map((item) => (item.id === activePlan.id ? committedPlan : item)));
     } else {
       committedPlan = {
         ...previewPlan,
         id: `plan-${Date.now()}`,
-        hash: "0x8f34...celo-sepolia-309",
+        hash: TESTNET_SCENARIO.hashes.default,
       };
       setPlans((items) => [committedPlan, ...items]);
     }
@@ -797,7 +720,7 @@ export function App() {
 
 function QuickInfoPanel({ type, onClose }) {
   const panel = infoPanels[type] || infoPanels.support;
-  const Icon = panel.Icon;
+  const Icon = infoPanelIcons[panel.icon] || MessageCircleQuestionMark;
 
   return (
     <div className="quick-info-overlay" role="dialog" aria-label={panel.title}>
@@ -830,51 +753,26 @@ function QuickInfoPanel({ type, onClose }) {
 function SupportAboutContent() {
   return (
     <div className="support-about">
-      <section className="about-card" aria-label="About Choco">
-        <div className="agent-badge">Agent #309 - Celo Sepolia Testnet</div>
-        <h3>Choco helps MiniPay users send family transfers with review, schedules, and receipts.</h3>
-        <p>
-          The app is production-candidate: support, privacy, terms, and stats stay close to the flow
-          so reviewers can inspect the product without leaving the Choco behavior.
-        </p>
+      <section className="about-card" aria-label={supportAboutContent.label}>
+        <div className="agent-badge">{supportAboutContent.badge}</div>
+        <h3>{supportAboutContent.title}</h3>
+        <p>{supportAboutContent.copy}</p>
       </section>
 
       <div className="support-link-grid" aria-label="Public review links">
-        <a href="/support.html">
-          <MessageCircleQuestionMark size={17} />
-          Support
-          <ExternalLink size={13} />
-        </a>
-        <a href="/privacy.html">
-          <ShieldCheck size={17} />
-          Privacy
-          <ExternalLink size={13} />
-        </a>
-        <a href="/terms.html">
-          <ReceiptText size={17} />
-          Terms
-          <ExternalLink size={13} />
-        </a>
-        <a href="/stats.html">
-          <ListChecks size={17} />
-          Stats
-          <ExternalLink size={13} />
-        </a>
-      </div>
-    </div>
-  );
-}
+        {publicReviewLinks.map((link) => {
+          const Icon = publicReviewIcons[link.icon] || ExternalLink;
+          const externalProps = link.external ? { target: "_blank", rel: "noreferrer" } : {};
 
-function ChocoMark({ size = "large" }) {
-  return (
-    <div className={`choco-mark ${size}`} aria-label="Choco logo">
-      <span className="cacao-shadow" />
-      <span className="cacao-pod" />
-      <span className="cacao-ridge ridge-a" />
-      <span className="cacao-ridge ridge-b" />
-      <span className="cacao-ridge ridge-c" />
-      <span className="cacao-nib nib-a" />
-      <span className="cacao-nib nib-b" />
+          return (
+            <a key={link.id} href={getPublicReviewHref(link)} {...externalProps}>
+              <Icon size={17} />
+              {link.label}
+              <ExternalLink size={13} />
+            </a>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -888,106 +786,6 @@ function SplashScreen({ onStart }) {
         <span>Remittance concierge for MiniPay</span>
       </div>
     </button>
-  );
-}
-
-function PitchScreen({ onClose }) {
-  return (
-    <div className="screen pitch-screen">
-      <button className="pitch-close" type="button" aria-label="Close intro" onClick={onClose}>
-        <X size={18} strokeWidth={3} />
-      </button>
-
-      <section className="pitch-visual" aria-label="USA to Kenya remittance">
-        <div className="mobile-world">
-          <div className="globe-core" aria-hidden="true">
-            <svg className="world-map" viewBox="0 0 360 180" role="img" aria-label="World map with USA and Kenya highlighted">
-              <image
-                className="map-base"
-                href={WORLD_MAP_URL}
-                x="0"
-                y="0"
-                width="360"
-                height="180"
-                preserveAspectRatio="xMidYMid meet"
-              />
-              <g className="map-country-label usa-map-label">
-                <circle cx="82" cy="51" r="2.6" />
-                <text x="86" y="49">USA</text>
-              </g>
-              <g className="map-country-label kenya-map-label">
-                <circle cx="218" cy="90" r="2.6" />
-                <text x="222" y="88">Kenya</text>
-              </g>
-            </svg>
-          </div>
-
-          <div className="route-person sender-person" aria-hidden="true">
-            <svg className="person-svg sender-silhouette" viewBox="0 0 56 56" role="img">
-              <g className="afro-hair">
-                <circle cx="17" cy="20" r="9" />
-                <circle cx="24" cy="13" r="10" />
-                <circle cx="35" cy="13" r="10" />
-                <circle cx="42" cy="22" r="9" />
-                <circle cx="29" cy="23" r="13" />
-              </g>
-              <circle className="person-fill" cx="29" cy="27" r="9" />
-              <g className="talk-mouth">
-                <ellipse className="talk-mouth-open" cx="29" cy="31" rx="3.3" ry="2.2" />
-                <path className="talk-mouth-line" d="M25 30 C28 32 32 32 35 30" />
-              </g>
-              <path className="person-fill" d="M13 54 C15 42 21 36 29 36 C37 36 43 42 45 54 Z" />
-              <path className="voice-mark" d="M45 22 C49 26 50 31 49 36" />
-            </svg>
-          </div>
-
-          <div className="route-person recipient-person" aria-hidden="true">
-            <svg className="person-svg recipient-silhouette" viewBox="0 0 64 64" role="img">
-              <circle className="recipient-badge" cx="32" cy="32" r="25" />
-              <path
-                className="recipient-hair-fill"
-                d="M32 8 C44 8 52 17 52 30 C52 38 57 45 54 56 C49 58 44 57 40 53 C42 46 42 39 40 33 C37 37 34 39 32 39 C29 39 26 37 24 33 C22 39 22 46 24 53 C20 57 15 58 10 56 C7 45 12 38 12 30 C12 17 20 8 32 8 Z"
-              />
-              <ellipse className="recipient-face-fill" cx="32" cy="28" rx="9" ry="10" />
-              <path className="recipient-body-fill" d="M18 57 C20 47 26 42 32 42 C38 42 44 47 46 57 Z" />
-              <path className="recipient-hair-line" d="M23 28 C27 32 35 32 39 28" />
-              <path className="recipient-part-line" d="M32 12 C29 18 27 22 24 25" />
-            </svg>
-          </div>
-
-          <div className="transfer-bundle" aria-hidden="true">
-            <span className="choco-dollar-token">
-              <ChocoMark size="tiny" />
-              <span>$</span>
-            </span>
-            <span className="voice-note travel-chat">
-              <span className="voice-note-mic"><Mic size={11} strokeWidth={3} /></span>
-              <span className="voice-wave">
-                <span /><span /><span /><span /><span /><span /><span /><span /><span /><span />
-              </span>
-            </span>
-          </div>
-        </div>
-      </section>
-
-      <section className="pitch-copy">
-        <span className="pitch-kicker">Voice remittance</span>
-        <h1>
-          Send USA to Kenya by{" "}
-          <span className="voice-highlight">
-            <span>voice</span>
-            <span className="headline-wave" aria-hidden="true">
-              <i /><i /><i /><i /><i />
-            </span>
-          </span>
-          .
-        </h1>
-        <p className="pitch-memory">Plan once. Send now or on schedule.</p>
-        <p className="pitch-support">Choco handles the rest.</p>
-      </section>
-
-      <button className="primary-cta" type="button" onClick={onClose}>Continue</button>
-    </div>
   );
 }
 
@@ -1106,12 +904,20 @@ function PlanScreen({
 
 function AgentPreflight({ plan, result, status, onRun }) {
   const isLoading = status === "loading";
+  const [showDetails, setShowDetails] = useState(false);
+  const hasDetails = Boolean(result?.checks?.length);
 
   return (
     <section className="ready-checks" aria-label="Choco Agent AI preflight">
       <div className="section-heading">
         <span>Choco Agent AI</span>
-        <small>API preflight</small>
+        {hasDetails ? (
+          <button type="button" onClick={() => setShowDetails((current) => !current)}>
+            {showDetails ? "Hide" : "Details"}
+          </button>
+        ) : (
+          <small>API preflight</small>
+        )}
       </div>
 
       <button
@@ -1123,11 +929,11 @@ function AgentPreflight({ plan, result, status, onRun }) {
         <span className="ready-check-icon">{result?.ok ? <Check size={18} /> : <ShieldCheck size={18} />}</span>
         <span>
           <b>{isLoading ? "Agent checking testnet" : result?.agent || "Run agent preflight"}</b>
-          <small>{result?.summary || `${plan.routeEstimate} route, recipient contact, Celo Sepolia funds.`}</small>
+          <small>{result?.summary || `${plan.routeEstimate} test quote. Choco checks wallet readiness before review.`}</small>
         </span>
       </button>
 
-      {result?.checks?.map((check) => (
+      {showDetails && result?.checks?.map((check) => (
         <div className={`ready-check-row compact ${check.status === "pass" ? "complete" : "blocked"}`} key={check.id}>
           <span className="ready-check-icon">{check.status === "pass" ? <Check size={18} /> : <X size={18} />}</span>
           <span>
@@ -1151,7 +957,7 @@ function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
           <span>Wallet access</span>
           <div className="wallet-network-label">{wallet.network.label}</div>
           <h2>Verify testnet wallet first</h2>
-          <p>Choco hides plans, movements, and receipts until the wallet is verified on Celo Sepolia testnet.</p>
+          <p>Choco hides plans, movements, and receipts until the wallet is verified on {wallet.network.name} testnet.</p>
           {wallet.error && <p className="wallet-error">{wallet.error}</p>}
         </div>
         <button className="primary-cta" type="button" disabled={isVerifyingWallet} onClick={onVerifyWallet}>
@@ -1174,8 +980,12 @@ function DemoPrompt({ onRunDemo, onSkipDemo, onCloseDemo }) {
           <X size={18} strokeWidth={3} />
         </button>
         <ChocoMark size="small" />
-        <h2>Try Choco in {DEMO_TOTAL_SECONDS} seconds</h2>
-        <p>A guided tour shows transfers, schedules, receipts, and sharing. Skip anytime.</p>
+        <h2>{demoPromptContent.title}</h2>
+        <p>{demoPromptContent.copy}</p>
+        <a className="demo-live-link" href={LIVE_DEMO_URL} target="_blank" rel="noreferrer">
+          {demoPromptContent.liveDemoLabel}
+          <ExternalLink size={14} />
+        </a>
         <div className="demo-actions">
           <button type="button" onClick={onRunDemo}>Run demo</button>
           <button type="button" onClick={onSkipDemo}>Skip</button>
@@ -1239,83 +1049,6 @@ function DemoTourScreen({ step, elapsedSeconds, onSkip, onPrevious, onNext, onFi
         </button>
       </div>
     </div>
-  );
-}
-
-function DemoVisual({ step }) {
-  if (step === 0) {
-    return (
-      <div className="demo-visual home-preview">
-        <button type="button"><CircleDollarSign size={17} />New transfer<span>Voice or text</span></button>
-        <div className="mini-plan-row">
-          <div className="plan-row-icon"><ChocoMark size="tiny" /></div>
-          <div><b>Mom </b><span>50,000 KESm - Every 1st</span></div>
-          <small>Active</small>
-        </div>
-      </div>
-    );
-  }
-
-  if (step === 1) {
-    return (
-      <div className="demo-visual timing-preview">
-        <button className="active" type="button"><CircleDollarSign size={18} />Send now<span>One-time</span></button>
-        <button type="button"><CalendarDays size={18} />Schedule<span>Repeat</span></button>
-      </div>
-    );
-  }
-
-  if (step === 2) {
-    return (
-      <div className="demo-visual duplicate-preview">
-        <div className="agent-toast show">
-          <ChocoMark size="tiny" />
-          <span>Choco Agent AI</span>
-        </div>
-        <p>Similar plan already exists for Mom. Open it instead of creating a duplicate.</p>
-      </div>
-    );
-  }
-
-  if (step === 3) {
-    return (
-      <div className="demo-visual details-preview">
-        <div className="mini-plan-row">
-          <div className="plan-row-icon"><ChocoMark size="tiny" /></div>
-          <div><b>Mom </b><span>50,000 KESm</span></div>
-          <small>Active</small>
-        </div>
-        <DetailLine label="Timing" value="Every 1st" />
-        <DetailLine label="Route" value="USDC to KESm" />
-      </div>
-    );
-  }
-
-  if (step === 4) {
-    return (
-      <div className="demo-visual verify-preview">
-        <div className="mini-qr" aria-hidden="true">
-          <span /><span /><span /><span /><span /><span /><span /><span /><span />
-        </div>
-        <div>
-          <b>Verify receipt</b>
-          <span>QR + explorer link</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (step === 5) {
-    return (
-      <div className="demo-visual share-preview">
-        <label><Share2 size={16} />Share receipt</label>
-        <label><ExternalLink size={16} />Open explorer</label>
-      </div>
-    );
-  }
-
-  return (
-    <div className="demo-visual saved-plan" />
   );
 }
 
@@ -1403,7 +1136,7 @@ function ReceiptDetailScreen({ transaction, onBack, onHome, onPlans }) {
   const [shareState, setShareState] = useState("");
   const [showVerification, setShowVerification] = useState(false);
   const verifyUrl = getVerifyTransactionUrl(transaction.hash);
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=132x132&margin=0&data=${encodeURIComponent(verifyUrl)}`;
+  const qrUrl = getQrCodeUrl(verifyUrl);
   const shareText = [
     `Choco receipt: ${transaction.amount} ${transaction.asset} to ${transaction.recipient}`,
     `Timing: ${getTimingLabel(transaction)}`,
@@ -1538,8 +1271,8 @@ function PlanEditorScreen({
       ? "Send money"
       : "Schedule transfer";
   const voiceTranscript = deliveryMode === "now"
-    ? "send my mum 50k KES now"
-    : "send my mum 50k KES every 1st";
+    ? DEFAULT_COMMANDS.now
+    : DEFAULT_COMMANDS.schedule;
 
   useEffect(() => {
     if (!isRecording || isPaused) return undefined;
@@ -1808,7 +1541,7 @@ function ReviewScreen({ plan, mode, transferBlockMessage, onEdit, onConfirm }) {
 
       <div className="summary-grid">
         <SummaryCard label="Amount" value={`${plan.amount} ${plan.asset}`} />
-        <SummaryCard label="Timing" value={isSendNow ? "Send once now" : plan.schedule.replace(" - 9:00 AM", "")} />
+        <SummaryCard label="Timing" value={isSendNow ? "Send once now" : plan.schedule.replace(` - ${TESTNET_SCENARIO.scheduledTimeLabel}`, "")} />
         <SummaryCard label="Fee" value={plan.fee} />
         <SummaryCard label="Retries" value="3 attempts" />
       </div>

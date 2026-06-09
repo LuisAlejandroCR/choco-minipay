@@ -21,6 +21,17 @@ Choco is a MiniPay-native remittance concierge for family transfers, scheduled r
 |       |-- index.html
 |       `-- src/
 |           |-- App.jsx
+|           |-- components/
+|           |   |-- ChocoMark.jsx
+|           |   |-- DemoVisual.jsx
+|           |   `-- PitchScreen.jsx
+|           |-- config/
+|           |   `-- runtime.js
+|           |-- content/
+|           |   |-- demoFlow.js
+|           |   `-- reviewLinks.js
+|           |-- data/
+|           |   `-- testnetScenario.js
 |           |-- main.jsx
 |           |-- styles.css
 |           `-- modules/
@@ -76,7 +87,7 @@ Choco is a MiniPay-native remittance concierge for family transfers, scheduled r
 |       `-- src/
 |           `-- scheduler.js
 |-- .dockerignore
-|-- .env.example
+|-- .env
 |-- .gitignore
 |-- package-lock.json
 |-- package.json
@@ -106,7 +117,7 @@ Run only the API and worker shells:
 docker compose -f docker/docker-compose.local.yml up --build
 ```
 
-Use `.env.example` as the environment contract for local and deployed services.
+Use `.env` as the environment contract for local and deployed services.
 
 ## 2. Local Node Path
 
@@ -187,6 +198,12 @@ npm run agent:register
 
 Use [docs/runbook-celo-agent-registration.md](docs/runbook-celo-agent-registration.md) for registry steps, signer setup, and operational safety notes.
 
+## Wallet Network Config
+
+Choco targets Celo Sepolia testnet until the mainnet release is approved. Network defaults live in `packages/core/src/config/celo.js`; deployment overrides live in `.env`.
+
+For the web app, keep `VITE_CELO_NETWORK_KEY`, `VITE_CELO_CHAIN_ID`, `VITE_CELO_CHAIN_ID_HEX`, `VITE_CELO_RPC_URL`, `VITE_BLOCK_EXPLORER_URL`, and `VITE_BLOCK_EXPLORER_TX_URL` aligned. For the API, keep `RPC_URL` on the same network so wallet verification, preflight balance checks, and receipt links all point to Celo Sepolia.
+
 ## Celo And MiniPay Rules
 
 - Detect MiniPay with `window.ethereum.isMiniPay === true`.
@@ -232,7 +249,7 @@ Direct API test from PowerShell:
 $body = @{
   walletAddress = "0x0000000000000000000000000000000000000001"
   chainId = "0xaa044c"
-  recipientContact = "Mom +254 7xx xxx 214"
+  recipientContact = "Mom"
 } | ConvertTo-Json
 
 Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:8787/v1/agent/preflight" -ContentType "application/json" -Body $body
@@ -243,7 +260,7 @@ Direct API test from bash:
 ```bash
 curl -X POST http://127.0.0.1:8787/v1/agent/preflight \
   -H "Content-Type: application/json" \
-  -d "{\"walletAddress\":\"0x0000000000000000000000000000000000000001\",\"chainId\":\"0xaa044c\",\"recipientContact\":\"Mom +254 7xx xxx 214\"}"
+  -d "{\"walletAddress\":\"0x0000000000000000000000000000000000000001\",\"chainId\":\"0xaa044c\",\"recipientContact\":\"Mom\"}"
 ```
 
 For Vercel, set `VITE_API_BASE_URL` to the deployed API service. The static web deployment cannot run Choco Agent AI preflight by itself.

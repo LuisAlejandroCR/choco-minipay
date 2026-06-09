@@ -41,7 +41,11 @@ services/worker
 | Path | Role |
 | --- | --- |
 | `apps/web` | User-facing MiniPay web app. Keep UI, wallet status, navigation, and review links here. |
-| `packages/core` | Shared business rules. Keep parsing, duplicate checks, receipt URLs, amount helpers, and Celo constants here. |
+| `apps/web/src/components` | Reusable visual components for the Choco mark, pitch screen, and guided demo visuals. |
+| `apps/web/src/content` | Pitch, guided-demo, and public-review copy separated from app routing. |
+| `apps/web/src/config` | Runtime environment contract used by Vite and web modules. |
+| `apps/web/src/data` | Low-value Celo Sepolia test scenario used by the UI. |
+| `packages/core` | Shared business rules. Keep parsing, duplicate checks, receipt URLs, amount helpers, and Celo network constants here. |
 | `services/api` | Server boundary for provider integrations, quote previews, identity lookup, and transfer orchestration. |
 | `services/worker` | Background boundary for schedules, retries, notifications, and reconciliation. |
 | `ops/agent-registry` | ERC-8004 metadata generation and registration scripts. |
@@ -81,12 +85,12 @@ Start with the layer where the problem appears, then move inward.
 | --- | --- | --- |
 | Vercel shows 404 | `vercel.json`, GitHub push status, Vercel deployment logs | `dist/web`, build command, output directory |
 | UI is stale | Latest commit pushed to `origin/main` | Vercel redeploy, browser hard refresh |
-| Wallet status is wrong | `apps/web/src/modules/wallet/useMiniPayWallet.js` | Celo Sepolia chain ID `11142220`, MiniPay WebView, `window.ethereum.isMiniPay` |
+| Wallet status is wrong | `apps/web/src/modules/wallet/useMiniPayWallet.js` | `packages/core/src/config/celo.js`, `.env`, MiniPay WebView, `window.ethereum.isMiniPay` |
 | Transfer text parses wrong | `packages/core/src/domain/intent.js` | `packages/core/src/domain/intent.test.js` |
 | Duplicate warning is wrong | `packages/core/src/domain/duplicates.js` | `packages/core/src/domain/duplicates.test.js` |
 | Receipt link is wrong | `packages/core/src/domain/receipts.js` | `packages/core/src/config/celo.js` |
 | Agent metadata is wrong | `public/agent.json` | `ops/agent-registry/agent.sepolia.json`, registration runbook |
-| API is down | `services/api/src/server.js` and `/health` | Docker compose ports and `.env.example` |
+| API is down | `services/api/src/server.js` and `/health` | Docker compose ports and `.env` |
 | Worker loop is wrong | `services/worker/src/scheduler.js` | `WORKER_INTERVAL_MS`, Docker logs |
 
 ## Validation Commands

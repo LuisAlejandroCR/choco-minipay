@@ -7,6 +7,7 @@ RUN npm ci
 COPY apps ./apps
 COPY packages ./packages
 COPY public ./public
+COPY .env ./
 COPY vite.config.mjs ./
 
 RUN npm run build:web

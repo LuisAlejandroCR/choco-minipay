@@ -1,22 +1,64 @@
+export const DEFAULT_CELO_NETWORK_KEY = "celoSepolia";
+
+export function normalizeChainId(chainId) {
+  if (typeof chainId === "number") return Number.isFinite(chainId) ? chainId : 0;
+  if (typeof chainId !== "string" || chainId.trim() === "") return 0;
+  const normalizedChainId = chainId.trim().toLowerCase();
+  const parsedChainId = normalizedChainId.startsWith("0x")
+    ? Number.parseInt(normalizedChainId, 16)
+    : Number(normalizedChainId);
+  return Number.isFinite(parsedChainId) ? parsedChainId : 0;
+}
+
+export function toHexChainId(chainId) {
+  const normalizedChainId = normalizeChainId(chainId);
+  return normalizedChainId > 0 ? `0x${normalizedChainId.toString(16)}` : "";
+}
+
+export const CELO_NATIVE_CURRENCY = {
+  name: "CELO",
+  symbol: "CELO",
+  decimals: 18,
+};
+
 export const CELO_NETWORKS = {
   celoMainnet: {
+    key: "celoMainnet",
+    badge: "MAINNET",
+    label: "MAINNET - Celo Mainnet",
     name: "Celo Mainnet",
     chainId: 42220,
+    chainIdHex: toHexChainId(42220),
     rpcUrl: "https://forno.celo.org",
+    explorerUrl: "https://celoscan.io",
     explorerTxUrl: "https://celoscan.io/tx",
     blockscoutTxUrl: "https://celo.blockscout.com/tx",
     agentRegistry: "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",
     agentExplorerUrl: "https://8004scan.io/agents/celo",
+    nativeCurrency: CELO_NATIVE_CURRENCY,
+    isTestnet: false,
   },
   celoSepolia: {
+    key: "celoSepolia",
+    badge: "TESTNET",
+    label: "TESTNET - Celo Sepolia",
     name: "Celo Sepolia",
     chainId: 11142220,
+    chainIdHex: toHexChainId(11142220),
     rpcUrl: "https://forno.celo-sepolia.celo-testnet.org",
+    explorerUrl: "https://celo-sepolia.blockscout.com",
     explorerTxUrl: "https://celo-sepolia.blockscout.com/tx",
+    blockscoutTxUrl: "https://celo-sepolia.blockscout.com/tx",
     agentRegistry: "0x8004A818BFB912233c491871b3d84c89A494BD9e",
     agentExplorerUrl: "https://testnet.8004scan.io/agents/celo-sepolia",
+    nativeCurrency: CELO_NATIVE_CURRENCY,
+    isTestnet: true,
   },
 };
+
+export function getCeloNetworkConfig(key = DEFAULT_CELO_NETWORK_KEY) {
+  return CELO_NETWORKS[key] || CELO_NETWORKS[DEFAULT_CELO_NETWORK_KEY];
+}
 
 export const CELO_STABLECOINS = {
   USDm: {

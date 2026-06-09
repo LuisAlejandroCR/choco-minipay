@@ -8,9 +8,15 @@ This repository should stay focused on the production MiniPay app. Keep source, 
 | --- | --- |
 | `.github/workflows/ci.yml` | Runs production checks on push and pull requests. |
 | `apps/web` | MiniPay-facing web app shell. |
+| `apps/web/src/components` | Reusable Choco visual components, including pitch and guided-demo visuals. |
+| `apps/web/src/content/demoFlow.js` | Source of truth for pitch/demo copy and guided-demo step timing. |
+| `apps/web/src/content/reviewLinks.js` | Source of truth for in-app support/about copy and public review links. |
+| `apps/web/src/config/runtime.js` | Reads Vite runtime variables for API, live demo, explorer, QR, and start-screen behavior. |
+| `apps/web/src/data/testnetScenario.js` | Low-value testnet plan, commands, timestamps, and sample receipt hashes. |
 | `apps/web/src/modules/wallet/useMiniPayWallet.js` | MiniPay/browser wallet detection and Celo Sepolia testnet verification. |
 | `apps/web/src/modules/wallet/useMiniPayWallet.test.js` | Protects the Celo Sepolia testnet chain ID used by wallet verification. |
 | `packages/core` | Shared intent parsing, duplicate detection, receipt, amount, and Celo config logic. |
+| `packages/core/src/config/celo.js` | Source of truth for Celo network IDs, RPC URLs, explorers, native currency, and stablecoin fee-currency addresses. |
 | `packages/core/src/domain/preflight.js` | Choco Agent AI preflight rules for Celo Sepolia gas funds and recipient contact. |
 | `packages/core/src/domain/preflight.test.js` | Protects agent preflight behavior before wiring real transfer execution. |
 | `services/api` | Backend API shell for quotes, identity, and transfer orchestration. |
@@ -26,7 +32,7 @@ This repository should stay focused on the production MiniPay app. Keep source, 
 | `public/support.js` | Support-page behavior for topic chips, filled request copy, and request preparation. |
 | `public/stats.html` | Useful for MiniPay/product review; real metrics still needed. |
 | `docs` | Deployment stages, runbooks, positioning, and production handoff notes. |
-| `.env.example` | Non-secret environment contract for local and deployed services. |
+| `.env` | Non-secret environment contract for local and deployed services. |
 | `.dockerignore` | Keeps images small and excludes generated/local files. |
 | `.gitignore` | Keeps generated/local files out of Git. |
 | `package.json` | Scripts, dependencies, and repository metadata. |

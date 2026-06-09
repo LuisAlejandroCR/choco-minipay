@@ -7,6 +7,7 @@ const dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   root: "apps/web",
+  envDir: dirname,
   publicDir: path.resolve(dirname, "public"),
   plugins: [react()],
   resolve: {

@@ -28,7 +28,7 @@ Status:
 | 4. Vercel deployment | Production web app deploys to `https://choco-minipay.vercel.app`. | `vercel.json`, `public/agent.json`, Vercel deployment |
 | 5. UI/UX restore | Production app uses the richer Choco MVP interface while keeping production modules. | `apps/web/src/App.jsx`, `apps/web/src/styles.css` |
 | 6. Documentation operating model | Delivery blocks and architecture docs explain how to continue and debug the app. | `docs/architecture/delivery-blocks.md`, `docs/architecture/architecture.md`, `README.md` |
-| 7. Public review pages | Support, privacy, terms, and stats pages are review-ready, mobile-first, and linked from the in-app `?` panel. | `public/*.html`, `public/review.css`, `public/support.js`, `apps/web/src/App.jsx`, `apps/web/src/styles.css` |
+| 7. Public review pages | Support, privacy, terms, and stats pages are review-ready, mobile-first, and linked from the in-app `?` panel. | `public/*.html`, `public/review.css`, `public/support.js`, `apps/web/src/content/reviewLinks.js`, `apps/web/src/App.jsx`, `apps/web/src/styles.css` |
 
 ## Current Block
 
@@ -40,6 +40,8 @@ Files:
 
 - `apps/web/src/modules/wallet/useMiniPayWallet.js`
 - `apps/web/src/modules/wallet/useMiniPayWallet.test.js`
+- `apps/web/src/config/runtime.js`
+- `.env`
 - `apps/web/src/App.jsx`
 - `packages/core/src/domain/preflight.js`
 - `packages/core/src/domain/preflight.test.js`
@@ -50,13 +52,14 @@ Validation:
 
 - MiniPay detection works in WebView.
 - Verify wallet targets Celo Sepolia testnet chain ID `11142220`.
+- Wallet switching, receipt links, API RPC, and public labels read from the shared Celo network config.
 - After wallet verification, the UI calls Choco Agent AI preflight through `/v1/agent/preflight`.
 - Agent preflight checks Celo Sepolia gas funds and recipient contact.
 - Send-now does not create a `Sent` receipt without a real chain transaction hash.
 - Browser fallback remains readable.
 - No message-signing auth dependency.
 
-Status: Implementation ready; MiniPay WebView validation pending after deploy.
+Status: Locally complete; MiniPay WebView validation pending after deploy.
 
 ## Next Blocks
 
@@ -84,7 +87,7 @@ Files:
 
 - `services/api/src/server.js`
 - `packages/core/src/domain/*`
-- `.env.example`
+- `.env`
 
 Validation:
 
@@ -99,7 +102,7 @@ Files:
 
 - `services/worker/src/scheduler.js`
 - `packages/core/src/domain/duplicates.js`
-- `.env.example`
+- `.env`
 
 Validation:
 

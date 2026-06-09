@@ -1,10 +1,12 @@
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
+import { getCeloNetworkConfig } from "../../../packages/core/src/config/celo.js";
 import { parseTransferIntent } from "../../../packages/core/src/domain/intent.js";
 import { evaluateAgentPreflight } from "../../../packages/core/src/domain/preflight.js";
 
 const port = Number(process.env.PORT || 8787);
-const rpcUrl = process.env.RPC_URL || "https://forno.celo-sepolia.celo-testnet.org";
+const testnetNetwork = getCeloNetworkConfig("celoSepolia");
+const rpcUrl = process.env.RPC_URL || testnetNetwork.rpcUrl;
 
 function sendJson(response, statusCode, body) {
   response.writeHead(statusCode, {
@@ -105,7 +107,7 @@ const server = createServer(async (request, response) => {
         agent: "Choco Agent AI",
         status: "blocked",
         ok: false,
-        summary: "Agent preflight could not reach Celo Sepolia RPC.",
+        summary: `Agent preflight could not reach ${testnetNetwork.name} RPC.`,
         error: error instanceof Error ? error.message : "RPC unavailable",
       });
       return;
