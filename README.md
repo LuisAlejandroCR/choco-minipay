@@ -250,6 +250,7 @@ Open the web app, connect a Celo Sepolia testnet wallet, then start `New transfe
 Browser testing paths:
 
 - Desktop browser: install or enable a wallet extension, switch it to Celo Sepolia, then verify the wallet in Choco.
+- Desktop incognito: enable the wallet extension for incognito/private mode, reload Choco, then verify again.
 - Mobile browser: tap `Open in MetaMask Mobile`; Choco opens the same URL inside the wallet app for connection.
 - MiniPay: open Choco inside MiniPay after MiniApp discovery/publishing is ready.
 

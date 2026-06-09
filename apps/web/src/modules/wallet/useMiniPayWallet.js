@@ -29,6 +29,7 @@ function buildWalletNetwork() {
 export { normalizeChainId } from "../../../../../packages/core/src/config/celo.js";
 
 export const TESTNET_WALLET_NETWORK = buildWalletNetwork();
+export const METAMASK_DOWNLOAD_URL = "https://metamask.io/download/";
 
 export function isCeloSepoliaTestnet(chainId) {
   return normalizeChainId(chainId) === TESTNET_WALLET_NETWORK.chainId;
@@ -48,9 +49,20 @@ export function isMobileUserAgent(userAgent = "") {
   return /android|iphone|ipad|ipod|mobile/i.test(userAgent);
 }
 
+export function isMobileRuntime(userAgent = "", maxTouchPoints = 0) {
+  const lowerUserAgent = userAgent.toLowerCase();
+  const isDesktopModeMobile = Number(maxTouchPoints) > 1 && /macintosh|x11|linux/.test(lowerUserAgent);
+  return isMobileUserAgent(userAgent) || isDesktopModeMobile;
+}
+
 function getUserAgent() {
   if (typeof navigator === "undefined") return "";
   return navigator.userAgent || "";
+}
+
+function getMaxTouchPoints() {
+  if (typeof navigator === "undefined") return 0;
+  return navigator.maxTouchPoints || 0;
 }
 
 function getCurrentDappUrl() {
@@ -63,8 +75,12 @@ export function getMetaMaskMobileDappUrl(dappUrl = "") {
   return normalizedUrl ? `https://metamask.app.link/dapp/${normalizedUrl}` : "https://metamask.app.link";
 }
 
-function openExternalUrl(url) {
+function openExternalUrl(url, { newTab = false } = {}) {
   if (typeof window === "undefined") return;
+  if (newTab) {
+    window.open(url, "_blank", "noopener,noreferrer");
+    return;
+  }
   window.location.href = url;
 }
 
@@ -121,7 +137,7 @@ export function useMiniPayWallet() {
   const [status, setStatus] = useState("checking");
   const [error, setError] = useState("");
   const [isMiniPay, setIsMiniPay] = useState(false);
-  const isMobile = isMobileUserAgent(getUserAgent());
+  const isMobile = isMobileRuntime(getUserAgent(), getMaxTouchPoints());
   const provider = getProvider();
   const hasProvider = Boolean(provider);
   const mobileWalletLinks = useMemo(() => ({
@@ -142,6 +158,12 @@ export function useMiniPayWallet() {
     setError("Opening MetaMask Mobile. Approve the wallet connection there.");
     openExternalUrl(mobileWalletLinks.metaMask);
   }, [mobileWalletLinks.metaMask]);
+
+  const openMetaMaskDownload = useCallback(() => {
+    setStatus("unavailable");
+    setError(`Install or enable a wallet extension, then reload Choco and verify on ${TESTNET_WALLET_NETWORK.name}.`);
+    openExternalUrl(METAMASK_DOWNLOAD_URL, { newTab: true });
+  }, []);
 
   const readWallet = useCallback(async ({ requestAccounts = false, ensureNetwork = false } = {}) => {
     const provider = getProvider();
@@ -252,6 +274,7 @@ export function useMiniPayWallet() {
     loadWallet: readWallet,
     mobileWalletLinks,
     network: TESTNET_WALLET_NETWORK,
+    openMetaMaskDownload,
     openMetaMaskMobile,
     openMiniPay,
     needsMobileWallet: isMobile && !hasProvider,

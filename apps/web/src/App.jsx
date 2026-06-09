@@ -379,6 +379,15 @@ export function App() {
     setScreen("planEditor");
   }
 
+  function startWalletVerification() {
+    if (!wallet.hasProvider) {
+      setScreen("walletGate");
+      return;
+    }
+
+    void wallet.verifyWallet();
+  }
+
   function openEditPlan() {
     const targetPlan = activePlan || defaultPlan;
     setReviewMode("update");
@@ -600,7 +609,7 @@ export function App() {
               showDemoPrompt={showDemoPrompt}
               isWalletVerified={isWalletVerified}
               wallet={wallet}
-              onVerifyWallet={wallet.verifyWallet}
+              onVerifyWallet={startWalletVerification}
               onPlans={() => setScreen("plans")}
               onHistory={() => setScreen("history")}
               onSendNow={openImmediateSend}
@@ -814,18 +823,18 @@ function PlanScreen({
   const actionLabel = isWalletVerified
     ? "New transfer"
     : wallet.needsMobileWallet
-      ? "Open in MetaMask Mobile"
+      ? "Connect mobile wallet"
     : !wallet.hasProvider
-      ? "Connect wallet extension"
+      ? "Connect browser wallet"
     : isVerifyingWallet
       ? "Verifying testnet wallet"
       : "Verify testnet wallet";
   const actionHelp = isWalletVerified
     ? "Send now or schedule with voice"
     : wallet.needsMobileWallet
-      ? "Mobile preview stays open; wallet opens in app"
+      ? "Choose MetaMask Mobile or MiniPay"
     : !wallet.hasProvider
-      ? "Desktop needs MetaMask or another browser wallet"
+      ? "Install or enable MetaMask"
     : walletHelp;
 
   return (
@@ -951,7 +960,7 @@ function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
             {needsMobileWallet
               ? "This mobile browser can preview Choco. Wallet actions open in MetaMask Mobile now, or MiniPay when Choco is opened there."
               : needsDesktopWallet
-                ? `Install or enable a wallet extension, reload Choco, then verify on ${wallet.network.name}.`
+                ? `Install MetaMask, or enable it for this browser/incognito window, then verify on ${wallet.network.name}.`
                 : `Choco hides plans, movements, and receipts until the wallet is verified on ${wallet.network.name} testnet.`}
           </p>
           {wallet.error && <p className="wallet-error">{wallet.error}</p>}
@@ -965,9 +974,18 @@ function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
               Open in MiniPay
             </button>
           </div>
+        ) : needsDesktopWallet ? (
+          <div className="wallet-mobile-actions">
+            <button className="primary-cta" type="button" onClick={wallet.openMetaMaskDownload}>
+              Get MetaMask
+            </button>
+            <button className="secondary-dark" type="button" disabled={isVerifyingWallet} onClick={onVerifyWallet}>
+              {isVerifyingWallet ? "Checking wallet" : "I enabled it, check again"}
+            </button>
+          </div>
         ) : (
           <button className="primary-cta" type="button" disabled={isVerifyingWallet} onClick={onVerifyWallet}>
-            {isVerifyingWallet ? "Verifying wallet" : needsDesktopWallet ? "Check wallet extension" : "Verify testnet wallet"}
+            {isVerifyingWallet ? "Verifying wallet" : "Verify testnet wallet"}
           </button>
         )}
         <button className="secondary-dark" type="button" onClick={onHome}>

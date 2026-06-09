@@ -3,7 +3,9 @@ import test from "node:test";
 import {
   getMetaMaskMobileDappUrl,
   isCeloSepoliaTestnet,
+  isMobileRuntime,
   isMobileUserAgent,
+  METAMASK_DOWNLOAD_URL,
   normalizeChainId,
   TESTNET_WALLET_NETWORK,
 } from "./useMiniPayWallet.js";
@@ -24,6 +26,9 @@ test("normalizes Celo Sepolia testnet chain id", () => {
 test("builds mobile wallet fallback links", () => {
   assert.equal(isMobileUserAgent("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)"), true);
   assert.equal(isMobileUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64)"), false);
+  assert.equal(isMobileRuntime("Mozilla/5.0 (X11; Linux x86_64)", 5), true);
+  assert.equal(isMobileRuntime("Mozilla/5.0 (Windows NT 10.0; Win64; x64)", 5), false);
+  assert.equal(METAMASK_DOWNLOAD_URL, "https://metamask.io/download/");
   assert.equal(
     getMetaMaskMobileDappUrl("https://choco-minipay.vercel.app/path"),
     "https://metamask.app.link/dapp/choco-minipay.vercel.app/path",

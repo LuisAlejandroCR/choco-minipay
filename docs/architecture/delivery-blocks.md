@@ -56,7 +56,8 @@ Validation:
 - After wallet verification, the UI calls Choco Agent AI readiness through `/v1/agent/preflight` in the background when the transfer reaches quote review.
 - Agent readiness checks Celo Sepolia gas funds and recipient contact.
 - Send-now does not create a `Sent` receipt without a real chain transaction hash.
-- Desktop browser uses an injected wallet extension; mobile browser opens MetaMask Mobile before MiniApps publishing.
+- Desktop browser uses an injected wallet extension and routes incognito/no-provider clicks to wallet setup.
+- Mobile browser opens MetaMask Mobile before MiniApps publishing, including desktop-site mode on touch devices.
 - MiniPay WebView remains the final wallet validation path after Choco is opened inside MiniPay.
 - No message-signing auth dependency.
 
