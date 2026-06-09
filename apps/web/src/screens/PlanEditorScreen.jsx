@@ -23,6 +23,7 @@ export function PlanEditorScreen({
     cancelRecording,
     stopRecording,
     togglePause,
+    clearVoiceError,
   } = useVoiceRecorder({ onTranscript: setCommand });
 
   const hasText = command.trim().length > 0;
@@ -102,6 +103,7 @@ export function PlanEditorScreen({
             <input
               value={command}
               onChange={(event) => setCommand(event.target.value)}
+              onFocus={clearVoiceError}
               onKeyDown={(event) => {
                 if (event.key === "Enter" && hasText) void onBuild();
               }}
@@ -120,7 +122,12 @@ export function PlanEditorScreen({
         )}
       </section>
 
-      {voiceError && <p className="wallet-error">{voiceError}</p>}
+      {voiceError && (
+        <div className="voice-error-banner" role="alert">
+          <span>{voiceError}</span>
+          <button type="button" aria-label="Dismiss" onClick={clearVoiceError}>✕</button>
+        </div>
+      )}
 
       {mode === "update" ? (
         <button className="secondary-dark editor-home-button" type="button" onClick={onBack}>Back to plan</button>

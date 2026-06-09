@@ -30,6 +30,15 @@ export function useVoiceRecorder({ onTranscript }) {
     };
   }, []);
 
+  // Auto-clear voice errors after 7 s so they don't linger when the user
+  // switches to typing. 7 s is enough time to read the message without it
+  // blocking the screen indefinitely on desktop or non-MiniPay browsers.
+  useEffect(() => {
+    if (!voiceError) return undefined;
+    const timer = window.setTimeout(() => setVoiceError(""), 7000);
+    return () => window.clearTimeout(timer);
+  }, [voiceError]);
+
   // Recording timer — increments every second while recording and not paused.
   useEffect(() => {
     if (!isRecording || isPaused) return undefined;
@@ -143,5 +152,6 @@ export function useVoiceRecorder({ onTranscript }) {
     cancelRecording,
     stopRecording,
     togglePause,
+    clearVoiceError: () => setVoiceError(""),
   };
 }

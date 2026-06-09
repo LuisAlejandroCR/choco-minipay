@@ -1577,6 +1577,44 @@ a {
   cursor: pointer;
 }
 
+/* Voice error banner — dismissable, auto-clears after 7 s. */
+/* Replaces the plain .wallet-error <p> in PlanEditorScreen. */
+.voice-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(217, 166, 121, 0.08);
+  border: 1px solid rgba(217, 166, 121, 0.22);
+  font-size: 13px;
+  color: var(--cream);
+  opacity: 0.82;
+}
+
+.voice-error-banner span {
+  flex: 1;
+  line-height: 1.45;
+}
+
+.voice-error-banner button {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  color: var(--cream);
+  opacity: 0.55;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 2px 4px;
+  line-height: 1;
+  border-radius: 6px;
+  transition: opacity 0.15s;
+}
+
+.voice-error-banner button:hover {
+  opacity: 1;
+}
+
 .pause-mark i {
   width: 4px;
   height: 17px;
