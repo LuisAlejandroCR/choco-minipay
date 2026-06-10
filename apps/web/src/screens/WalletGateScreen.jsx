@@ -7,20 +7,47 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
   const needsMobileWallet = wallet.needsMobileWallet;
   const needsDesktopWallet = !wallet.isMobile && !wallet.hasProvider;
   const showManualAddress = !wallet.hasProvider;
+
+  // Two-layer value tracking so mobile paste always reaches the submit handler:
+  // 1. pastedAddress state — updated by onInput + onPaste (fires even when
+  //    onChange is skipped by the browser).
+  // 2. manualAddressInputRef — uncontrolled DOM ref, read at submit time.
+  // The input has no `value=` prop so React never overwrites what the browser shows.
+  const [pastedAddress, setPastedAddress] = useState("");
   const [addressError, setAddressError] = useState("");
-  // Uncontrolled ref — the browser owns this input value so that mobile
-  // long-press → Paste (iOS / Edge / Samsung) always sticks. A controlled
-  // input (value={state}) would have React overwrite the DOM value back to
-  // the stale state on the next render, wiping the pasted text before submit.
   const manualAddressInputRef = useRef(null);
 
+  function handleAddressInput(e) {
+    setPastedAddress(e.target.value || "");
+    if (addressError) setAddressError("");
+  }
+
+  function handlePaste(e) {
+    // onPaste fires before the browser applies the paste to the input,
+    // so read the clipboard directly and also schedule a re-read for after.
+    const clipText = e.clipboardData?.getData("text") || "";
+    if (clipText) setPastedAddress(clipText);
+    setTimeout(() => {
+      const domVal = manualAddressInputRef.current?.value || "";
+      if (domVal) setPastedAddress(domVal);
+      if (addressError) setAddressError("");
+    }, 0);
+  }
+
   function handleUseAddress() {
-    const value = (manualAddressInputRef.current?.value || "").trim();
+    // Primary: state mirror (set by onInput / onPaste).
+    // Fallback: uncontrolled DOM value (ref — browser owns it, React never clears it).
+    const value = (pastedAddress || manualAddressInputRef.current?.value || "").trim();
     if (wallet.useManualAddress(value)) {
+      setPastedAddress("");
       setAddressError("");
       onHome();
     } else {
-      setAddressError("Paste a valid 0x wallet address (42 characters).");
+      setAddressError(
+        value.length === 0
+          ? "Paste a wallet address (0x…) into the field first."
+          : "Invalid address — must start with 0x and be 42 characters.",
+      );
     }
   }
 
@@ -70,13 +97,11 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
             {isVerifyingWallet ? "Verifying wallet" : "Verify testnet wallet"}
           </button>
         )}
+
         {showManualAddress && (
-          <form
-            className="wallet-address-form"
-            onSubmit={(e) => { e.preventDefault(); handleUseAddress(); }}
-          >
+          <div className="wallet-address-form">
             <label htmlFor="manual-wallet-address">Paste wallet address</label>
-            <div>
+            <div className="wallet-address-row">
               <input
                 ref={manualAddressInputRef}
                 id="manual-wallet-address"
@@ -87,16 +112,28 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
                 spellCheck="false"
                 defaultValue=""
                 placeholder="0x..."
-                onChange={() => { if (addressError) setAddressError(""); }}
+                onChange={handleAddressInput}
+                onInput={handleAddressInput}
+                onPaste={handlePaste}
               />
-              <button type="button" onClick={handleUseAddress}>Use</button>
+              <button
+                type="button"
+                className="wallet-use-btn"
+                onClick={handleUseAddress}
+              >
+                Use
+              </button>
             </div>
-            {addressError
-              ? <small className="address-form-error">{addressError}</small>
-              : <small>For testnet checks only</small>
-            }
-          </form>
+            {addressError ? (
+              <p className="address-form-error">{addressError}</p>
+            ) : pastedAddress.length > 4 ? (
+              <small className="address-form-hint">{pastedAddress.length} chars — tap Use</small>
+            ) : (
+              <small>For testnet checks only</small>
+            )}
+          </div>
         )}
+
         <button className="secondary-dark" type="button" onClick={onHome}>
           Back home
         </button>

@@ -1968,38 +1968,60 @@ a {
   text-transform: uppercase;
 }
 
-.wallet-address-form div {
+.wallet-address-row {
   display: grid;
-  grid-template-columns: 1fr 64px;
+  grid-template-columns: 1fr 72px;
   gap: 8px;
 }
 
-.wallet-address-form input,
-.wallet-address-form button {
-  min-height: 48px;
-  border: 1px solid var(--line-soft);
-  border-radius: 16px;
-}
-
-.wallet-address-form input {
+.wallet-address-row input {
+  min-height: 52px;
   min-width: 0;
   padding: 0 13px;
+  border: 1px solid var(--line-soft);
+  border-radius: 16px;
   background: rgba(5, 3, 2, 0.38);
   color: var(--cream);
 }
 
-.wallet-address-form button {
+.wallet-use-btn {
+  min-height: 52px;
+  border: 1px solid var(--line-soft);
+  border-radius: 16px;
   cursor: pointer;
   background: var(--cream);
   color: var(--cocoa-900);
   font-weight: 900;
+  font-size: 15px;
+  /* Removes 300ms tap delay on mobile and prevents scroll-vs-tap confusion
+     in a scrollable parent container (app-panel has overflow-y:auto). */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.wallet-use-btn:active {
+  opacity: 0.75;
 }
 
 .address-form-error {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.32);
   color: #f59e0b;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.address-form-hint {
+  color: #6ee7b7;
   font-size: 11px;
-  font-weight: 750;
-  letter-spacing: 0.03em;
+  font-weight: 850;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .demo-overlay {
