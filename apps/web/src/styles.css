@@ -1968,13 +1968,9 @@ a {
   text-transform: uppercase;
 }
 
-.wallet-address-row {
-  display: grid;
-  grid-template-columns: 1fr 72px;
-  gap: 8px;
-}
-
-.wallet-address-row input {
+/* Input: full width — no adjacent button to create hit-region conflicts. */
+.wallet-address-form input {
+  width: 100%;
   min-height: 52px;
   min-width: 0;
   padding: 0 13px;
@@ -1984,7 +1980,9 @@ a {
   color: var(--cream);
 }
 
+/* Use button: full width, stacked below the input. */
 .wallet-use-btn {
+  width: 100%;
   min-height: 52px;
   border: 1px solid var(--line-soft);
   border-radius: 16px;
@@ -1993,8 +1991,6 @@ a {
   color: var(--cocoa-900);
   font-weight: 900;
   font-size: 15px;
-  /* Removes 300ms tap delay on mobile and prevents scroll-vs-tap confusion
-     in a scrollable parent container (app-panel has overflow-y:auto). */
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   user-select: none;

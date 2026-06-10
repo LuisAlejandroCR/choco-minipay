@@ -8,13 +8,9 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
   const needsDesktopWallet = !wallet.isMobile && !wallet.hasProvider;
   const showManualAddress = !wallet.hasProvider;
 
-  // Two-layer value tracking so mobile paste always reaches the submit handler:
-  // 1. pastedAddress state — updated by onInput + onPaste (fires even when
-  //    onChange is skipped by the browser).
-  // 2. manualAddressInputRef — uncontrolled DOM ref, read at submit time.
-  // The input has no `value=` prop so React never overwrites what the browser shows.
   const [pastedAddress, setPastedAddress] = useState("");
   const [addressError, setAddressError] = useState("");
+  // Uncontrolled ref — React never touches input.value, so mobile paste sticks.
   const manualAddressInputRef = useRef(null);
 
   function handleAddressInput(e) {
@@ -23,8 +19,9 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
   }
 
   function handlePaste(e) {
-    // onPaste fires before the browser applies the paste to the input,
-    // so read the clipboard directly and also schedule a re-read for after.
+    // onPaste fires before the browser writes the pasted text to the input.
+    // Read from clipboard directly, then re-read from the DOM after the browser
+    // has applied the paste (setTimeout 0).
     const clipText = e.clipboardData?.getData("text") || "";
     if (clipText) setPastedAddress(clipText);
     setTimeout(() => {
@@ -35,26 +32,23 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
   }
 
   function handleUseAddress() {
-    // Primary: state mirror (onInput / onPaste). Fallback: DOM ref.
     const raw = pastedAddress || manualAddressInputRef.current?.value || "";
     const value = raw.trim();
 
-    // Validate here — don't rely on wallet.useManualAddress return value to
-    // decide whether to navigate. If our own check passes we navigate regardless;
-    // if it fails we show a specific message so the user knows exactly what's wrong.
+    // Validate locally — do NOT gate navigation on wallet.useManualAddress's
+    // return value. If our regex passes we navigate unconditionally.
     if (value.length === 0) {
-      setAddressError("Paste a wallet address into the field first.");
+      setAddressError("Paste a wallet address into the field above first.");
       return;
     }
-    if (!/^0x[a-fA-F0-9]{40}$/.test(value)) {
+    if (!/^0x[a-fA-F0-9]{40}$/i.test(value)) {
       setAddressError(
-        `Invalid address (${value.length} chars). Need 0x + 40 hex digits.`,
+        `Invalid address (${value.length} chars). Must be 0x + 40 hex digits.`,
       );
       return;
     }
 
-    // Valid — register in wallet state (side-effect) then navigate.
-    // Both state updates are in the same event handler and are batched by React 18.
+    // Valid — register the address in wallet state and navigate home.
     wallet.useManualAddress(value);
     onHome();
   }
@@ -109,29 +103,20 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
         {showManualAddress && (
           <div className="wallet-address-form">
             <label htmlFor="manual-wallet-address">Paste wallet address</label>
-            <div className="wallet-address-row">
-              <input
-                ref={manualAddressInputRef}
-                id="manual-wallet-address"
-                type="text"
-                inputMode="text"
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck="false"
-                defaultValue=""
-                placeholder="0x..."
-                onChange={handleAddressInput}
-                onInput={handleAddressInput}
-                onPaste={handlePaste}
-              />
-              <button
-                type="button"
-                className="wallet-use-btn"
-                onClick={handleUseAddress}
-              >
-                Use
-              </button>
-            </div>
+            <input
+              ref={manualAddressInputRef}
+              id="manual-wallet-address"
+              type="text"
+              inputMode="text"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck="false"
+              defaultValue=""
+              placeholder="0x..."
+              onChange={handleAddressInput}
+              onInput={handleAddressInput}
+              onPaste={handlePaste}
+            />
             {addressError ? (
               <p className="address-form-error">{addressError}</p>
             ) : pastedAddress.length > 4 ? (
@@ -139,6 +124,13 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
             ) : (
               <small>For testnet checks only</small>
             )}
+            <button
+              type="button"
+              className="wallet-use-btn"
+              onClick={handleUseAddress}
+            >
+              Use
+            </button>
           </div>
         )}
 
