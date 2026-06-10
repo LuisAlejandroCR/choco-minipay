@@ -13,7 +13,9 @@ export { isValidWalletAddress } from "../../../../../packages/core/src/domain/co
 const env = import.meta.env || {};
 
 function buildWalletNetwork() {
-  const defaultNetwork = getCeloNetworkConfig("celoSepolia");
+  // Network is config-driven: VITE_CELO_NETWORK_KEY selects mainnet vs Sepolia.
+  // Falls back to celoSepolia when unset (e.g. node unit tests, which don't load .env).
+  const defaultNetwork = getCeloNetworkConfig(env.VITE_CELO_NETWORK_KEY || "celoSepolia");
   const chainId = normalizeChainId(env.VITE_CELO_CHAIN_ID || defaultNetwork.chainId);
   const chainIdHex = env.VITE_CELO_CHAIN_ID_HEX || toHexChainId(chainId);
 

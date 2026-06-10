@@ -39,6 +39,18 @@ export const CELO_NETWORKS = {
     agentId: null,
     nativeCurrency: CELO_NATIVE_CURRENCY,
     isTestnet: false,
+    // Block 13 (mainnet): Mento V2 BiPool — verified live via scripts/probe-mento.mjs (2026-06-10).
+    // No direct USDC/cKES pool; route is USDC -> USDm -> cKES. Both hops are oracle-priced on the
+    // Broker and the quote held linear to ~400 USDm (~50k KES), so no meaningful slippage at size.
+    mentoBrokerAddress: "0x777A8255cA72412f0d706dc03C9D1987306B4CaD",
+    biPoolManagerAddress: "0x22d9db95E6Ae61c104A7B6F6C78D7993B94ec901", // exchange provider passed to swapIn
+    cKesAddress: "0x456a3D042C0DbD3db53D5489e98dFb038553B0d0",         // cKES / KESm (18 dec)
+    usdmAddress: "0x765DE816845861e75A25fCA122bb6898B8B1282a",         // USDm / cUSD (18 dec) — intermediate hop
+    sortedOraclesAddress: "0xefB84935239dAcdecF7c5bA76d8dE40b077B7b33", // median rate for minOut cross-check
+    mentoExchanges: {
+      usdcToUsdm: "0xacc988382b66ee5456086643dcfd9a5ca43dd8f428f6ef22503d8b8013bcffd7",
+      usdmToCkes: "0x89de88b8eb790de26f4649f543cb6893d93635c728ac857f0926e842fb0d298b",
+    },
   },
   celoSepolia: {
     key: "celoSepolia",

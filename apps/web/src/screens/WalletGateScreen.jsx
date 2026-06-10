@@ -32,24 +32,31 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
   }
 
   function handleUseAddress() {
-    const raw = pastedAddress || manualAddressInputRef.current?.value || "";
-    const value = raw.trim();
+    // The input is uncontrolled, so its DOM value is the source of truth; fall back
+    // to the mirrored state. Be forgiving — extract the 0x address even if the paste
+    // carried a label, surrounding spaces, or a trailing newline.
+    const raw = (manualAddressInputRef.current?.value ?? "").trim() || pastedAddress.trim();
+    const match = raw.match(/0x[a-fA-F0-9]{40}/);
+    const value = match ? match[0] : raw;
 
-    // Validate locally — do NOT gate navigation on wallet.useManualAddress's
-    // return value. If our regex passes we navigate unconditionally.
-    if (value.length === 0) {
+    if (!value) {
       setAddressError("Paste a wallet address into the field above first.");
       return;
     }
-    if (!/^0x[a-fA-F0-9]{40}$/i.test(value)) {
+    if (!/^0x[a-fA-F0-9]{40}$/.test(value)) {
       setAddressError(
-        `Invalid address (${value.length} chars). Must be 0x + 40 hex digits.`,
+        `That isn't a valid address (${raw.length} chars). It must be 0x followed by 40 hex characters.`,
       );
       return;
     }
 
-    // Valid — register the address in wallet state and navigate home.
-    wallet.useManualAddress(value);
+    // Same regex as the wallet hook, so this normally succeeds. If the hook ever
+    // rejects it, surface the reason instead of silently navigating into a
+    // half-ready state — that "nothing happened" feeling is the bug we're killing.
+    if (!wallet.useManualAddress(value)) {
+      setAddressError("Could not use that address. Double-check it and try again.");
+      return;
+    }
     onHome();
   }
 
@@ -65,14 +72,14 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
               ? "Connect from a mobile wallet"
               : needsDesktopWallet
                 ? "Connect a browser wallet"
-                : "Verify testnet wallet first"}
+                : "Verify your wallet first"}
           </h2>
           <p>
             {needsMobileWallet
               ? "This mobile browser can preview Choco. Wallet actions open in MetaMask Mobile now, or MiniPay when Choco is opened there."
               : needsDesktopWallet
                 ? `Install MetaMask, or enable it for this browser/incognito window, then verify on ${wallet.network.name}.`
-                : `Choco hides plans, movements, and receipts until the wallet is verified on ${wallet.network.name} testnet.`}
+                : `Choco hides plans, movements, and receipts until the wallet is verified on ${wallet.network.name}.`}
           </p>
           {wallet.error && <p className="wallet-error">{wallet.error}</p>}
         </div>
@@ -96,7 +103,7 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
           </div>
         ) : (
           <button className="primary-cta" type="button" disabled={isVerifyingWallet} onClick={onVerifyWallet}>
-            {isVerifyingWallet ? "Verifying wallet" : "Verify testnet wallet"}
+            {isVerifyingWallet ? "Verifying wallet" : "Verify wallet"}
           </button>
         )}
 
@@ -122,7 +129,7 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
             ) : pastedAddress.length > 4 ? (
               <small className="address-form-hint">{pastedAddress.length} chars — tap Use</small>
             ) : (
-              <small>For testnet checks only</small>
+              <small>For balance checks only</small>
             )}
             <button
               type="button"
