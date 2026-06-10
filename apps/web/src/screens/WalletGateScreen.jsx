@@ -7,23 +7,16 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
   const needsMobileWallet = wallet.needsMobileWallet;
   const needsDesktopWallet = !wallet.isMobile && !wallet.hasProvider;
   const showManualAddress = !wallet.hasProvider;
-  const [manualWalletAddress, setManualWalletAddress] = useState("");
   const [addressError, setAddressError] = useState("");
-  // DOM ref — fallback for mobile WebKit where paste can update the visual
-  // input without firing React's onChange (long-press → Paste on iOS/Edge).
+  // Uncontrolled ref — the browser owns this input value so that mobile
+  // long-press → Paste (iOS / Edge / Samsung) always sticks. A controlled
+  // input (value={state}) would have React overwrite the DOM value back to
+  // the stale state on the next render, wiping the pasted text before submit.
   const manualAddressInputRef = useRef(null);
 
-  function handleAddressChange(event) {
-    setManualWalletAddress(event.target.value);
-    if (addressError) setAddressError(""); // clear inline error on any edit
-  }
-
-  function submitManualWalletAddress(event) {
-    event?.preventDefault();
-    // State-first: use React state value. Fall back to the raw DOM value so
-    // paste-without-onChange (iOS/Edge WebKit) still works on the first tap.
-    const value = manualWalletAddress || manualAddressInputRef.current?.value || "";
-    if (wallet.useManualAddress(value.trim())) {
+  function handleUseAddress() {
+    const value = (manualAddressInputRef.current?.value || "").trim();
+    if (wallet.useManualAddress(value)) {
       setAddressError("");
       onHome();
     } else {
@@ -78,7 +71,10 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
           </button>
         )}
         {showManualAddress && (
-          <form className="wallet-address-form" onSubmit={submitManualWalletAddress}>
+          <form
+            className="wallet-address-form"
+            onSubmit={(e) => { e.preventDefault(); handleUseAddress(); }}
+          >
             <label htmlFor="manual-wallet-address">Paste wallet address</label>
             <div>
               <input
@@ -89,12 +85,11 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
                 autoCapitalize="none"
                 autoCorrect="off"
                 spellCheck="false"
-                value={manualWalletAddress}
+                defaultValue=""
                 placeholder="0x..."
-                onChange={handleAddressChange}
-                onInput={handleAddressChange}
+                onChange={() => { if (addressError) setAddressError(""); }}
               />
-              <button type="submit">Use</button>
+              <button type="button" onClick={handleUseAddress}>Use</button>
             </div>
             {addressError
               ? <small className="address-form-error">{addressError}</small>
