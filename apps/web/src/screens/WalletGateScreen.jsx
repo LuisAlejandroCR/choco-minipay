@@ -35,20 +35,28 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
   }
 
   function handleUseAddress() {
-    // Primary: state mirror (set by onInput / onPaste).
-    // Fallback: uncontrolled DOM value (ref — browser owns it, React never clears it).
-    const value = (pastedAddress || manualAddressInputRef.current?.value || "").trim();
-    if (wallet.useManualAddress(value)) {
-      setPastedAddress("");
-      setAddressError("");
-      onHome();
-    } else {
-      setAddressError(
-        value.length === 0
-          ? "Paste a wallet address (0x…) into the field first."
-          : "Invalid address — must start with 0x and be 42 characters.",
-      );
+    // Primary: state mirror (onInput / onPaste). Fallback: DOM ref.
+    const raw = pastedAddress || manualAddressInputRef.current?.value || "";
+    const value = raw.trim();
+
+    // Validate here — don't rely on wallet.useManualAddress return value to
+    // decide whether to navigate. If our own check passes we navigate regardless;
+    // if it fails we show a specific message so the user knows exactly what's wrong.
+    if (value.length === 0) {
+      setAddressError("Paste a wallet address into the field first.");
+      return;
     }
+    if (!/^0x[a-fA-F0-9]{40}$/.test(value)) {
+      setAddressError(
+        `Invalid address (${value.length} chars). Need 0x + 40 hex digits.`,
+      );
+      return;
+    }
+
+    // Valid — register in wallet state (side-effect) then navigate.
+    // Both state updates are in the same event handler and are batched by React 18.
+    wallet.useManualAddress(value);
+    onHome();
   }
 
   return (
