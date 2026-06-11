@@ -14,10 +14,10 @@ Use `docs/architecture/architecture.md` when you need to understand how the app 
 
 - **Target users:** EM retail + diaspora (US → Kenya primary corridor)
 - **Channel:** MiniPay wallet chat / web app (WhatsApp / Telegram future)
-- **On-chain:** USDC → cKES swap via Mento AMM (CIP-64 fee abstraction)
+- **On-chain:** USDC → cKES via Mento (CIP-64 fee abstraction). No direct pool on mainnet — two oracle-priced hops, USDC → USDm → cKES, through the Mento V2 Broker.
 - **Off-ramp path (future):** Kotani Pay → M-Pesa / mobile money
 - **Why it wins:** 0.1% stablecoin fee vs 3.5% card rails. Agent removes the last friction: scheduling and recipient UX.
-- **Stage:** Celo Sepolia testnet throughout blocks 11–14. Mainnet in block 15.
+- **Stage:** Blocks 11–12 validated on Celo Sepolia testnet. Block 13 moved swap testing to Celo Mainnet with very small real amounts (`.env` flipped 2026-06-10) — the live Mento USDC → cKES route was verified there via `scripts/probe-mento.mjs`. Full mainnet launch (KYC, channels, off-ramp) remains Block 15.
 
 ## Block Template
 
@@ -52,39 +52,59 @@ Status:
 
 Block: 13. Transfer Execution
 
-Goal: Execute the actual USDC → cKES swap and send on Celo Sepolia testnet. File a real transaction receipt with a real Blockscout hash. "Send now" becomes a real on-chain action.
+Goal: Execute the actual USDC → cKES swap and send on Celo. File a real transaction receipt with a real explorer hash. "Send now" becomes a real on-chain action.
+
+**Status change (2026-06-10): testing moved to Celo Mainnet.** `scripts/probe-mento.mjs` verified the live Mento V2 route on mainnet: there is no direct USDC/cKES pool, so the swap is two oracle-priced hops — USDC → USDm → cKES — through the Broker (`0x777A82...4CaD`) and BiPoolManager (`0x22d9db...c901`). The quote held linear to ~400 USDm (~50k KES), so slippage is negligible at corridor size. Verified mainnet addresses and exchange IDs are recorded under `celoMainnet` in `packages/core/src/config/celo.js`.
+
+Done so far:
+
+- `.env` flipped to Celo Mainnet (chain `42220`, `forno.celo.org`, explorer `celoscan.io`). The wallet network is now config-driven: `useMiniPayWallet.js` reads `VITE_CELO_NETWORK_KEY` and falls back to `celoSepolia` when unset (e.g. node unit tests).
+- Wallet gate copy no longer says "testnet" ("Verify wallet"). Manual-address "Use" button hardened after a string of mobile bugs: uncontrolled input with the DOM value as source of truth, extracts the `0x...` address from messy pastes, and surfaces a hook rejection as an inline error instead of failing silently.
+- `contracts/src/RemittanceScheduler.sol` (new, draft) — on-chain recurring USDC → cKES scheduler: the payer grants a USDC allowance and creates a schedule; a permissionless keeper calls `executeDue`, which pulls the scheduled USDC, runs both Mento hops with keeper-supplied slippage floors (oracle cross-checked), and sends cKES to the recipient. No idle custody; missed periods are skipped, not stacked. **Experimental and unaudited — audit before real user funds.**
 
 ## Next Blocks
 
-### 13. Transfer Execution
+### 13. Transfer Execution (in progress)
 
-Goal: Execute the actual USDC → cKES swap and send on Celo Sepolia testnet. File a real transaction receipt with a real Blockscout hash. "Send now" becomes a real on-chain action.
+Goal: Execute the actual USDC → cKES swap and send on Celo Mainnet (small real amounts). File a real transaction receipt with a real explorer hash. "Send now" becomes a real on-chain action.
 
-The flow: Choco builds a CIP-64 transaction (feeCurrency = USDC adapter), calls Mento broker to swap USDC for cKES, sends cKES to the recipient wallet address. Signs using the connected MiniPay wallet.
+The flow: Choco builds a CIP-64 transaction (feeCurrency = USDC adapter), calls the Mento broker to swap USDC → USDm → cKES, sends cKES to the recipient wallet address. Signs using the connected MiniPay wallet.
+
+Open items:
+
+- Wire "Send now" in the app to a real signed transaction; file the real hash on the receipt.
+- Decide the one-off send path: direct Broker `swapIn` calls signed by the wallet vs routing through `RemittanceScheduler`.
+- Deploy `RemittanceScheduler` and record its address in `celo.js`.
+- Agent #309 is registered on Celo Sepolia only — re-register on mainnet, then point `VITE_8004SCAN_AGENT_URL` at `8004scan.io/agents/celo` (see `.env` comment).
 
 Files:
 
+- `contracts/src/RemittanceScheduler.sol` (drafted — recurring path)
+- `scripts/probe-mento.mjs` (done — route/liquidity verification)
+- `packages/core/src/config/celo.js` (done — mainnet Mento config)
 - `packages/core/src/domain/transfer.js` (new — transaction builder, Mento swap calldata)
 - `services/api/src/server.js` (add `POST /v1/transfer/prepare` — builds unsigned tx for wallet signing)
-- `apps/web/src/App.jsx` (wire "Confirm schedule" / "Prepare testnet send" to real tx)
+- `apps/web/src/App.jsx` (wire "Confirm schedule" / send-now to real tx)
 - `apps/web/src/modules/wallet/useMiniPayWallet.js` (add `signAndSend(tx)` method)
 
 Notes:
 
 - The API prepares and validates the transaction; the wallet signs it. The API never holds private keys.
-- Mento broker address on Celo Sepolia needs to be confirmed before this block starts.
-- CIP-64 fee abstraction: if USDC fee-currency adapter is not whitelisted on Sepolia, fall back to native CELO gas.
+- CIP-64 fee abstraction: if the USDC fee-currency adapter path fails, fall back to native CELO gas.
+- Keep amounts tiny — this is mainnet with real funds.
 
 Validation:
 
 - `POST /v1/transfer/prepare` returns an unsigned transaction object.
 - MiniPay wallet signs and broadcasts; Choco receives the tx hash.
-- Receipt shows real hash verifiable on `https://celo-sepolia.blockscout.com/tx/<hash>`.
-- QR code on receipt points to real Blockscout tx.
+- Receipt shows a real hash verifiable on the active network's explorer (`https://celoscan.io/tx/<hash>` on mainnet).
+- QR code on receipt points to the real explorer tx.
 
 ### 14. Worker + Scheduling
 
 Goal: Wire the scheduler worker to execute pending recurring transfers on schedule. Handle retries. Notify the recipient after each transfer.
+
+**Architecture decision now open — on-chain vs worker scheduling:** `contracts/src/RemittanceScheduler.sol` (drafted in Block 13) keeps schedules entirely on-chain with a permissionless `executeDue` keeper, which would replace DB-backed schedules. The likely hybrid: schedules live in the contract, and `services/worker` acts as the keeper (computes slippage floors from a fresh quote cross-checked against SortedOracles, then calls `executeDue`). Decide at the start of this block.
 
 **Pre-block requirement — contact store persistence:**
 `contactStore` in `services/api/src/server.js` is currently an in-memory `Map`. It is wiped on every server restart. Before the worker can use it reliably, it must be persisted to a JSON file or SQLite. This is a hard prerequisite for Block 14: if the server restarts between scheduling a transfer and its execution date, the worker will find an empty contact store and silently fail to resolve the recipient address.
@@ -114,7 +134,8 @@ Goal: Move from Celo Sepolia to Celo Mainnet. Add WhatsApp / Telegram as input c
 
 Notes:
 
-- Requires production approval, KYC/AML review, and Mento mainnet liquidity verification.
+- Requires production approval, KYC/AML review, and Mento mainnet liquidity verification (liquidity verified 2026-06-10 via `scripts/probe-mento.mjs`; re-verify before launch).
+- `RemittanceScheduler.sol` needs a security audit before holding real user flows at scale.
 - Kotani Pay API handles cKES → M-Pesa conversion for recipients without a crypto wallet.
 - UK → NGN corridor is the second target (cNGN via Mento; off-ramp via Yellow Card).
 - ERC-8004 Reputation Registry integration — agent builds on-chain trust score across transfers.
@@ -138,4 +159,4 @@ Validation:
 - Update this file when a block moves to completed.
 - Commit each block with a clear message.
 - Record validation commands in the final note for the block.
-- Testnet throughout blocks 11–14. No mainnet keys, no real funds, no production KYC until block 15.
+- Blocks 11–12 ran entirely on Celo Sepolia testnet. From Block 13 (2026-06-10), Mento swap testing runs on Celo Mainnet — keep amounts very small, treat every send as real money. No production KYC, no public launch, no user funds in `RemittanceScheduler` until block 15.

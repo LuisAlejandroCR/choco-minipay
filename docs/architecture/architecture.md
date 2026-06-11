@@ -71,6 +71,8 @@ Transfer commands go through two passes — one synchronous for live UI preview,
 | `packages/core` | Shared business rules. Keep parsing, duplicate checks, receipt URLs, amount helpers, and Celo network constants here. |
 | `services/api` | Server boundary for provider integrations, quote previews, identity lookup, and transfer orchestration. |
 | `services/worker` | Background boundary for schedules, retries, notifications, and reconciliation. |
+| `contracts` | Solidity sources. `RemittanceScheduler.sol` is a draft on-chain recurring USDC → cKES scheduler (allowance/pull model, permissionless keeper, two-hop Mento swap). Not yet deployed; unaudited. |
+| `scripts` | One-off operational probes. `probe-mento.mjs` verified the live Mento V2 route on Celo Mainnet (tokens, exchange IDs, hop quotes, pool depth) and is the source of the verified addresses in `celo.js`. |
 | `ops/agent-registry` | ERC-8004 metadata generation and registration scripts. |
 | `public` | Files Vercel serves directly: agent metadata, icon, privacy, terms, support, and stats. |
 | `docker` | Container definitions for local service checks and production deployment. |
@@ -109,6 +111,8 @@ Start with the layer where the problem appears, then move inward.
 | Vercel shows 404 | `vercel.json`, GitHub push status, Vercel deployment logs | `dist/web`, build command, output directory |
 | UI is stale | Latest commit pushed to `origin/main` | Vercel redeploy, browser hard refresh |
 | Wallet status is wrong | `apps/web/src/modules/wallet/useMiniPayWallet.js` | `packages/core/src/config/celo.js`, `.env`, MiniPay WebView, `window.ethereum.isMiniPay` |
+| App points at the wrong network (mainnet vs Sepolia) | `.env` → `VITE_CELO_NETWORK_KEY` plus the matching `VITE_CELO_*` overrides and server `RPC_URL` | `useMiniPayWallet.js::buildWalletNetwork` — falls back to `celoSepolia` when the env key is unset (e.g. node unit tests, which don't load `.env`) |
+| Manual address "Use" button does nothing | `apps/web/src/screens/WalletGateScreen.jsx::handleUseAddress` | Input is uncontrolled (DOM ref is the source of truth); a `0x` + 40-hex address is extracted from messy pasted text; if `wallet.useManualAddress` rejects, an inline error now explains why |
 | Transfer text parses wrong after submit | `services/api/src/server.js` → `/v1/intent/preview` → `parseTransferIntent` | Check API is running at `/health`; local fallback is `packages/core/src/domain/intent.js` |
 | Transfer text parses wrong in live preview | `packages/core/src/domain/intent.js` | `packages/core/src/domain/intent.test.js` |
 | Voice mic shows error or does nothing | `apps/web/src/modules/voice/useVoiceRecorder.js` → `hasSpeechSupport` and `voiceError` state | HTTPS or `localhost` required; Chrome / Android for MiniPay WebView; mic permission must be granted in browser |
@@ -116,8 +120,8 @@ Start with the layer where the problem appears, then move inward.
 | Recipient wallet address missing in preflight | `ReviewScreen` → `ContactCapture` component | Check `getContact(plan.recipient)` in `useContacts.js`; if null, capture form shows and user must paste a valid `0x...` address before preflight passes |
 | Contact not persisting across reloads | `apps/web/src/modules/contacts/useContacts.js` → `loadFromStorage` | Open DevTools → Application → localStorage → `choco-contacts-v1`; should be a JSON object keyed by lowercased alias |
 | Contact not available to worker | `POST /v1/contacts` sync in `App.jsx::saveContactAndSync` | Check `GET /v1/contacts` on the running API; contacts are now persisted to `services/api/contacts.json` and survive server restarts |
-| USDC balance wrong or missing | `packages/core/src/domain/quote.js::readUsdcBalance` → `POST /v1/quote` | Confirm `eth_call` to `balanceOf` on USDC contract (`0x01C5C...` on Sepolia); check `getStablecoinConfig("celoSepolia","USDC")` in `celo.js` |
-| Quote rate is labeled "mock-until-provider-connected" | `packages/core/src/domain/quote.js::fetchLiveKesRate` | SortedOracles call failed — check `sortedOraclesAddress` in `celo.js` and whether cKES has oracle price data on Celo Sepolia; Block 13 connects Mento Broker swap path |
+| USDC balance wrong or missing | `packages/core/src/domain/quote.js::readUsdcBalance` → `POST /v1/quote` | Confirm `eth_call` to `balanceOf` on the USDC contract for the active network (`0xcebA93...` on mainnet, `0x01C5C...` on Sepolia); check `getStablecoinConfig(<networkKey>, "USDC")` in `celo.js` |
+| Quote rate is labeled "mock-until-provider-connected" | `packages/core/src/domain/quote.js::fetchLiveKesRate` | SortedOracles call failed — check `sortedOraclesAddress` in `celo.js` for the active network and whether cKES has oracle price data there; Block 13 connects the Mento Broker swap path |
 | Preflight balance check missing (only 4 checks shown) | `services/api/src/server.js::POST /v1/agent/preflight` | Server requires `amountMinor` in request body (sent by `useAgentPreflight.js`); if missing, balance check is skipped |
 | Preflight passes but wallet check still shows blocked | `apps/web/src/modules/preflight/useAgentPreflight.js::run` — check `recipientAddressOverride` vs `getContact` path | Inspect the `recipientContact` value sent to `POST /v1/agent/preflight`; if it's an alias (not `0x...`), the contact was not saved or not looked up correctly |
 | Duplicate warning is wrong | `packages/core/src/domain/duplicates.js` | `packages/core/src/domain/duplicates.test.js` — `planSignature` now handles both intent-shape and plan-shape via `??` fallbacks; Block 14 convergence is complete |

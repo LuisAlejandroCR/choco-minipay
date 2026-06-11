@@ -38,6 +38,9 @@ Choco is a MiniPay-native remittance concierge for family transfers, scheduled r
 |               `-- wallet/
 |                   |-- useMiniPayWallet.js
 |                   `-- useMiniPayWallet.test.js
+|-- contracts/
+|   `-- src/
+|       `-- RemittanceScheduler.sol
 |-- docker/
 |   |-- api.Dockerfile
 |   |-- docker-compose.local.yml
@@ -79,6 +82,8 @@ Choco is a MiniPay-native remittance concierge for family transfers, scheduled r
 |   |-- support.html
 |   |-- support.js
 |   `-- terms.html
+|-- scripts/
+|   `-- probe-mento.mjs
 |-- services/
 |   |-- api/
 |   |   `-- src/
@@ -201,18 +206,18 @@ Use [docs/runbook-celo-agent-registration.md](docs/runbook-celo-agent-registrati
 
 ## Wallet Network Config
 
-Choco targets Celo Sepolia testnet until the mainnet release is approved. Network defaults live in `packages/core/src/config/celo.js`; deployment overrides live in `.env`.
+The active network is selected by `VITE_CELO_NETWORK_KEY` in `.env`. Network defaults live in `packages/core/src/config/celo.js`; the code falls back to Celo Sepolia when the key is unset (node unit tests). Since Block 13 (2026-06-10), `.env` points at Celo Mainnet (`celoMainnet`, chain `42220`, explorer `celoscan.io`) for Mento swap testing with very small real amounts. Switch the `VITE_CELO_*` values and `RPC_URL` back to the Celo Sepolia values in `celo.js` for testnet work.
 
-For the web app, keep `VITE_CELO_NETWORK_KEY`, `VITE_CELO_CHAIN_ID`, `VITE_CELO_CHAIN_ID_HEX`, `VITE_CELO_RPC_URL`, `VITE_BLOCK_EXPLORER_URL`, and `VITE_BLOCK_EXPLORER_TX_URL` aligned. For the API, keep `RPC_URL` on the same network so wallet verification, background readiness checks, and receipt links all point to Celo Sepolia.
+For the web app, keep `VITE_CELO_NETWORK_KEY`, `VITE_CELO_CHAIN_ID`, `VITE_CELO_CHAIN_ID_HEX`, `VITE_CELO_RPC_URL`, `VITE_BLOCK_EXPLORER_URL`, and `VITE_BLOCK_EXPLORER_TX_URL` aligned. For the API, keep `RPC_URL` on the same network so wallet verification, background readiness checks, and receipt links all agree.
 
 ## Celo And MiniPay Rules
 
 - Detect MiniPay with `window.ethereum.isMiniPay === true`.
-- Desktop browser testing uses an injected wallet extension on Celo Sepolia.
+- Desktop browser testing uses an injected wallet extension on the network selected in `.env`.
 - Mobile browser testing opens the current Choco URL in MetaMask Mobile before MiniApps publishing.
 - MiniPay wallet validation is tested when Choco is opened inside the MiniPay WebView.
 - Do not depend on message-signing auth.
-- Use Celo Sepolia testnet for wallet verification, agent review, and receipt paths until mainnet release.
+- Wallet verification, agent review, and receipt paths follow the `.env` network. Block 13+ tests the Mento swap path on Celo Mainnet with very small amounts; treat every send as real money.
 - After wallet verification, call Choco Agent AI readiness through `/v1/agent/preflight` in the background when the user reaches quote review.
 - Never mark a send-now movement as `Sent` until a real on-chain transaction hash exists.
 - Keep user-facing balances and transfers stablecoin-only: USDC, USDT, USDm.
@@ -228,8 +233,8 @@ Before production release:
 
 - MiniPay detection works in the MiniPay WebView.
 - Wallet-ready flow calls Choco Agent AI readiness before transfer creation.
-- Send-now readiness blocks when the API reports missing Celo Sepolia testnet gas funds or recipient contact.
-- Celo Sepolia transaction and receipt paths are verified.
+- Send-now readiness blocks when the API reports missing gas funds or recipient contact.
+- Transaction and receipt paths are verified on the active network.
 - ERC-8004 metadata is public and registered.
 - Quote, ODIS, API, worker, and analytics integrations are connected through module boundaries.
 - Terms, privacy, support, and stats pages contain final production content.
@@ -237,6 +242,8 @@ Before production release:
 - Docker production compose builds all services.
 
 ## Testnet Testing
+
+> Note: `.env` currently targets Celo Mainnet for Block 13 swap testing. To run this testnet checklist, set `VITE_CELO_NETWORK_KEY=celoSepolia` and switch the matching `VITE_CELO_*` values and `RPC_URL` back to the Celo Sepolia entries in `packages/core/src/config/celo.js`.
 
 Run the API and web app locally:
 

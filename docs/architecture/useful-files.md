@@ -13,14 +13,14 @@ This repository should stay focused on the production MiniPay app. Keep source, 
 | `apps/web/src/utils/planUtils.js` | Pure module-scope helpers extracted from App.jsx: timestamp formatters, plan/transaction builders, duplicate-detection helpers, demo timer formatter. No React imports. Importable by both screen files and App.jsx. |
 | `apps/web/src/modules/contacts/useContacts.js` | `localStorage` CRUD hook for Block 11 contacts. `getContact(alias)` returns a stored `{ alias, walletAddress, network }` record or null. `saveContact(alias, walletAddress)` validates and persists. App.jsx calls `saveContactAndSync` to also mirror to `POST /v1/contacts`. |
 | `apps/web/src/modules/preflight/useAgentPreflight.js` | Encapsulates the three-piece preflight state (`result`, `status`, `blockMessage`) and the async `run(plan, recipientAddressOverride?)` call to `POST /v1/agent/preflight`. Exposes `{ result, status, blockMessage, run, reset, block }`. Replaces three separate `useState` calls in App.jsx. |
-| `apps/web/src/modules/voice/useVoiceRecorder.js` | Encapsulates the full `SpeechRecognition` lifecycle: creates and auto-restarts the recognition instance, runs the recording timer, normalizes transcripts via `normalizeVoiceTranscript`, and surfaces errors inline. Exposes `{ isRecording, isPaused, recordingSeconds, voiceError, hasSpeechSupport, startRecording, cancelRecording, stopRecording, togglePause }`. Used by `PlanEditorScreen`. |
+| `apps/web/src/modules/voice/useVoiceRecorder.js` | Encapsulates the full `SpeechRecognition` lifecycle: creates and auto-restarts the recognition instance, runs the recording timer, normalizes transcripts via `normalizeVoiceTranscript`, and surfaces errors inline (auto-cleared after 7 s so they don't linger when the user switches to typing). Exposes `{ isRecording, isPaused, recordingSeconds, voiceError, hasSpeechSupport, startRecording, cancelRecording, stopRecording, togglePause, clearVoiceError }`. Used by `PlanEditorScreen`. |
 | `apps/web/src/components` | Reusable Choco visual components, including pitch and guided-demo visuals. |
 | `apps/web/src/content/demoFlow.js` | Source of truth for pitch/demo copy and guided-demo step timing. |
 | `apps/web/src/content/reviewLinks.js` | Source of truth for in-app support/about copy and public review links. |
 | `apps/web/src/config/runtime.js` | Reads Vite runtime variables for API, live demo, explorer, QR, and start-screen behavior. |
 | `apps/web/src/data/testnetScenario.js` | Low-value testnet plan, commands, timestamps, and sample receipt hashes. |
-| `apps/web/src/modules/wallet/useMiniPayWallet.js` | MiniPay/browser wallet detection and Celo Sepolia testnet verification. |
-| `apps/web/src/modules/wallet/useMiniPayWallet.test.js` | Protects the Celo Sepolia testnet chain ID used by wallet verification. |
+| `apps/web/src/modules/wallet/useMiniPayWallet.js` | MiniPay/browser wallet detection and wallet verification. Network is config-driven: `buildWalletNetwork` reads `VITE_CELO_NETWORK_KEY` (mainnet since Block 13) and falls back to `celoSepolia` when unset (node unit tests). |
+| `apps/web/src/modules/wallet/useMiniPayWallet.test.js` | Protects the Celo Sepolia fallback chain ID used by wallet verification when no env override is set. |
 | `packages/core` | Shared intent parsing, duplicate detection, receipt, amount, and Celo config logic. |
 | `packages/core/src/config/celo.js` | Source of truth for Celo network IDs, RPC URLs, explorers, native currency, and stablecoin fee-currency addresses. |
 | `packages/core/src/domain/contacts.js` | Contact schema `{ alias, walletAddress, network }`, `isValidWalletAddress` (0x regex), `buildContact`, `formatContactShort`. Used by `useContacts.js` and imported by `App.jsx` for the `ContactCapture` input validator. |
@@ -28,6 +28,8 @@ This repository should stay focused on the production MiniPay app. Keep source, 
 | `packages/core/src/domain/preflight.test.js` | Protects agent readiness behavior before wiring real transfer execution. |
 | `services/api` | Backend API shell for quotes, identity, and transfer orchestration. |
 | `services/worker` | Scheduler and reconciliation shell for recurring transfers. |
+| `contracts/src/RemittanceScheduler.sol` | Draft on-chain recurring remittance scheduler: payer grants a USDC allowance and creates a schedule; a permissionless keeper calls `executeDue`, which pulls the USDC, swaps USDC → USDm → cKES via the Mento Broker with keeper-supplied slippage floors, and sends cKES to the recipient. Unaudited; not yet deployed. |
+| `scripts/probe-mento.mjs` | Throwaway mainnet probe (run with `node scripts/probe-mento.mjs`) that verified the Mento V2 route on 2026-06-10: token metadata, exchange providers, USDC/USDm and USDm/cKES exchange IDs, hop-2 quotes, and V3 USDC/USDm pool depth. Source of the verified `celoMainnet` addresses in `celo.js`. |
 | `docker` | Production and local service containers. |
 | `ops/agent-registry` | ERC-8004 agent metadata generation and registration scripts. |
 | `public/agent.json` | Public agent metadata served by the app. |
