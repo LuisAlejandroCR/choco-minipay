@@ -20,3 +20,5 @@ contracts/cache/
 contracts/typechain-types/
 .DS_Store
 Thumbs.db
+.agents/
+skills-lock.json
