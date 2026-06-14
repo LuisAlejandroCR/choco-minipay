@@ -2,16 +2,16 @@
   "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
   "name": "Choco",
   "description": "MiniPay-native remittance agent for non-custodial USDC and cKES family transfers on Celo Mainnet. Choco reads wallet funds, detects the transfer intent, confirms a summary, and records schedules and receipts on-chain.",
-  "image": "https://choco-azure.vercel.app/icon.svg",
+  "image": "https://choco-minipay.vercel.app/icon.svg",
   "services": [
     {
       "name": "web",
-      "endpoint": "https://choco-azure.vercel.app",
+      "endpoint": "https://choco-minipay.vercel.app",
       "version": "0.2.0"
     },
     {
       "name": "OASF",
-      "endpoint": "https://choco-azure.vercel.app/agent.json",
+      "endpoint": "https://choco-minipay.vercel.app/agent.json",
       "version": "1.0",
       "skills": ["remittance", "scheduled-payments", "stablecoin-fx"]
     }

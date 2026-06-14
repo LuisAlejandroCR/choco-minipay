@@ -144,10 +144,33 @@ async function estimateTransferGasWei(account, recipient, usdcAmountRaw) {
 
     console.log('[Gas] Total estimated:', Number(totalGas));
 
-    const gasPrice = await publicClient.getGasPrice();
-    console.log('[Gas] Gas price (Gwei):', Number(formatUnits(gasPrice, 9)));
+    // Get gas price from CeloScan API (more accurate than RPC)
+    let gasPrice;
+    const celoscanApiKey = import.meta.env?.VITE_CELOSCAN_API_KEY;
 
-    return totalGas * gasPrice;
+    if (celoscanApiKey) {
+      try {
+        const response = await fetch(`https://api.celoscan.io/api?module=proxy&action=eth_gasPrice&apikey=${celoscanApiKey}`);
+        const data = await response.json();
+        if (data.result) {
+          gasPrice = BigInt(data.result);
+          console.log('[Gas] Price from CeloScan API (Gwei):', Number(formatUnits(gasPrice, 9)));
+        }
+      } catch (err) {
+        console.log('[Gas] CeloScan API failed, using RPC fallback:', err.message);
+      }
+    }
+
+    // Fallback to RPC if CeloScan API is not configured or failed
+    if (!gasPrice) {
+      gasPrice = await publicClient.getGasPrice();
+      console.log('[Gas] Price from RPC (Gwei):', Number(formatUnits(gasPrice, 9)));
+    }
+
+    const gasCostWei = totalGas * gasPrice;
+    console.log('[Gas] Total cost (CELO):', Number(formatUnits(gasCostWei, 18)));
+
+    return gasCostWei;
   } catch (err) {
     console.log('[Gas] Estimation failed:', err.message);
     // If gas price fetch fails, use conservative estimate
@@ -185,6 +208,7 @@ export async function summariseTransfer({ account, recipient, intent, walletRead
   console.log('[Cepolia] Gas estimate (CELO):', gasNativeFloat);
 
   // Convert gas cost from CELO to USDC using the fee adapter exchange rate
+  const publicClient = makePublicClient();
   let gasUsdcFloat = 0;
   if (gasWei > 0n && ADDRESSES.feeCurrency && isAddress(ADDRESSES.feeCurrency)) {
     try {

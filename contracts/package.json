@@ -7,6 +7,7 @@
     "build": "node scripts/compile.cjs",
     "test": "node --test test/*.test.cjs",
     "deploy:mainnet": "node scripts/deploy.mjs",
+    "deploy:testnet": "node scripts/deploy-testnet.mjs",
     "deploy:audit": "node scripts/deploy-audit.mjs",
     "deploy:swap": "node scripts/deploy-swap.mjs"
   },

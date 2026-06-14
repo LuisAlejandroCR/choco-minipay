@@ -1,26 +1,61 @@
-# Choco Contracts
+# Choco Contracts - Celo Mainnet
 
-`ChocoScheduleRegistry` is a fund-less schedule and receipt registry.
+Three contracts for Choco MiniPay remittances:
 
-It does not hold user funds. The user's wallet approves a settlement spender separately, and the registry records which router or keeper is allowed to execute the scheduled wallet action.
+- **ChocoScheduleRegistry**: Fund-less registry for recurring transfers
+- **ChocoAuditLog**: Append-only log of all transfer attempts
+- **ChocoCkesSwap**: USDC→cKES swap wrapper (optional)
 
-## Commands
+None hold user funds. Users approve tokens separately; contracts only coordinate execution.
+
+## Quick Deploy to Mainnet
+
+### 1. Setup
 
 ```bash
+cd contracts
 npm install
-npm test
-KEEPER_ADDRESS=0x... npm run deploy:mainnet
+cp .env.example .env
 ```
 
-## Mainnet Flow
+Edit `.env`:
+```bash
+DEPLOYER_PRIVATE_KEY=0x...your_wallet_private_key...
+KEEPER_ADDRESS=0x...your_erc8004_agent_address...
+```
 
-1. User connects MiniPay or a Celo wallet.
-2. Choco reads connected-wallet balances from chain state.
-3. User chooses Now or Schedule.
-4. Now: cKES can transfer directly wallet -> recipient; USDC can route through Mento into cKES.
-5. Schedule: wallet approves the source asset to the settlement spender, then calls `createMonthlySchedule` on this registry.
-6. Keeper executes due schedules later and writes `SettlementReceipt` events.
+### 2. Deploy
 
-## Deployment Model
+**Registry + Audit:**
+```bash
+npm run deploy:mainnet
+```
 
-Deploy one shared `ChocoScheduleRegistry` for the app. The registry is keyed by `owner`, so each wallet has its own schedules without requiring a new contract deployment per user. Add a factory later only if Choco needs per-user automation modules with isolated logic.
+**Swap (optional):**
+```bash
+npm run deploy:swap
+```
+
+### 3. Update Frontend
+
+Copy output addresses to `../.env`:
+```bash
+VITE_REGISTRY_ADDRESS=0x...
+VITE_AUDIT_CONTRACT_ADDRESS=0x...
+VITE_SETTLEMENT_SPENDER_ADDRESS=0x...
+VITE_REGISTRY_DEPLOY_BLOCK=...
+VITE_CKES_SWAP_CONTRACT_ADDRESS=0x...
+```
+
+## How It Works
+
+1. **Send Now**: User connects wallet → Choco reads balances → USDC routes through Mento to cKES → Direct transfer
+2. **Schedule**: User approves USDC to registry → Creates monthly schedule on-chain → Keeper executes + logs receipt
+
+Registry is keyed by wallet address. Each user has isolated schedules without needing separate contract deployments.
+
+## Security
+
+⚠️ `.env` is gitignored - NEVER commit private keys
+- Deploy cost: ~0.06 CELO (~$0.03)
+- Verify on [Celoscan](https://celoscan.io/)
