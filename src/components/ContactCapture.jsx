@@ -5,13 +5,14 @@ function isValidWalletAddress(value) {
 }
 
 // Optional fallback for demos where a contact resolver is not connected yet.
-export function ContactCapture({ alias, onSubmit }) {
+export function ContactCapture({ alias, onSubmit, supabaseReady = false }) {
   const [address, setAddress] = useState("");
+  const [saveContact, setSaveContact] = useState(false);
   const isValid = isValidWalletAddress(address);
 
   function handleSubmit(event) {
     event.preventDefault();
-    if (isValid) onSubmit(address);
+    if (isValid) onSubmit(address, { saveContact });
   }
 
   return (
@@ -33,7 +34,23 @@ export function ContactCapture({ alias, onSubmit }) {
           />
           <button type="submit" disabled={!isValid}>Use</button>
         </div>
-        <small>Used once for this transfer. Choco does not store contacts.</small>
+        {supabaseReady && (
+          <label className="contact-save-toggle">
+            <input
+              type="checkbox"
+              checked={saveContact}
+              onChange={(e) => setSaveContact(e.target.checked)}
+            />
+            <span>Save "{alias}" for future transfers</span>
+          </label>
+        )}
+        <small>
+          {supabaseReady
+            ? saveContact
+              ? "Contact will be saved in Supabase with your authorization."
+              : "Used once for this transfer. Not saved."
+            : "Used once for this transfer. Choco does not store contacts."}
+        </small>
       </form>
     </section>
   );

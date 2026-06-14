@@ -281,8 +281,9 @@ export default function App() {
     goTo("processing");
   }
 
-  async function resolveContactForTransfer(address, details = {}) {
+  async function resolveContactForTransfer(address, options = {}) {
     if (!contactKey) return;
+    const { saveContact = false, ...details } = options;
     const label = details.label || receiptLabel;
     setResolvedContacts((items) => ({
       ...items,
@@ -296,9 +297,9 @@ export default function App() {
     setStatus("review");
     setMessage(`${label} selected for this transfer.`);
 
-    // Persist the Receipt label as a Supabase contact so future transfers skip the paste step.
+    // Persist contact to Supabase ONLY if user explicitly authorized it via checkbox.
     // Skip when the address came from a prior contact lookup (source === "contacts").
-    if (SUPABASE_READY && wallet.address && details.source !== "contacts") {
+    if (SUPABASE_READY && wallet.address && saveContact && details.source !== "contacts") {
       try {
         const saved = await upsertContact({
           ownerWallet: wallet.address,
@@ -310,6 +311,7 @@ export default function App() {
           ...items,
           [contactKey]: { ...items[contactKey], source: "contacts", contactId: saved.id },
         }));
+        setMessage(`${label} selected and saved for future transfers.`);
       } catch (saveError) {
         // Persistence failures should not block this transfer.
         console.warn("Could not save contact:", saveError.message);
@@ -640,6 +642,7 @@ export default function App() {
               onEdit={() => setScreen("planEditor")}
               onPickContact={pickContactForTransfer}
               onResolveContact={resolveContactForTransfer}
+              supabaseReady={SUPABASE_READY}
             />
           )}
           {activeInfoPanel && (

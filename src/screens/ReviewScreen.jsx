@@ -20,6 +20,7 @@ export function ReviewScreen({
   resolvedContact = null,
   recipientAddress = "",
   walletAccount = "",
+  supabaseReady = false,
   onConnect,
   onConfirm,
   onEdit,
@@ -90,7 +91,8 @@ export function ReviewScreen({
           {!resolvedContact?.address && (
             <ContactCapture
               alias={receiptLabel}
-              onSubmit={(address) => onResolveContact(address, { label: resolvedContact?.label || receiptLabel, phone: resolvedContact?.phone || "" })}
+              supabaseReady={supabaseReady}
+              onSubmit={(address, opts) => onResolveContact(address, { label: resolvedContact?.label || receiptLabel, phone: resolvedContact?.phone || "", saveContact: opts?.saveContact })}
             />
           )}
         </section>
