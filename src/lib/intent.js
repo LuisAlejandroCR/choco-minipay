@@ -55,7 +55,9 @@ export function parseTransferIntent(text, options = {}) {
     recipientAlias: agent.recipient.label,
     recipientSource: agent.recipient.source,
     receiptLabel: agent.recipient.label,
-    contactResolutionRequired: agent.recipient.source && !["family-alias", "bill-intent"].includes(agent.recipient.source),
+    // Always require contact resolution for labels (family-alias, bill-intent, etc.)
+    // The user must paste the wallet address and optionally save to Supabase
+    contactResolutionRequired: Boolean(agent.recipient.label),
     amountKes,
     amountLabel: amountKes ? `${amountKes.toLocaleString("en-US")} ${destinationAsset}` : "",
     transferAsset: destinationAsset,
