@@ -7,6 +7,17 @@ import { formatUnits, isAddress, parseUnits } from "viem";
 import { ADDRESSES, ERC20_ABI, MENTO_BROKER_ABI, makePublicClient, readUsdcBalance } from "./celo.js";
 import { APP_CONFIG } from "./app-config.js";
 
+// Fee currency adapter ABI (for debited gas token exchange rate)
+const FEE_ADAPTER_ABI = [
+  {
+    type: "function",
+    name: "getExchangeRate",
+    stateMutability: "view",
+    inputs: [{ name: "sellAmount", type: "uint256" }],
+    outputs: [{ name: "buyAmount", type: "uint256" }],
+  },
+];
+
 // Readiness verdicts (UX-only — never written on-chain). The audit contract is for events that
 // actually touched the chain (SUCCESS / FAILED_*). Pre-flight reasons live here, surfaced as
 // human messages in the UI.
@@ -81,64 +92,95 @@ export async function quoteUsdcToCkes(usdcAmountFloat) {
   });
 }
 
-// Estimate gas in CELO wei for an ERC20 transfer of the destination amount. We use a representative
-// call (cKES.transfer) because it bounds the most common path; swap calls are estimated separately
-// only when the user lands on a USDC-source path. Returns native wei.
-async function estimateTransferGasWei(account, recipient, ckesAmountRaw) {
-  if (!account || !isAddress(account) || !isAddress(recipient) || ckesAmountRaw === 0n) return 0n;
+// Estimate gas cost in native CELO wei for USDC → cKES transfers (approve + 2-hop swap + transfer).
+// Falls back to a conservative estimate if simulation fails.
+async function estimateTransferGasWei(account, recipient, usdcAmountRaw) {
+  if (!account || !isAddress(account) || !isAddress(recipient) || usdcAmountRaw === 0n) {
+    return parseUnits("0.001", 18); // 0.001 CELO fallback
+  }
+
   const publicClient = makePublicClient();
+
   try {
-    const gas = await publicClient.estimateContractGas({
-      account,
-      address: ADDRESSES.kesm,
-      abi: ERC20_ABI,
-      functionName: "transfer",
-      args: [recipient, ckesAmountRaw],
-    });
+    // USDC → cKES path: approve + 2 Mento swaps + cKES transfer
+    const approveGas = 50000n;   // ERC20 approve ~46k gas
+    const swap1Gas = 100000n;    // USDC → USDm ~90-100k gas
+    const swap2Gas = 100000n;    // USDm → cKES ~90-100k gas
+    const transferGas = 65000n;  // cKES transfer ~52k gas
+    const gasEstimate = approveGas + swap1Gas + swap2Gas + transferGas; // ~315k total
+
     const gasPrice = await publicClient.getGasPrice();
-    return gas * gasPrice;
+    return gasEstimate * gasPrice;
   } catch {
-    // If the simulation fails (e.g. insufficient cKES because the swap hasn't run yet), fall back
-    // to a conservative default rather than blocking the Review screen.
-    return 0n;
+    // If gas price fetch fails, use conservative estimate
+    return parseUnits("0.001", 18); // 0.001 CELO
   }
 }
 
 // Cepolia readiness summary for the Confirm Send screen. All numeric values are returned both as
 // raw bigints (for further on-chain calls) and formatted strings (for display).
 export async function summariseTransfer({ account, recipient, intent, walletReady }) {
-  const sourceAsset = intent?.sourceAsset || APP_CONFIG.assets.source;
-  const isUsdcSource = sourceAsset === APP_CONFIG.assets.source;
-  const usdcRequested = isUsdcSource ? Number(intent?.sourceAmount || 0) : 0;
+  // Only USDC → cKES is allowed in this stage
+  const usdcRequested = Number(intent?.sourceAmount || 0);
   const ckesRequested = Number(intent?.amountKes || intent?.destinationAmount || 0);
 
-  let ckesRaw = ckesRequested ? parseUnits(String(Math.max(1, Math.floor(ckesRequested))), 18) : 0n;
+  // Get live cKES quote from Mento
+  let ckesRaw = 0n;
   let liveQuote = false;
-  if (isUsdcSource && usdcRequested > 0) {
+  if (usdcRequested > 0) {
     try {
       ckesRaw = await quoteUsdcToCkes(usdcRequested);
       liveQuote = ckesRaw > 0n;
     } catch {
-      // Quote failure leaves the requested amount as the displayed value.
+      // Quote failure: use static estimate as fallback
+      ckesRaw = ckesRequested ? parseUnits(String(Math.max(1, Math.floor(ckesRequested))), 18) : 0n;
     }
   }
   const ckesFloat = Number(formatUnits(ckesRaw, 18));
 
-  const gasWei = walletReady && recipient ? await estimateTransferGasWei(account, recipient, ckesRaw) : 0n;
+  const usdcRaw = usdcRequested > 0 ? parseUnits(Number(usdcRequested).toFixed(6), 6) : 0n;
+  const gasWei = walletReady && recipient
+    ? await estimateTransferGasWei(account, recipient, usdcRaw)
+    : parseUnits("0.001", 18); // Conservative default if wallet not ready
   const gasNativeFloat = Number(formatUnits(gasWei, 18));
+
+  // Convert gas cost from CELO to USDC using the fee adapter exchange rate
+  let gasUsdcFloat = 0;
+  if (gasWei > 0n && ADDRESSES.feeCurrency && isAddress(ADDRESSES.feeCurrency)) {
+    try {
+      // getExchangeRate returns how much USDC you need to buy 1 CELO worth of gas
+      // Input: CELO amount (wei), Output: USDC amount (6 decimals)
+      const gasUsdcRaw = await publicClient.readContract({
+        address: ADDRESSES.feeCurrency,
+        abi: FEE_ADAPTER_ABI,
+        functionName: "getExchangeRate",
+        args: [gasWei],
+      });
+      gasUsdcFloat = Number(formatUnits(gasUsdcRaw, 6));
+    } catch {
+      // Fallback: rough estimate ~$0.40 per CELO (adjust based on market)
+      gasUsdcFloat = gasNativeFloat * 0.4;
+    }
+  }
+
+  // Always show fee in USDC (converted from CELO via fee adapter)
+  const feeLabel = gasUsdcFloat > 0
+    ? `~${gasUsdcFloat.toFixed(4)} USDC`
+    : APP_CONFIG.transfer.networkFeeLabel;
+
+  const totalCost = gasUsdcFloat > 0 ? usdcRequested + gasUsdcFloat : usdcRequested;
+  const totalCostLabel = totalCost > 0
+    ? `${totalCost.toLocaleString("en-US", { maximumFractionDigits: 4 })} USDC`
+    : `${usdcRequested.toLocaleString("en-US", { maximumFractionDigits: 2 })} USDC + fees`;
 
   return {
     recipientReceives: ckesFloat,
-    recipientReceivesLabel: ckesFloat ? `${ckesFloat.toLocaleString("en-US", { maximumFractionDigits: 2 })} ${APP_CONFIG.assets.destination}` : "",
-    walletPays: isUsdcSource ? usdcRequested : ckesRequested,
-    walletPaysLabel: isUsdcSource
-      ? `${usdcRequested.toLocaleString("en-US", { maximumFractionDigits: 2 })} ${APP_CONFIG.assets.source}`
-      : `${ckesRequested.toLocaleString("en-US", { maximumFractionDigits: 2 })} ${APP_CONFIG.assets.destination}`,
-    networkFeeLabel: gasNativeFloat ? `~${gasNativeFloat.toFixed(6)} CELO` : APP_CONFIG.transfer.networkFeeLabel,
-    totalCostLabel: isUsdcSource
-      ? `${usdcRequested.toLocaleString("en-US", { maximumFractionDigits: 2 })} ${APP_CONFIG.assets.source}${gasNativeFloat ? ` + ~${gasNativeFloat.toFixed(6)} CELO` : ""}`
-      : `${ckesRequested.toLocaleString("en-US", { maximumFractionDigits: 2 })} ${APP_CONFIG.assets.destination}${gasNativeFloat ? ` + ~${gasNativeFloat.toFixed(6)} CELO` : ""}`,
+    recipientReceivesLabel: ckesFloat ? `${ckesFloat.toLocaleString("en-US", { maximumFractionDigits: 2 })} cKES` : "",
+    walletPays: usdcRequested,
+    walletPaysLabel: `${usdcRequested.toLocaleString("en-US", { maximumFractionDigits: 2 })} USDC`,
+    networkFeeLabel: feeLabel,
+    totalCostLabel,
     liveQuote,
-    readyToConfirm: walletReady && isAddress(recipient || "") && (isUsdcSource ? usdcRequested > 0 : ckesRequested > 0),
+    readyToConfirm: walletReady && isAddress(recipient || "") && usdcRequested > 0,
   };
 }
