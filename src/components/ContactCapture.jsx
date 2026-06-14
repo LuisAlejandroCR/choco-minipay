@@ -41,15 +41,15 @@ export function ContactCapture({ alias, onSubmit, supabaseReady = false }) {
               checked={saveContact}
               onChange={(e) => setSaveContact(e.target.checked)}
             />
-            <span>Save "{alias}" for future transfers</span>
+            <span>Save contact</span>
           </label>
         )}
         <small>
           {supabaseReady
             ? saveContact
-              ? "Contact will be saved in Supabase with your authorization."
-              : "Used once for this transfer. Not saved."
-            : "Used once for this transfer. Choco does not store contacts."}
+              ? "Will be saved for next time"
+              : "Used once, not saved"
+            : "Used once, not saved"}
         </small>
       </form>
     </section>
