@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Choco">
+  <rect width="256" height="256" rx="56" fill="#160e0a"/>
+  <circle cx="178" cy="78" r="22" fill="#68d5ae"/>
+  <path d="M82 59c31-14 73 9 87 48 15 42-2 85-37 97-34 12-73-10-88-49C29 114 47 75 82 59Z" fill="#9b6842"/>
+  <path d="M94 68c18 39 30 82 35 128" stroke="#f6d79d" stroke-width="10" stroke-linecap="round" opacity=".55"/>
+  <path d="M119 62c17 38 28 79 34 121" stroke="#3a2117" stroke-width="10" stroke-linecap="round" opacity=".45"/>
+  <path d="M67 128h120" stroke="#27160f" stroke-width="18" stroke-linecap="round" opacity=".35"/>
+</svg>

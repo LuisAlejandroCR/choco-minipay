@@ -1,0 +1,15 @@
+.git
+.github
+node_modules
+frontend/node_modules
+contracts/node_modules
+dist
+frontend/dist
+coverage
+contracts/artifacts
+contracts/cache
+.env
+.env.*
+!.env.example
+*.log
+README.local.md

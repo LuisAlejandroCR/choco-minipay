@@ -1,0 +1,33 @@
+{
+  "name": "choco",
+  "version": "0.2.0",
+  "private": false,
+  "description": "Choco MiniPay agent for non-custodial USDC and cKES remittance actions on Celo Mainnet.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "node --test src/lib/*.test.js",
+    "check": "npm run test && npm run build",
+    "contracts:test": "npm --prefix contracts test",
+    "demo:contract-example": "node scripts/contract-example-demo.mjs",
+    "register:agent": "node scripts/register-agent.mjs"
+  },
+  "repository": { "type": "git", "url": "git+https://github.com/LuisAlejandroCR/choco.git" },
+  "keywords": ["celo", "minipay", "stablecoin", "remittance", "agent", "erc-8004"],
+  "license": "MIT",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4",
+    "ethers": "^6.16.0",
+    "lucide-react": "^1.17.0",
+    "qrcode": "^1.5.4",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "viem": "^2.52.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.0.2",
+    "vite": "^8.0.16"
+  }
+}

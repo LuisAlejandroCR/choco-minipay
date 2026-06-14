@@ -1,0 +1,18 @@
+{
+  "name": "choco-contracts",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Fund-less Choco schedule registry for Celo Mainnet remittance plans.",
+  "scripts": {
+    "build": "node scripts/compile.cjs",
+    "test": "node --test test/*.test.cjs",
+    "deploy:mainnet": "node scripts/deploy.mjs",
+    "deploy:audit": "node scripts/deploy-audit.mjs",
+    "deploy:swap": "node scripts/deploy-swap.mjs"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "ethers": "^6.16.0",
+    "solc": "^0.8.24"
+  }
+}
