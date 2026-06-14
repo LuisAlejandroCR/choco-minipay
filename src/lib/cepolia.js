@@ -144,6 +144,8 @@ export async function summariseTransfer({ account, recipient, intent, walletRead
     : parseUnits("0.001", 18); // Conservative default if wallet not ready
   const gasNativeFloat = Number(formatUnits(gasWei, 18));
 
+  console.log('[Cepolia] Gas estimate (CELO):', gasNativeFloat);
+
   // Convert gas cost from CELO to USDC using the fee adapter exchange rate
   let gasUsdcFloat = 0;
   if (gasWei > 0n && ADDRESSES.feeCurrency && isAddress(ADDRESSES.feeCurrency)) {
@@ -157,9 +159,11 @@ export async function summariseTransfer({ account, recipient, intent, walletRead
         args: [gasWei],
       });
       gasUsdcFloat = Number(formatUnits(gasUsdcRaw, 6));
-    } catch {
+      console.log('[Cepolia] Fee adapter returned:', gasUsdcFloat, 'USDC');
+    } catch (err) {
       // Fallback: rough estimate ~$0.40 per CELO (adjust based on market)
       gasUsdcFloat = gasNativeFloat * 0.4;
+      console.log('[Cepolia] Fee adapter failed, using fallback:', gasUsdcFloat, 'USDC', err.message);
     }
   }
 
