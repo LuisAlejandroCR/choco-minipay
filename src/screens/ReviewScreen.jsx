@@ -212,10 +212,7 @@ export function ReviewScreen({
       </div>
       {status === "error" && message && <div className="notice danger compact">{message}</div>}
       {setupNotice && <div className="notice compact">{setupNotice}</div>}
-
-      {approvalUrl && <a className="receipt-link" href={approvalUrl} target="_blank" rel="noreferrer"><ReceiptText size={18} /> View approval</a>}
-      {txUrl && <a className="receipt-link" href={txUrl} target="_blank" rel="noreferrer"><ReceiptText size={18} /> View receipt</a>}
-
+            
       <button className="primary-cta" type="button" disabled={walletReady ? !actionReady || status === "pending" : status === "pending"} onClick={walletReady ? onConfirm : onConnect}>
         {isSendNow ? <CircleDollarSign size={18} /> : walletReady ? <CalendarDays size={18} /> : <Wallet size={18} />}
         {primaryLabel}

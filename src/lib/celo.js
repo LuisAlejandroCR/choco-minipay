@@ -611,6 +611,7 @@ async function readSendNowHistory(publicClient, owner, fromBlock) {
   const ckesAddress = ADDRESSES.kesm;
   const swapAddress = APP_CONFIG.contracts.ckesSwap;
 
+  // Direct cKES transfers sent by the owner (pure sends or old two-hop swap path)
   const transfers = await publicClient.getContractEvents({
     address: ckesAddress,
     abi: TRANSFER_EVENT_ABI,
@@ -633,44 +634,74 @@ async function readSendNowHistory(publicClient, owner, fromBlock) {
   }
 
   const swapByTx = new Map(swaps.map((log) => [log.transactionHash, log]));
-  // Drop self-transfers and the wrapper's internal transfer-to-payer leg of a swap. The "outgoing"
-  // entries are the cKES -> recipient deliveries that follow a swap or are direct cKES sends.
-  const movements = transfers
+
+  // txHashes where the owner personally sent cKES (direct send or old swap() path)
+  const directTxHashes = new Set(
+    transfers
+      .filter((log) => String(log.args.to).toLowerCase() !== String(owner).toLowerCase())
+      .map((log) => log.transactionHash),
+  );
+
+  // Direct send movements: owner → recipient, skip the old swap's intermediate return leg
+  const directMovements = transfers
     .filter((log) => String(log.args.to).toLowerCase() !== String(owner).toLowerCase())
     .filter((log) => !(swapAddress && String(log.args.from).toLowerCase() === String(swapAddress).toLowerCase()))
     .map((log) => ({ transferLog: log, swapLog: swapByTx.get(log.transactionHash) || null }));
+
+  // swapAndSend movements: owner paid USDC but cKES was delivered by the swap contract
+  // directly to the recipient — so there is no owner-initiated cKES transfer in directMovements.
+  const swapOnlySwaps = swaps.filter((s) => !directTxHashes.has(s.transactionHash));
+  let swapDeliveryMovements = [];
+  if (swapOnlySwaps.length > 0 && swapAddress && isAddress(swapAddress)) {
+    const swapOnlySet = new Set(swapOnlySwaps.map((s) => s.transactionHash));
+    const deliveries = await publicClient.getContractEvents({
+      address: ckesAddress,
+      abi: TRANSFER_EVENT_ABI,
+      eventName: "Transfer",
+      args: { from: swapAddress },
+      fromBlock,
+      toBlock: "latest",
+    });
+    swapDeliveryMovements = deliveries
+      .filter((log) => swapOnlySet.has(log.transactionHash))
+      .map((log) => ({ transferLog: log, swapLog: swapByTx.get(log.transactionHash) || null }));
+  }
+
+  const movements = [...directMovements, ...swapDeliveryMovements];
 
   const blockNumbers = [...new Set(movements.map((entry) => entry.transferLog.blockNumber))];
   const blocks = await Promise.all(blockNumbers.map((blockNumber) => publicClient.getBlock({ blockNumber })));
   const timeByBlock = new Map(blocks.map((block) => [block.number, Number(block.timestamp)]));
 
-  return movements.map(({ transferLog, swapLog }) => {
-    const amountKes = Math.round(Number(formatUnits(transferLog.args.value, 18)));
-    const usdcIn = swapLog ? Number(formatUnits(swapLog.args.usdcIn, 6)) : 0;
-    const timestamp = timeByBlock.get(transferLog.blockNumber);
-    return {
-      id: `send-${transferLog.transactionHash}-${transferLog.logIndex}`,
-      planId: "send-now",
-      recipient: shortAddress(transferLog.args.to),
-      recipientAddress: transferLog.args.to,
-      amount: amountKes.toLocaleString("en-US"),
-      amountMinor: amountKes,
-      asset: APP_CONFIG.assets.destination,
-      payAsset: swapLog ? APP_CONFIG.assets.source : APP_CONFIG.assets.destination,
-      payAmount: swapLog ? usdcIn : amountKes,
-      schedule: "Send once now",
-      date: formatChainDate(timestamp),
-      status: "Sent",
-      hash: transferLog.transactionHash,
-      type: swapLog ? "USDC swap + cKES send" : "cKES send",
-      deliveryMode: "now",
-      from: transferLog.args.from,
-      to: `${shortAddress(transferLog.args.to)} - Celo`,
-      toAddress: transferLog.args.to,
-      routeEstimate: swapLog ? `${usdcIn} USDC -> ${amountKes} cKES via Mento` : "",
-      sortKey: timestamp || 0,
-    };
-  });
+  return movements
+    .map(({ transferLog, swapLog }) => {
+      const amountKes = Math.round(Number(formatUnits(transferLog.args.value, 18)));
+      const usdcIn = swapLog ? Number(formatUnits(swapLog.args.usdcIn, 6)) : 0;
+      const timestamp = timeByBlock.get(transferLog.blockNumber);
+      return {
+        id: `send-${transferLog.transactionHash}-${transferLog.logIndex}`,
+        planId: "send-now",
+        recipient: shortAddress(transferLog.args.to),
+        recipientAddress: transferLog.args.to,
+        amount: amountKes.toLocaleString("en-US"),
+        amountMinor: amountKes,
+        asset: APP_CONFIG.assets.destination,
+        payAsset: swapLog ? APP_CONFIG.assets.source : APP_CONFIG.assets.destination,
+        payAmount: swapLog ? usdcIn : amountKes,
+        schedule: "Send once now",
+        date: formatChainDate(timestamp),
+        status: "Sent",
+        hash: transferLog.transactionHash,
+        type: swapLog ? "USDC swap + cKES send" : "cKES send",
+        deliveryMode: "now",
+        from: transferLog.args.from,
+        to: `${shortAddress(transferLog.args.to)} - Celo`,
+        toAddress: transferLog.args.to,
+        routeEstimate: swapLog ? `${usdcIn} USDC -> ${amountKes} cKES via Mento` : "",
+        sortKey: timestamp || 0,
+      };
+    })
+    .sort((a, b) => b.sortKey - a.sortKey);
 }
 
 // Rebuild the owner's plans and movement history from ledger events. Returns empty lists
