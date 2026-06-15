@@ -84,6 +84,7 @@ export default function App() {
   const [screen, setScreen] = useState(INITIAL_SCREEN);
   const [command, setCommand] = useState(DEFAULT_COMMANDS.schedule);
   const [lastReceipt, setLastReceipt] = useState(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [selectedPlanId, setSelectedPlanId] = useState("");
   const [selectedTransactionId, setSelectedTransactionId] = useState("");
   const [reviewMode, setReviewMode] = useState("create");
@@ -546,7 +547,8 @@ export default function App() {
     );
     setLastReceipt(transaction);
     setSelectedTransactionId(transaction.id);
-    goTo("transactionSuccess");
+    goTo("history");
+    setShowSuccessModal(true);
   }
 
   async function confirmAction() {
@@ -579,7 +581,6 @@ export default function App() {
     if (visibleScreen === "plans") return "Plans";
     if (visibleScreen === "planDetail") return "Details";
     if (visibleScreen === "history") return "History";
-    if (visibleScreen === "transactionSuccess") return "Sent";
     if (visibleScreen === "receiptDetail") return "Receipt";
     if (visibleScreen === "planEditor") return reviewMode === "update" ? "Edit plan" : deliveryMode === "now" ? "Send now" : "New schedule";
     if (visibleScreen === "deletePlan") return "Delete";
@@ -695,13 +696,11 @@ export default function App() {
               }}
             />
           )}
-          {visibleScreen === "transactionSuccess" && lastReceipt && (
+          {showSuccessModal && lastReceipt && (
             <TransactionSuccessScreen
               transaction={lastReceipt}
-              onViewDetails={() => goTo("receiptDetail")}
-              onHome={() => setScreen("plan")}
-              onPlans={() => goTo("plans")}
-              onHistory={() => goTo("history")}
+              onViewDetails={() => { setShowSuccessModal(false); goTo("receiptDetail"); }}
+              onDismiss={() => setShowSuccessModal(false)}
             />
           )}
           {visibleScreen === "receiptDetail" && activeTransaction && (
