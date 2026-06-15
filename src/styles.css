@@ -3311,8 +3311,9 @@ a {
   font-weight: 850;
 }
 
-/* Resolved contact row — label + shortened address on the left, edit/delete icons on the right */
-.contact-resolved-row {
+/* Resolved contact row — label + shortened address on the left, edit/delete icons on the right.
+   Specificity must beat .contact-resolution-card > div { display:grid } (0-1-1), so use two classes (0-2-0). */
+.contact-resolution-card .contact-resolved-row {
   display: flex;
   align-items: center;
   justify-content: space-between;

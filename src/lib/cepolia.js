@@ -82,39 +82,59 @@ export async function quoteUsdcToCkes(usdcAmountFloat) {
   });
 }
 
-// Estimate the USDC fee for a USDC → cKES transfer using the CIP-64 fee currency approach.
-// Celopedia pattern: eth_gasPrice with feeCurrency returns the gas price already denominated
-// in the fee token (USDC adapter normalises 6-dec USDC to 18-dec for gas calculations).
-// No CELO → USDC conversion needed — the RPC node applies the oracle rate internally.
-async function estimateTransferFeeUsdc(account, recipient, usdcAmountRaw) {
+// Estimate the USDC fee for a full USDC → cKES transfer using the CIP-64 fee currency approach.
+//
+// The actual execution path has 5 on-chain ops:
+//   1. approve USDC  → Mento Broker
+//   2. swapIn USDC   → USDm  (Mento V2 hop 1)
+//   3. approve USDm  → Mento Broker
+//   4. swapIn USDm   → cKES  (Mento V2 hop 2)
+//   5. transfer cKES → recipient
+//
+// Celopedia CIP-64 rules (builder-guide.md):
+//   • Pass feeCurrency to estimateContractGas — the node prices gas in the fee token.
+//   • Call eth_gasPrice with the feeCurrency adapter address — returns price already in
+//     fee-token units (18 dec normalised). No CELO→USDC conversion needed.
+//   • formatUnits(totalGas × gasPriceHex, 18) = USDC display value.
+//
+// Ops 3-5 can't be estimated live (their inputs depend on the output of op 2), so we
+// use celopedia-derived constants: ~150 k gas per Mento V2 swapIn hop.
+async function estimateTransferFeeUsdc(account, usdcAmountRaw) {
   const publicClient = makePublicClient();
+  const feeCurrency = ADDRESSES.feeCurrency;
 
-  // Gas units: actual approve estimate + conservative averages for swap + transfer
-  let totalGas = 46000n + 120000n + 52000n; // ~218k gas baseline
-  if (account && isAddress(account) && isAddress(recipient) && usdcAmountRaw > 0n) {
+  // Celopedia CIP-64: estimateContractGas must include feeCurrency for accurate pricing.
+  let approveGas = 46000n;
+  if (account && isAddress(account) && usdcAmountRaw > 0n) {
     try {
-      const approveGas = await publicClient.estimateContractGas({
+      approveGas = await publicClient.estimateContractGas({
         address: ADDRESSES.usdc,
         abi: ERC20_ABI,
         functionName: "approve",
         args: [ADDRESSES.mentoBroker, usdcAmountRaw],
         account,
+        feeCurrency,
       });
-      totalGas = approveGas + 120000n + 52000n;
     } catch {}
   }
 
-  // Gas price denominated in the USDC fee adapter (celopedia CIP-64 pattern).
-  // The adapter normalises USDC (6 dec) to 18 dec, so formatUnits(fee, 18) = USDC display value.
+  // Constants for steps that can't be estimated without prior swap state.
+  const swap1Gas   = 150000n; // Mento V2 swapIn USDC → USDm
+  const approve2Gas = 46000n; // approve USDm for hop 2
+  const swap2Gas   = 150000n; // Mento V2 swapIn USDm → cKES
+  const transferGas = 52000n; // ERC-20 transfer cKES → recipient
+  const totalGas = approveGas + swap1Gas + approve2Gas + swap2Gas + transferGas;
+
+  // eth_gasPrice with feeCurrency returns the price denominated in the fee adapter
+  // (18-dec USDC), so formatUnits(total, 18) gives the USDC cost directly.
   try {
     const gasPriceHex = await publicClient.request({
       method: "eth_gasPrice",
-      params: [ADDRESSES.feeCurrency],
+      params: [feeCurrency],
     });
-    const feeInAdapter = totalGas * BigInt(gasPriceHex);
-    return Number(formatUnits(feeInAdapter, 18));
+    return Number(formatUnits(totalGas * BigInt(gasPriceHex), 18));
   } catch {
-    return 0.0015; // ~$0.0015 conservative fallback
+    return 0.003; // fallback reflecting 5-op reality
   }
 }
 
@@ -141,8 +161,8 @@ export async function summariseTransfer({ account, recipient, intent, walletRead
 
   const usdcRaw = usdcRequested > 0 ? parseUnits(Number(usdcRequested).toFixed(6), 6) : 0n;
   const gasUsdcFloat = isAddress(ADDRESSES.feeCurrency || "")
-    ? await estimateTransferFeeUsdc(account, recipient || "", usdcRaw)
-    : 0.0015;
+    ? await estimateTransferFeeUsdc(account, usdcRaw)
+    : 0.003;
 
   // Always show fee in USDC (converted from CELO via fee adapter)
   const feeLabel = gasUsdcFloat > 0
