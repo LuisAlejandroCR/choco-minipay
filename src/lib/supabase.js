@@ -72,3 +72,11 @@ export async function ensureSupabaseAuth(address) {
   if (!SUPABASE_READY || !address) return null;
   return signInWithWallet(address);
 }
+
+// Returns the current session without triggering a new personal_sign. Safe to call during
+// background flows (e.g., buildPlan) where an unexpected wallet dialog would confuse the user.
+export async function getCachedSession() {
+  if (!supabase) return null;
+  const { data } = await supabase.auth.getSession();
+  return data?.session || null;
+}

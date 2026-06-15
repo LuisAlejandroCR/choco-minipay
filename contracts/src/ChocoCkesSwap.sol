@@ -8,6 +8,11 @@ interface IERC20 {
     function balanceOf(address account) external view returns (uint256);
 }
 
+interface IERC20Permit {
+    function permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external;
+    function nonces(address owner) external view returns (uint256);
+}
+
 interface IMentoBroker {
     function getAmountOut(
         address exchangeProvider,
@@ -118,6 +123,44 @@ contract ChocoCkesSwap {
     ) external returns (uint256 ckesAmountOut) {
         if (usdcAmountIn == 0) revert ZeroAmount();
         require(recipient != address(0), "bad recipient");
+        require(usdc.transferFrom(msg.sender, address(this), usdcAmountIn), "usdc pull");
+
+        require(usdc.approve(address(broker), usdcAmountIn), "usdc approve");
+        uint256 usdmQuote = broker.getAmountOut(exchangeProvider, usdcToUsdmId, address(usdc), address(usdm), usdcAmountIn);
+        uint256 usdmReceived = broker.swapIn(
+            exchangeProvider, usdcToUsdmId,
+            address(usdc), address(usdm),
+            usdcAmountIn, (usdmQuote * 985) / 1000
+        );
+
+        require(usdm.approve(address(broker), usdmReceived), "usdm approve");
+        uint256 ckesQuote = broker.getAmountOut(exchangeProvider, usdmToCkesId, address(usdm), address(ckes), usdmReceived);
+        ckesAmountOut = broker.swapIn(
+            exchangeProvider, usdmToCkesId,
+            address(usdm), address(ckes),
+            usdmReceived, (ckesQuote * 985) / 1000
+        );
+
+        if (ckesAmountOut < ckesMinOut) revert SwapShort(ckesAmountOut, ckesMinOut);
+        require(ckes.transfer(recipient, ckesAmountOut), "ckes deliver");
+        emit UsdcToCkesSwap(msg.sender, usdcAmountIn, usdmReceived, ckesAmountOut, ckesMinOut);
+    }
+
+    /// @notice Like swapAndSend but uses an EIP-2612 permit instead of a prior approve(), so
+    /// the caller only needs one off-chain typed-data signature + this single on-chain call.
+    /// Eliminates the separate "Approve unknown contract" dialog in MiniPay.
+    function swapAndSendWithPermit(
+        address recipient,
+        uint256 usdcAmountIn,
+        uint256 ckesMinOut,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external returns (uint256 ckesAmountOut) {
+        if (usdcAmountIn == 0) revert ZeroAmount();
+        require(recipient != address(0), "bad recipient");
+        IERC20Permit(address(usdc)).permit(msg.sender, address(this), usdcAmountIn, deadline, v, r, s);
         require(usdc.transferFrom(msg.sender, address(this), usdcAmountIn), "usdc pull");
 
         require(usdc.approve(address(broker), usdcAmountIn), "usdc approve");

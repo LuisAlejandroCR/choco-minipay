@@ -160,11 +160,30 @@ export const CKES_SWAP_ABI = [
   },
   {
     type: "function",
+    name: "swapAndSendWithPermit",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "recipient", type: "address" },
+      { name: "usdcAmountIn", type: "uint256" },
+      { name: "ckesMinOut", type: "uint256" },
+      { name: "deadline", type: "uint256" },
+      { name: "v", type: "uint8" },
+      { name: "r", type: "bytes32" },
+      { name: "s", type: "bytes32" },
+    ],
+    outputs: [{ name: "ckesAmountOut", type: "uint256" }],
+  },
+  {
+    type: "function",
     name: "quote",
     stateMutability: "view",
     inputs: [{ name: "usdcAmountIn", type: "uint256" }],
     outputs: [{ name: "ckesAmountOut", type: "uint256" }],
   },
+];
+
+const USDC_NONCE_ABI = [
+  { type: "function", name: "nonces", stateMutability: "view", inputs: [{ name: "owner", type: "address" }], outputs: [{ type: "uint256" }] },
 ];
 
 export function isMiniPay() {
@@ -345,14 +364,70 @@ export async function sendNow({ account, recipient, intent }) {
     });
     const ckesMinOut = (ckesQuoted * 985n) / 1000n;
 
+    // EIP-2612 permit path: off-chain typed-data sign + one on-chain call.
+    // No separate approve tx → no "unknown contract" Approve dialog.
+    // Falls back to approve + swapAndSend if permit signing is rejected.
+    let permitResult = null;
+    try {
+      const deadline = BigInt(Math.floor(Date.now() / 1000) + 300);
+      const nonce = await publicClient.readContract({
+        address: ADDRESSES.usdc,
+        abi: USDC_NONCE_ABI,
+        functionName: "nonces",
+        args: [account],
+      });
+      const permitSig = await walletClient.signTypedData({
+        domain: {
+          name: "USD Coin",
+          version: "2",
+          chainId: BigInt(APP_CONFIG.network.chainId),
+          verifyingContract: ADDRESSES.usdc,
+        },
+        types: {
+          Permit: [
+            { name: "owner", type: "address" },
+            { name: "spender", type: "address" },
+            { name: "value", type: "uint256" },
+            { name: "nonce", type: "uint256" },
+            { name: "deadline", type: "uint256" },
+          ],
+        },
+        primaryType: "Permit",
+        message: { owner: account, spender: ADDRESSES.ckesSwap, value: usdcAmount, nonce, deadline },
+      });
+      const r = `0x${permitSig.slice(2, 66)}`;
+      const s = `0x${permitSig.slice(66, 130)}`;
+      const vRaw = Number(`0x${permitSig.slice(130, 132)}`);
+      const v = vRaw < 27 ? vRaw + 27 : vRaw;
+      permitResult = { deadline, v, r, s };
+    } catch (_permitErr) {
+      // Wallet rejected typed-data sign or doesn't support it — fall through to approve path
+    }
+
+    const ckesBefore = await readErc20Balance(publicClient, ADDRESSES.kesm, recipient);
+
+    if (permitResult) {
+      const { deadline, v, r, s } = permitResult;
+      const hash = await walletClient.writeContract({
+        address: ADDRESSES.ckesSwap,
+        abi: CKES_SWAP_ABI,
+        functionName: "swapAndSendWithPermit",
+        args: [recipient, usdcAmount, ckesMinOut, deadline, v, r, s],
+        feeCurrency: ADDRESSES.feeCurrency,
+      });
+      await publicClient.waitForTransactionReceipt({ hash });
+      const ckesAfter = await readErc20Balance(publicClient, ADDRESSES.kesm, recipient);
+      const ckesReceived = ckesAfter > ckesBefore ? ckesAfter - ckesBefore : ckesMinOut;
+      return { approveHash: null, swap1Hash: null, swap2Hash: null, hash, ckesReceived };
+    }
+
+    // Fallback: explicit approve + swapAndSend (2 dialogs, one is "unknown contract")
     const approveHash = await approveTokenIfNeeded({
       account,
       tokenAddress: ADDRESSES.usdc,
       spender: ADDRESSES.ckesSwap,
       amount: usdcAmount,
     });
-
-    const ckesBefore = await readErc20Balance(publicClient, ADDRESSES.kesm, recipient);
     const hash = await walletClient.writeContract({
       address: ADDRESSES.ckesSwap,
       abi: CKES_SWAP_ABI,
