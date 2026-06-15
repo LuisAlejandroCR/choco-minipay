@@ -80,9 +80,9 @@ export function ReceiptDetailScreen({ transaction, onBack, onHome, onPlans }) {
                 icon={<Check size={18} />}
                 label="To"
                 value={
-                  transaction.toAddress
+                  transaction.toAddress && !String(transaction.to || "").startsWith("0x")
                     ? `${transaction.to} · ${transaction.toAddress.slice(0, 6)}...${transaction.toAddress.slice(-4)}`
-                    : transaction.to
+                    : transaction.to || ""
                 }
               />
               <ReceiptRow icon={<CalendarDays size={18} />} label="Date" value={transaction.date} />
@@ -96,16 +96,6 @@ export function ReceiptDetailScreen({ transaction, onBack, onHome, onPlans }) {
                 rel="noreferrer"
               >
                 <ExternalLink size={15} /> View approval tx
-              </a>
-            )}
-            {hasHash && (
-              <a
-                className="receipt-link"
-                href={verifyUrl}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <ExternalLink size={15} /> View receipt tx
               </a>
             )}
           </section>

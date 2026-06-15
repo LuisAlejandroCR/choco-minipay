@@ -2,7 +2,6 @@ export const VERIFIED_WALLET_SCREENS = new Set([
   "plans",
   "planDetail",
   "history",
-  "receiptDetail",
   "planEditor",
   "deletePlan",
   "processing",
