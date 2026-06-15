@@ -28,6 +28,8 @@ export const APP_CONFIG = {
     feeCurrency: env.VITE_FEE_CURRENCY_ADDRESS || "0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B",
   },
   contracts: {
+    ledger: env.VITE_LEDGER_ADDRESS || "",
+    ledgerDeployBlock: env.VITE_LEDGER_DEPLOY_BLOCK || "",
     registry: env.VITE_REGISTRY_ADDRESS || "",
     settlementSpender: env.VITE_SETTLEMENT_SPENDER_ADDRESS || "",
     registryDeployBlock: env.VITE_REGISTRY_DEPLOY_BLOCK || "",
