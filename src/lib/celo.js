@@ -176,6 +176,33 @@ export function shortAddress(address) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
+export function getApprovalTarget({ deliveryMode = "now", intent = null } = {}) {
+  const sourceAsset = intent?.sourceAsset || APP_CONFIG.assets.source;
+  if (sourceAsset === APP_CONFIG.assets.destination) return null;
+
+  if (deliveryMode === "schedule") {
+    return {
+      name: "Choco settlement spender",
+      address: ADDRESSES.settlementSpender,
+      asset: sourceAsset,
+    };
+  }
+
+  if (isAddress(ADDRESSES.ckesSwap || "")) {
+    return {
+      name: "Choco swap contract",
+      address: ADDRESSES.ckesSwap,
+      asset: APP_CONFIG.assets.source,
+    };
+  }
+
+  return {
+    name: "Mento Broker",
+    address: ADDRESSES.mentoBroker,
+    asset: APP_CONFIG.assets.source,
+  };
+}
+
 export function assertAddress(address, label) {
   if (!isAddress(address) || address === zeroAddress) throw new Error(`${label} is not a valid Celo address.`);
   return address;

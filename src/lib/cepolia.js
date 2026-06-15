@@ -4,7 +4,7 @@
 // Pure functions where possible; on-chain reads use the public client.
 
 import { formatUnits, isAddress, parseUnits } from "viem";
-import { ADDRESSES, ERC20_ABI, MENTO_BROKER_ABI, makePublicClient, readUsdcBalance } from "./celo.js";
+import { ADDRESSES, ERC20_ABI, MENTO_BROKER_ABI, getApprovalTarget, makePublicClient, readUsdcBalance } from "./celo.js";
 import { APP_CONFIG } from "./app-config.js";
 
 
@@ -134,13 +134,17 @@ async function estimateTransferFeeUsdc(account, usdcAmountRaw) {
 
   // Celopedia CIP-64: estimateContractGas must include feeCurrency for accurate pricing.
   let approveGas = 46000n;
+  const approvalTarget = getApprovalTarget({
+    deliveryMode: "now",
+    intent: { sourceAsset: APP_CONFIG.assets.source },
+  });
   if (account && isAddress(account) && usdcAmountRaw > 0n) {
     try {
       approveGas = await publicClient.estimateContractGas({
         address: ADDRESSES.usdc,
         abi: ERC20_ABI,
         functionName: "approve",
-        args: [ADDRESSES.mentoBroker, usdcAmountRaw],
+        args: [approvalTarget?.address || ADDRESSES.mentoBroker, usdcAmountRaw],
         account,
         feeCurrency,
       });
