@@ -1,63 +1,68 @@
--- Choco MiniPay contacts. Supabase scope is INTENTIONALLY narrow: only contacts ("Receipts")
--- per MiniPay user. Transaction history lives on-chain (Swap + cKES Transfer events) and the
--- audit trail lives in ChocoAuditLog. Do not add tables for transactions or receipts-as-invoices
--- here -- that breaks the on-chain source-of-truth invariant.
+import { createClient } from "@supabase/supabase-js";
 
-drop table if exists public.transactions cascade;
-drop table if exists public.receipts cascade;
+const url = import.meta.env?.VITE_SUPABASE_URL || "";
+const anonKey = import.meta.env?.VITE_SUPABASE_ANON_KEY || "";
 
-create table if not exists public.contacts (
-  id uuid primary key default gen_random_uuid(),
-  owner_wallet text not null,
-  label text not null,
-  wallet_address text not null,
-  payment_reason text,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
+export const SUPABASE_READY = Boolean(url && anonKey);
 
--- One label per MiniPay user (case-insensitive). "dad" and "Dad" collide on purpose.
-create unique index if not exists contacts_owner_label_idx
-  on public.contacts (owner_wallet, lower(label));
+export const supabase = SUPABASE_READY
+  ? createClient(url, anonKey, { auth: { persistSession: true, storageKey: "choco-sb-auth" } })
+  : null;
 
-create index if not exists contacts_owner_idx on public.contacts (owner_wallet);
-create index if not exists contacts_owner_address_idx on public.contacts (owner_wallet, wallet_address);
+export function assertSupabase() {
+  if (!supabase) throw new Error("Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.");
+  return supabase;
+}
 
-create or replace function public.contacts_touch_updated_at() returns trigger as $$
-begin
-  new.updated_at = now();
-  return new;
-end;
-$$ language plpgsql;
+// In-memory fast path. Supabase also restores the session from localStorage automatically.
+let _session = null;
 
-drop trigger if exists contacts_touch_updated_at on public.contacts;
-create trigger contacts_touch_updated_at
-  before update on public.contacts
-  for each row execute function public.contacts_touch_updated_at();
+export async function signInWithWallet(address) {
+  if (!supabase) throw new Error("Supabase is not configured.");
+  if (!window.ethereum) throw new Error("No wallet found. Please open Choco in MiniPay.");
 
-alter table public.contacts enable row level security;
+  // 1. Fast path: in-memory session still valid
+  if (_session && _session.expires_at > Math.floor(Date.now() / 1000) + 60) {
+    return _session;
+  }
 
--- Each wallet owner can only see and modify their own contacts.
--- The wallet_address claim is written into app_metadata by the auth-wallet Edge Function
--- when the user signs in with their wallet (EIP-191 personal_sign). Never use user_metadata
--- here because users can edit their own user_metadata — app_metadata is server-controlled.
-drop policy if exists contacts_read on public.contacts;
-create policy contacts_read on public.contacts
-  for select to authenticated
-  using (owner_wallet = (auth.jwt() -> 'app_metadata' ->> 'wallet_address'));
+  // 2. Restored from localStorage by Supabase client (survives page reload)
+  const { data: stored } = await supabase.auth.getSession();
+  if (stored?.session && stored.session.expires_at > Math.floor(Date.now() / 1000) + 60) {
+    _session = stored.session;
+    return _session;
+  }
 
-drop policy if exists contacts_insert on public.contacts;
-create policy contacts_insert on public.contacts
-  for insert to authenticated
-  with check (owner_wallet = (auth.jwt() -> 'app_metadata' ->> 'wallet_address'));
+  // 3. Full sign-in: requires one personal_sign per expired session
+  const timestamp = Date.now();
+  const message = `Sign in to Choco\nWallet: ${address}\nTime: ${timestamp}`;
 
-drop policy if exists contacts_update on public.contacts;
-create policy contacts_update on public.contacts
-  for update to authenticated
-  using (owner_wallet = (auth.jwt() -> 'app_metadata' ->> 'wallet_address'))
-  with check (owner_wallet = (auth.jwt() -> 'app_metadata' ->> 'wallet_address'));
+  const signature = await window.ethereum.request({
+    method: "personal_sign",
+    params: [message, address],
+  });
 
-drop policy if exists contacts_delete on public.contacts;
-create policy contacts_delete on public.contacts
-  for delete to authenticated
-  using (owner_wallet = (auth.jwt() -> 'app_metadata' ->> 'wallet_address'));
+  const res = await fetch(`${url}/functions/v1/auth-wallet`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ address, signature, message }),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || "Wallet authentication failed");
+  }
+
+  const { token_hash } = await res.json();
+
+  const { data, error } = await supabase.auth.verifyOtp({ token_hash, type: "magiclink" });
+  if (error) throw new Error(`Supabase session error: ${error.message}`);
+
+  _session = data.session;
+  return _session;
+}
+
+export async function ensureSupabaseAuth(address) {
+  if (!SUPABASE_READY || !address) return null;
+  return signInWithWallet(address);
+}

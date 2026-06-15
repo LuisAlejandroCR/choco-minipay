@@ -88,6 +88,26 @@ export function ReceiptDetailScreen({ transaction, onBack, onHome, onPlans }) {
               <ReceiptRow icon={<CalendarDays size={18} />} label="Date" value={transaction.date} />
               <ReceiptRow icon={<ReceiptText size={18} />} label="Hash" value={formatTransactionHash(transaction.hash)} mono />
             </div>
+            {transaction.approveHash && isTransactionHash(transaction.approveHash) && (
+              <a
+                className="receipt-link"
+                href={getTransactionExplorerUrl(transaction.approveHash)}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <ExternalLink size={15} /> View approval tx
+              </a>
+            )}
+            {hasHash && (
+              <a
+                className="receipt-link"
+                href={verifyUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <ExternalLink size={15} /> View receipt tx
+              </a>
+            )}
           </section>
         )}
 

@@ -423,10 +423,11 @@ export default function App() {
     goTo("plans");
   }
 
-  function commitPlanReceipt(plan, hash) {
+  function commitPlanReceipt(plan, hash, approveHash = "") {
     const committedPlan = {
       ...plan,
       hash,
+      approveHash,
       status: plan.deliveryMode === "now" ? "Sent" : "Active",
     };
 
@@ -460,11 +461,11 @@ export default function App() {
 
       setApprovalHash(result.approveHash || "");
       setTxHash(result.hash);
-      await refreshBalances(address);
-      await refreshLedger();
       setStatus("success");
       setMessage(reviewPlan.deliveryMode === "now" ? "Money sent from your wallet. Receipt filed." : "Monthly action created. Receipt filed.");
-      commitPlanReceipt(reviewPlan, result.hash);
+      commitPlanReceipt(reviewPlan, result.hash, result.approveHash || "");
+      refreshBalances(address).catch(() => {});
+      refreshLedger().catch(() => {});
 
       // Audit-log success. Failures here do not roll back the transfer; the swap/transfer hashes
       // remain visible on-chain even if the audit row never lands.
