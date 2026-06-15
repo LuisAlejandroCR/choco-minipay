@@ -79,6 +79,7 @@ export function TransactionSuccessScreen({ transaction, onViewDetails, onDismiss
   const onDismissRef = useRef(onDismiss);
   onDismissRef.current = onDismiss;
 
+  const isSendNow = transaction.deliveryMode === "now";
   const amountLabel = `${transaction.amount} ${transaction.asset}`;
   const toLabel = transaction.recipient || "Recipient";
   const hasHash = isTransactionHash(transaction.hash);
@@ -92,7 +93,7 @@ export function TransactionSuccessScreen({ transaction, onViewDetails, onDismiss
 
   async function share() {
     const lines = [
-      `Choco sent ${amountLabel} to ${toLabel}`,
+      isSendNow ? `Choco sent ${amountLabel} to ${toLabel}` : `Choco scheduled monthly ${amountLabel} to ${toLabel}`,
       `Status: ${transaction.status}`,
       `Date: ${transaction.date}`,
       hasHash ? `Receipt: ${receiptUrl}` : "",
@@ -142,8 +143,8 @@ export function TransactionSuccessScreen({ transaction, onViewDetails, onDismiss
         <div className="success-badge">
           <Check size={40} strokeWidth={2.5} />
         </div>
-        <h2 className="success-title">Money sent</h2>
-        <p className="success-amount">{amountLabel}</p>
+        <h2 className="success-title">{isSendNow ? "Money sent" : "Money lined up"}</h2>
+        <p className="success-amount">{isSendNow ? amountLabel : `Monthly ${amountLabel}`}</p>
         <p className="success-recipient">to {toLabel}</p>
 
         <div className="success-actions">
