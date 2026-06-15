@@ -23,17 +23,16 @@ Opens `http://127.0.0.1:5173` with demo config (points to `choco-azure.vercel.ap
 ### 1. Deploy contracts (mainnet)
 
 ```powershell
-# Registry (for schedules)
+# Unified ledger — replaces the old ChocoScheduleRegistry + ChocoAuditLog pair
 $env:DEPLOYER_PRIVATE_KEY = "0x..."
 $env:KEEPER_ADDRESS = "0x..."
-npm --prefix contracts run deploy:mainnet
+npm --prefix contracts run deploy:ledger
 
 # Swap wrapper (for Cepolia live quotes)
 npm --prefix contracts run deploy:swap
-
-# Audit log
-npm --prefix contracts run deploy:audit
 ```
+
+The deploy script prints `VITE_LEDGER_ADDRESS` and `VITE_LEDGER_DEPLOY_BLOCK` — note both values for step 3.
 
 Note the deployed addresses and block numbers from Celoscan.
 
@@ -88,11 +87,10 @@ VITE_USDM_ADDRESS=0x765DE816845861e75A25fCA122bb6898B8B1282a
 VITE_KESM_ADDRESS=0x456a3D042C0DbD3db53D5489e98dFb038553B0d0
 
 # Choco contracts (from step 1)
-VITE_REGISTRY_ADDRESS=<your ChocoScheduleRegistry address>
-VITE_REGISTRY_DEPLOY_BLOCK=<block number from Celoscan>
+VITE_LEDGER_ADDRESS=<ChocoLedger address printed by deploy:ledger>
+VITE_LEDGER_DEPLOY_BLOCK=<block number printed by deploy:ledger>
 VITE_SETTLEMENT_SPENDER_ADDRESS=<keeper EOA>
 VITE_CKES_SWAP_CONTRACT_ADDRESS=<ChocoCkesSwap address>
-VITE_AUDIT_CONTRACT_ADDRESS=<ChocoAuditLog address>
 
 # Supabase (from step 2, optional — leave blank to disable contact persistence)
 VITE_SUPABASE_URL=https://xxxxx.supabase.co

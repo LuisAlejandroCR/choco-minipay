@@ -48,8 +48,13 @@ export const AUDIT_ABI = [
   },
 ];
 
+function auditAddress() {
+  return APP_CONFIG.contracts.ledger || APP_CONFIG.contracts.audit;
+}
+
 export function isAuditConfigured() {
-  return Boolean(APP_CONFIG.contracts.audit && isAddress(APP_CONFIG.contracts.audit));
+  const addr = auditAddress();
+  return Boolean(addr && isAddress(addr));
 }
 
 export function labelHash(label) {
@@ -82,7 +87,7 @@ export async function logAuditAttempt({
   const walletClient = makeWalletClient(account);
 
   const hash = await walletClient.writeContract({
-    address: APP_CONFIG.contracts.audit,
+    address: auditAddress(),
     abi: AUDIT_ABI,
     functionName: "logAttempt",
     args: [

@@ -96,7 +96,7 @@ export default function App() {
   const { plans, transactions, refresh: refreshLedger } = useChocoLedger(wallet.address);
   const visibleScreen = resolveVisibleScreen(screen, wallet.isReady);
   const demoRecipientAddress = ADDRESSES.demoRecipient || "";
-  const registryReady = Boolean(ADDRESSES.registry);
+  const registryReady = Boolean(ADDRESSES.ledger || ADDRESSES.registry);
   const settlementReady = Boolean(ADDRESSES.settlementSpender);
   const activePlan = useMemo(
     () => plans.find((item) => item.id === selectedPlanId) || plans[0] || null,
@@ -139,7 +139,7 @@ export default function App() {
     (reviewPlan.deliveryMode === "now" || (registryReady && settlementReady)),
   );
   const setupNotice = wallet.isReady && reviewPlan.deliveryMode === "schedule" && (!registryReady || !settlementReady)
-    ? "Scheduling needs the on-chain registry and keeper set (VITE_REGISTRY_ADDRESS, VITE_SETTLEMENT_SPENDER_ADDRESS)."
+    ? "Scheduling needs the on-chain ledger and keeper set (VITE_LEDGER_ADDRESS, VITE_SETTLEMENT_SPENDER_ADDRESS)."
     : "";
   const txUrl = getTransactionExplorerUrl(txHash);
   const approvalUrl = getTransactionExplorerUrl(approvalHash);

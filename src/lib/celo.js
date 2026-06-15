@@ -23,6 +23,7 @@ export const CELO_MAINNET = {
 const MENTO = APP_CONFIG.mento;
 
 export const ADDRESSES = {
+  ledger: APP_CONFIG.contracts.ledger,
   registry: APP_CONFIG.contracts.registry,
   settlementSpender: APP_CONFIG.contracts.settlementSpender,
   demoRecipient: APP_CONFIG.recipients.demoRecipientAddress,
@@ -73,6 +74,8 @@ export const MENTO_BROKER_ABI = [
   },
 ];
 
+// REGISTRY_ABI targets ChocoLedger (new) which adds receiptLabelHash to createMonthlySchedule.
+// Falls back to ChocoScheduleRegistry (old) via ADDRESSES.registry when ADDRESSES.ledger is unset.
 export const REGISTRY_ABI = [
   {
     type: "function",
@@ -87,6 +90,7 @@ export const REGISTRY_ABI = [
       { name: "dayOfMonth", type: "uint8" },
       { name: "firstRunAt", type: "uint64" },
       { name: "commandHash", type: "bytes32" },
+      { name: "receiptLabelHash", type: "bytes32" },
     ],
     outputs: [{ name: "id", type: "uint256" }],
   },
@@ -340,7 +344,8 @@ export async function sendNow({ account, recipient, intent }) {
 export async function createScheduleViaRegistry({ account, recipient, intent }) {
   assertAddress(account, "Wallet");
   assertAddress(recipient, "Recipient");
-  assertAddress(ADDRESSES.registry, "VITE_REGISTRY_ADDRESS");
+  const ledgerOrRegistry = ADDRESSES.ledger || ADDRESSES.registry;
+  assertAddress(ledgerOrRegistry, "VITE_LEDGER_ADDRESS or VITE_REGISTRY_ADDRESS");
   assertAddress(ADDRESSES.settlementSpender, "VITE_SETTLEMENT_SPENDER_ADDRESS");
   assertAddress(ADDRESSES.feeCurrency, "VITE_FEE_CURRENCY_ADDRESS");
 
@@ -351,8 +356,11 @@ export async function createScheduleViaRegistry({ account, recipient, intent }) 
   const publicClient = makePublicClient();
   const approveHash = await approveTokenIfNeeded({ account, tokenAddress: sourceAsset, spender: ADDRESSES.settlementSpender, amount });
 
+  const receiptLabel = String(intent.receiptLabel || "").trim().toLowerCase();
+  const receiptLabelHash = receiptLabel ? keccak256(toHex(receiptLabel)) : `0x${"0".repeat(64)}`;
+
   const hash = await walletClient.writeContract({
-    address: ADDRESSES.registry,
+    address: ledgerOrRegistry,
     abi: REGISTRY_ABI,
     functionName: "createMonthlySchedule",
     args: [
@@ -364,6 +372,7 @@ export async function createScheduleViaRegistry({ account, recipient, intent }) 
       intent.dayOfMonth,
       BigInt(intent.firstRunAt),
       keccak256(toHex(intent.rawCommand)),
+      receiptLabelHash,
     ],
     feeCurrency: ADDRESSES.feeCurrency,
   });
@@ -373,13 +382,14 @@ export async function createScheduleViaRegistry({ account, recipient, intent }) 
 
 export async function cancelScheduleViaRegistry({ account, id }) {
   assertAddress(account, "Wallet");
-  assertAddress(ADDRESSES.registry, "VITE_REGISTRY_ADDRESS");
+  const ledgerOrRegistry = ADDRESSES.ledger || ADDRESSES.registry;
+  assertAddress(ledgerOrRegistry, "VITE_LEDGER_ADDRESS or VITE_REGISTRY_ADDRESS");
   if (id === undefined || id === null || id === "") throw new Error("Missing on-chain schedule id.");
 
   const walletClient = makeWalletClient(account);
   const publicClient = makePublicClient();
   const hash = await walletClient.writeContract({
-    address: ADDRESSES.registry,
+    address: ledgerOrRegistry,
     abi: REGISTRY_ABI,
     functionName: "cancelSchedule",
     args: [BigInt(id)],
@@ -582,16 +592,17 @@ async function readSendNowHistory(publicClient, owner, fromBlock) {
   });
 }
 
-// Rebuild the owner's plans and movement history from registry events. Returns empty lists
-// (no error) until the registry address is configured, so the UI degrades cleanly pre-deploy.
+// Rebuild the owner's plans and movement history from ledger events. Returns empty lists
+// (no error) until a ledger address is configured, so the UI degrades cleanly pre-deploy.
 export async function readOwnerLedger(owner) {
   if (!owner || !isAddress(owner)) return { plans: [], history: [] };
 
   const publicClient = makePublicClient();
-  const fromBlock = APP_CONFIG.contracts.registryDeployBlock ? BigInt(APP_CONFIG.contracts.registryDeployBlock) : 0n;
+  const deployBlock = APP_CONFIG.contracts.ledgerDeployBlock || APP_CONFIG.contracts.registryDeployBlock;
+  const fromBlock = deployBlock ? BigInt(deployBlock) : 0n;
 
   // Send-now history is always read (cKES Transfers + Swap events). Schedule data only when the
-  // registry is deployed, so the UI still has History for send-now transactions pre-registry.
+  // ledger is deployed, so the UI still has History for send-now transactions pre-deploy.
   let sendNowHistory = [];
   try {
     sendNowHistory = await readSendNowHistory(publicClient, owner, fromBlock);
@@ -599,13 +610,14 @@ export async function readOwnerLedger(owner) {
     sendNowHistory = [];
   }
 
-  if (!ADDRESSES.registry || !isAddress(ADDRESSES.registry)) {
+  const ledgerOrRegistry = ADDRESSES.ledger || ADDRESSES.registry;
+  if (!ledgerOrRegistry || !isAddress(ledgerOrRegistry)) {
     return { plans: [], history: sendNowHistory.sort((a, b) => b.sortKey - a.sortKey) };
   }
 
   try {
     const created = await publicClient.getContractEvents({
-      address: ADDRESSES.registry,
+      address: ledgerOrRegistry,
       abi: REGISTRY_EVENTS_ABI,
       eventName: "MonthlyScheduleCreated",
       args: { owner },
@@ -613,7 +625,7 @@ export async function readOwnerLedger(owner) {
       toBlock: "latest",
     });
     const cancelled = await publicClient.getContractEvents({
-      address: ADDRESSES.registry,
+      address: ledgerOrRegistry,
       abi: REGISTRY_EVENTS_ABI,
       eventName: "ScheduleCancelled",
       fromBlock,
@@ -622,7 +634,7 @@ export async function readOwnerLedger(owner) {
     const ids = created.map((log) => log.args.id);
     const settlements = ids.length
       ? await publicClient.getContractEvents({
-        address: ADDRESSES.registry,
+        address: ledgerOrRegistry,
         abi: REGISTRY_EVENTS_ABI,
         eventName: "SettlementReceipt",
         args: { id: ids },
