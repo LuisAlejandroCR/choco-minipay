@@ -701,6 +701,7 @@ export default function App() {
               onViewDetails={() => goTo("receiptDetail")}
               onHome={() => setScreen("plan")}
               onPlans={() => goTo("plans")}
+              onHistory={() => goTo("history")}
             />
           )}
           {visibleScreen === "receiptDetail" && activeTransaction && (
