@@ -26,6 +26,7 @@ export const ADDRESSES = {
   ledger: APP_CONFIG.contracts.ledger,
   registry: APP_CONFIG.contracts.registry,
   settlementSpender: APP_CONFIG.contracts.settlementSpender,
+  ckesSwap: APP_CONFIG.contracts.ckesSwap,
   demoRecipient: APP_CONFIG.recipients.demoRecipientAddress,
   usdc: APP_CONFIG.assets.usdc,
   usdm: APP_CONFIG.assets.usdm,
@@ -142,6 +143,27 @@ export const REGISTRY_EVENTS_ABI = [
       { name: "settlementRef", type: "bytes32", indexed: false },
       { name: "note", type: "string", indexed: false },
     ],
+  },
+];
+
+export const CKES_SWAP_ABI = [
+  {
+    type: "function",
+    name: "swapAndSend",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "recipient", type: "address" },
+      { name: "usdcAmountIn", type: "uint256" },
+      { name: "ckesMinOut", type: "uint256" },
+    ],
+    outputs: [{ name: "ckesAmountOut", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "quote",
+    stateMutability: "view",
+    inputs: [{ name: "usdcAmountIn", type: "uint256" }],
+    outputs: [{ name: "ckesAmountOut", type: "uint256" }],
   },
 ];
 
@@ -283,7 +305,38 @@ export async function sendNow({ account, recipient, intent }) {
     await publicClient.waitForTransactionReceipt({ hash });
     return { approveHash: null, hash };
   }
+  // 2-confirmation fast path via ChocoCkesSwap (approve + swapAndSend).
+  // Falls back to the 5-step direct Mento path when ckesSwap is not configured.
+  if (isAddress(ADDRESSES.ckesSwap || "")) {
+    const ckesQuoted = await publicClient.readContract({
+      address: ADDRESSES.ckesSwap,
+      abi: CKES_SWAP_ABI,
+      functionName: "quote",
+      args: [usdcAmount],
+    });
+    const ckesMinOut = (ckesQuoted * 985n) / 1000n;
 
+    const approveHash = await approveTokenIfNeeded({
+      account,
+      tokenAddress: ADDRESSES.usdc,
+      spender: ADDRESSES.ckesSwap,
+      amount: usdcAmount,
+    });
+
+    const ckesBefore = await readErc20Balance(publicClient, ADDRESSES.kesm, recipient);
+    const hash = await walletClient.writeContract({
+      address: ADDRESSES.ckesSwap,
+      abi: CKES_SWAP_ABI,
+      functionName: "swapAndSend",
+      args: [recipient, usdcAmount, ckesMinOut],
+      feeCurrency: ADDRESSES.feeCurrency,
+    });
+    await publicClient.waitForTransactionReceipt({ hash });
+    const ckesAfter = await readErc20Balance(publicClient, ADDRESSES.kesm, recipient);
+    const ckesReceived = ckesAfter > ckesBefore ? ckesAfter - ckesBefore : ckesMinOut;
+    return { approveHash, swap1Hash: null, swap2Hash: null, hash, ckesReceived };
+  }
+  
   assertAddress(ADDRESSES.mentoBroker, "VITE_MENTO_BROKER_ADDRESS");
   assertAddress(ADDRESSES.mentoProvider, "VITE_MENTO_BIPOOL_ADDRESS");
   const usdcAmount = usdcAmountForIntent(intent);

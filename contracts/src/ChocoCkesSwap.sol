@@ -109,4 +109,35 @@ contract ChocoCkesSwap {
         require(ckes.transfer(msg.sender, ckesAmountOut), "ckes deliver");
         emit UsdcToCkesSwap(msg.sender, usdcAmountIn, usdmReceived, ckesAmountOut, ckesMinOut);
     }
+    /// @notice Swap USDC to cKES via two Mento hops and send the result directly to `recipient`.
+    /// Reduces user confirmations from 5 to 2: one approve + this call.
+    function swapAndSend(
+        address recipient,
+        uint256 usdcAmountIn,
+        uint256 ckesMinOut
+    ) external returns (uint256 ckesAmountOut) {
+        if (usdcAmountIn == 0) revert ZeroAmount();
+        require(recipient != address(0), "bad recipient");
+        require(usdc.transferFrom(msg.sender, address(this), usdcAmountIn), "usdc pull");
+
+        require(usdc.approve(address(broker), usdcAmountIn), "usdc approve");
+        uint256 usdmQuote = broker.getAmountOut(exchangeProvider, usdcToUsdmId, address(usdc), address(usdm), usdcAmountIn);
+        uint256 usdmReceived = broker.swapIn(
+            exchangeProvider, usdcToUsdmId,
+            address(usdc), address(usdm),
+            usdcAmountIn, (usdmQuote * 985) / 1000
+        );
+
+        require(usdm.approve(address(broker), usdmReceived), "usdm approve");
+        uint256 ckesQuote = broker.getAmountOut(exchangeProvider, usdmToCkesId, address(usdm), address(ckes), usdmReceived);
+        ckesAmountOut = broker.swapIn(
+            exchangeProvider, usdmToCkesId,
+            address(usdm), address(ckes),
+            usdmReceived, (ckesQuote * 985) / 1000
+        );
+
+        if (ckesAmountOut < ckesMinOut) revert SwapShort(ckesAmountOut, ckesMinOut);
+        require(ckes.transfer(recipient, ckesAmountOut), "ckes deliver");
+        emit UsdcToCkesSwap(msg.sender, usdcAmountIn, usdmReceived, ckesAmountOut, ckesMinOut);
+    }
 }

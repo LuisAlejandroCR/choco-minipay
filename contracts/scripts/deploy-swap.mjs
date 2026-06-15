@@ -15,13 +15,13 @@ const privateKey = process.env.DEPLOYER_PRIVATE_KEY || process.env.PRIVATE_KEY;
 if (!privateKey) throw new Error("Set DEPLOYER_PRIVATE_KEY or PRIVATE_KEY before deploying.");
 
 // Mainnet Mento configuration
-const broker = process.env.MENTO_BROKER_ADDRESS || "0x777ACaD0f60F00911E6c54f98a72b4f3D48CaD0d";
-const provider = process.env.MENTO_PROVIDER_ADDRESS || "0x0e8D2059c7c45c0e01ec8C00Aef5fDb3Cd31BD9e";
-const usdcToUsdm = process.env.MENTO_USDC_TO_USDM || "0x0e8d2059c7c45c0e01ec8c00aef5fdb3cd31bd9e000000000000000000000004";
-const usdmToCkes = process.env.MENTO_USDM_TO_CKES || "0x0e8d2059c7c45c0e01ec8c00aef5fdb3cd31bd9e000000000000000000000009";
-const usdc = process.env.USDC_ADDRESS || "0xcebA9300f2b948710d2653dD7B07f33A8B32118C";
-const usdm = process.env.USDM_ADDRESS || "0x8c9F4B2F2ab0E0e58e63c2Bd1Be4b1e93c06e09B";
-const ckes = process.env.KESM_ADDRESS || "0x456a3D042C0DbD3db53D5489e98dFb038553B0d0";
+const broker    = process.env.MENTO_BROKER_ADDRESS   || "0x777A8255cA72412f0d706dc03C9D1987306B4CaD";
+const provider  = process.env.MENTO_PROVIDER_ADDRESS  || "0x22d9db95E6Ae61c104A7B6F6C78D7993B94ec901";
+const usdcToUsdm = process.env.MENTO_USDC_TO_USDM    || "0xacc988382b66ee5456086643dcfd9a5ca43dd8f428f6ef22503d8b8013bcffd7";
+const usdmToCkes = process.env.MENTO_USDM_TO_CKES    || "0x89de88b8eb790de26f4649f543cb6893d93635c728ac857f0926e842fb0d298b";
+const usdc      = process.env.USDC_ADDRESS            || "0xcebA9300f2b948710d2653dD7B07f33A8B32118C";
+const usdm      = process.env.USDM_ADDRESS            || "0x765DE816845861e75A25fCA122bb6898B8B1282a";
+const ckes      = process.env.KESM_ADDRESS            || "0x456a3D042C0DbD3db53D5489e98dFb038553B0d0";
 
 console.log("\n🔄 Deploying ChocoCkesSwap to Celo Mainnet");
 console.log("=".repeat(60));
