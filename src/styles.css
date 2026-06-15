@@ -3313,6 +3313,35 @@ a {
 
 /* Resolved contact row — label + shortened address on the left, edit/delete icons on the right.
    Specificity must beat .contact-resolution-card > div { display:grid } (0-1-1), so use two classes (0-2-0). */
+.approval-target-card {
+  margin-bottom: 12px;
+  padding: 14px;
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgba(91, 55, 31, 0.14);
+  border-radius: 16px;
+  background: rgba(91, 55, 31, 0.07);
+}
+
+.approval-target-card span {
+  color: var(--cocoa-500);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.approval-target-card b {
+  color: var(--cocoa-800);
+  font-size: 17px;
+}
+
+.approval-target-card small {
+  color: var(--cocoa-500);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 .contact-resolution-card .contact-resolved-row {
   display: flex;
   align-items: center;

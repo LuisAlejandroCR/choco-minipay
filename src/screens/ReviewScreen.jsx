@@ -6,6 +6,7 @@ import { ContactCapture } from "../components/ContactCapture.jsx";
 import { LightSheet } from "../components/LightSheet.jsx";
 import { SummaryCard } from "../components/SheetPrimitives.jsx";
 import { APP_CONFIG } from "../lib/app-config.js";
+import { getApprovalTarget } from "../lib/celo.js";
 import { summariseTransfer } from "../lib/cepolia.js";
 
 export function ReviewScreen({
@@ -86,6 +87,11 @@ export function ReviewScreen({
       : isSendNow
         ? "Confirm send"
         : "Confirm schedule";
+  const approvalTarget = getApprovalTarget({
+    deliveryMode: plan.deliveryMode,
+    intent: plan.intent,
+  });
+  const showApprovalTarget = walletReady && approvalTarget?.address && isAddress(approvalTarget.address);
 
   return (
     <LightSheet>
@@ -179,6 +185,16 @@ export function ReviewScreen({
               />
             </>
           )}
+        </section>
+      )}
+
+      {showApprovalTarget && (
+        <section className="approval-target-card" aria-label="Wallet approval target">
+          <span>Wallet approval</span>
+          <b>{approvalTarget.name}</b>
+          <small>
+            {approvalTarget.asset} approval to {shortAddr(approvalTarget.address)}. If MiniPay shows "unknown contract", compare this address before approving.
+          </small>
         </section>
       )}
 
