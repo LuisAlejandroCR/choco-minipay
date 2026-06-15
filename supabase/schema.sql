@@ -37,16 +37,27 @@ create trigger contacts_touch_updated_at
 
 alter table public.contacts enable row level security;
 
--- Open read+write is intentional: the anon key already scopes per-deployment and Choco only
--- stores label + address. Lock to authenticated users with a wallet claim if RLS is added later.
+-- Each wallet owner can only see and modify their own contacts.
+-- The wallet_address claim is written into app_metadata by the auth-wallet Edge Function
+-- when the user signs in with their wallet (EIP-191 personal_sign). Never use user_metadata
+-- here because users can edit their own user_metadata — app_metadata is server-controlled.
 drop policy if exists contacts_read on public.contacts;
-create policy contacts_read on public.contacts for select using (true);
+create policy contacts_read on public.contacts
+  for select to authenticated
+  using (owner_wallet = (auth.jwt() -> 'app_metadata' ->> 'wallet_address'));
 
 drop policy if exists contacts_insert on public.contacts;
-create policy contacts_insert on public.contacts for insert with check (true);
+create policy contacts_insert on public.contacts
+  for insert to authenticated
+  with check (owner_wallet = (auth.jwt() -> 'app_metadata' ->> 'wallet_address'));
 
 drop policy if exists contacts_update on public.contacts;
-create policy contacts_update on public.contacts for update using (true) with check (true);
+create policy contacts_update on public.contacts
+  for update to authenticated
+  using (owner_wallet = (auth.jwt() -> 'app_metadata' ->> 'wallet_address'))
+  with check (owner_wallet = (auth.jwt() -> 'app_metadata' ->> 'wallet_address'));
 
 drop policy if exists contacts_delete on public.contacts;
-create policy contacts_delete on public.contacts for delete using (true);
+create policy contacts_delete on public.contacts
+  for delete to authenticated
+  using (owner_wallet = (auth.jwt() -> 'app_metadata' ->> 'wallet_address'));

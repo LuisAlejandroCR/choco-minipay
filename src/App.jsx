@@ -5,7 +5,8 @@ import { useChocoLedger } from "./modules/ledger/useChocoLedger.js";
 import { parseUnits } from "viem";
 import { AUDIT_KIND, logAuditAttempt } from "./lib/audit.js";
 import { verifyReadiness } from "./lib/cepolia.js";
-import { findContactByLabel, upsertContact, SUPABASE_READY } from "./lib/contacts.js";
+import { findContactByLabel, removeContact, upsertContact, SUPABASE_READY } from "./lib/contacts.js";
+import { ensureSupabaseAuth } from "./lib/supabase.js";
 import { INITIAL_SCREEN, WORLD_MAP_URL } from "./config/runtime.js";
 import { DEFAULT_COMMANDS, defaultPlan } from "./data/chocoScenario.js";
 import { getWalletStatusLabel, resolveVisibleScreen } from "./lib/access-control.js";
@@ -303,6 +304,7 @@ export default function App() {
     // Skip when the address came from a prior contact lookup (source === "contacts").
     if (SUPABASE_READY && wallet.address && saveContact && details.source !== "contacts") {
       try {
+        await ensureSupabaseAuth(wallet.address);
         const saved = await upsertContact({
           ownerWallet: wallet.address,
           label,
@@ -321,9 +323,47 @@ export default function App() {
     }
   }
 
+  async function handleEditContact(newAddress) {
+    if (!resolvedContact?.contactId || !contactKey) return;
+    try {
+      await ensureSupabaseAuth(wallet.address);
+      await upsertContact({ ownerWallet: wallet.address, label: resolvedContact.label, walletAddress: newAddress });
+      setResolvedContacts((items) => ({
+        ...items,
+        [contactKey]: { ...items[contactKey], address: newAddress.toLowerCase() },
+      }));
+    } catch (err) {
+      setStatus("error");
+      setMessage(err.message || "Could not update contact address.");
+    }
+  }
+
+  async function handleRemoveContact() {
+    if (!resolvedContact?.contactId || !contactKey) return;
+    try {
+      await ensureSupabaseAuth(wallet.address);
+      await removeContact({ ownerWallet: wallet.address, id: resolvedContact.contactId });
+      setResolvedContacts((items) => {
+        const next = { ...items };
+        delete next[contactKey];
+        return next;
+      });
+    } catch (err) {
+      setStatus("error");
+      setMessage(err.message || "Could not remove contact.");
+    }
+  }
+
   async function pickContactForTransfer() {
     if (!contactKey) return;
     if (SUPABASE_READY && wallet.address) {
+      try {
+        await ensureSupabaseAuth(wallet.address);
+      } catch (authError) {
+        setStatus("error");
+        setMessage(authError.message || "Sign-in cancelled. Please try again.");
+        return;
+      }
       setShowContactPicker(true);
       return;
     }
@@ -647,6 +687,8 @@ export default function App() {
               onEdit={() => setScreen("planEditor")}
               onPickContact={pickContactForTransfer}
               onResolveContact={resolveContactForTransfer}
+              onEditContact={handleEditContact}
+              onRemoveContact={handleRemoveContact}
               supabaseReady={SUPABASE_READY}
             />
           )}

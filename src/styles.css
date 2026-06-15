@@ -3311,6 +3311,36 @@ a {
   font-weight: 850;
 }
 
+/* Resolved contact row — label + shortened address on the left, edit/delete icons on the right */
+.contact-resolved-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.contact-resolved-info {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.contact-resolved-info small {
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--cocoa-500);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.contact-resolved-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
 .contact-capture {
   margin-bottom: 0;
   padding: 15px;
