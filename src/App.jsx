@@ -2,8 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Bell, MessageCircleQuestionMark, X } from "lucide-react";
 import { useMiniPayWallet } from "./modules/wallet/useMiniPayWallet.js";
 import { useChocoLedger } from "./modules/ledger/useChocoLedger.js";
-import { parseUnits } from "viem";
-import { AUDIT_KIND, logAuditAttempt } from "./lib/audit.js";
 import { verifyReadiness } from "./lib/cepolia.js";
 import { findContactByLabel, removeContact, upsertContact, SUPABASE_READY } from "./lib/contacts.js";
 import { ensureSupabaseAuth, getCachedSession } from "./lib/supabase.js";
@@ -552,10 +550,6 @@ export default function App() {
   }
 
   async function confirmAction() {
-    const labelForAudit = reviewPlan.intent?.receiptLabel || reviewPlan.recipient || "";
-    const usdcRaw = reviewPlan.intent?.sourceAsset === APP_CONFIG.assets.source && reviewPlan.intent?.sourceAmount
-      ? parseUnits(Number(reviewPlan.intent.sourceAmount).toFixed(6), 6)
-      : 0n;
     try {
       const address = wallet.address || await verifyWallet();
       if (!address) return;
@@ -573,44 +567,9 @@ export default function App() {
       commitPlanReceipt(reviewPlan, result.hash, result.approveHash || "");
       refreshBalances(address).catch(() => {});
       refreshLedger().catch(() => {});
-
-      // Audit-log success. Failures here do not roll back the transfer; the swap/transfer hashes
-      // remain visible on-chain even if the audit row never lands.
-      try {
-        await logAuditAttempt({
-          account: address,
-          kind: AUDIT_KIND.SUCCESS,
-          label: labelForAudit,
-          recipient: recipientAddress,
-          usdcAmount: usdcRaw,
-          ckesAmount: result.ckesReceived || parseUnits(String(Math.max(1, Math.floor(Number(reviewPlan.intent?.amountKes || 0)))), 18),
-          swapTxHash: result.swap1Hash || result.swap2Hash || "",
-          paymentTxHash: result.hash,
-          note: reviewPlan.deliveryMode === "now" ? "send-now" : "schedule-create",
-        });
-      } catch (auditError) {
-        console.warn("Audit log (success) failed:", auditError.message);
-      }
     } catch (error) {
       setStatus("error");
       setMessage(error.message);
-      // Audit-log failure best-effort. The kind is heuristic: most reverts after the swap hop are
-      // FAILED_TRANSFER; everything else is treated as FAILED_SWAP. The note captures the raw reason.
-      const kind = /transfer/i.test(error.shortMessage || error.message || "")
-        ? AUDIT_KIND.FAILED_TRANSFER
-        : AUDIT_KIND.FAILED_SWAP;
-      try {
-        await logAuditAttempt({
-          account: wallet.address,
-          kind,
-          label: labelForAudit,
-          recipient: recipientAddress,
-          usdcAmount: usdcRaw,
-          note: (error.shortMessage || error.message || "transfer failed").slice(0, 120),
-        });
-      } catch (auditError) {
-        console.warn("Audit log (failure) failed:", auditError.message);
-      }
     }
   }
 
