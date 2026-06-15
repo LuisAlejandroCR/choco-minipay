@@ -260,6 +260,7 @@ export default function App() {
     // the user actually pastes an address) happens in resolveContactForTransfer below.
     if (SUPABASE_READY && wallet.address && labelForAudit) {
       try {
+        await ensureSupabaseAuth(wallet.address);
         const contact = await findContactByLabel({ ownerWallet: wallet.address, label: labelForAudit });
         if (contact?.wallet_address) {
           setResolvedContacts((items) => ({
@@ -474,7 +475,7 @@ export default function App() {
           label: labelForAudit,
           recipient: recipientAddress,
           usdcAmount: usdcRaw,
-          ckesAmount: parseUnits(String(Math.max(1, Math.floor(Number(reviewPlan.intent?.amountKes || 0)))), 18),
+          ckesAmount: result.ckesReceived || parseUnits(String(Math.max(1, Math.floor(Number(reviewPlan.intent?.amountKes || 0)))), 18),
           swapTxHash: result.swap1Hash || result.swap2Hash || "",
           paymentTxHash: result.hash,
           note: reviewPlan.deliveryMode === "now" ? "send-now" : "schedule-create",
