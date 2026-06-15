@@ -305,6 +305,8 @@ export async function sendNow({ account, recipient, intent }) {
     await publicClient.waitForTransactionReceipt({ hash });
     return { approveHash: null, hash };
   }
+  const usdcAmount = usdcAmountForIntent(intent);
+
   // 2-confirmation fast path via ChocoCkesSwap (approve + swapAndSend).
   // Falls back to the 5-step direct Mento path when ckesSwap is not configured.
   if (isAddress(ADDRESSES.ckesSwap || "")) {
@@ -339,7 +341,6 @@ export async function sendNow({ account, recipient, intent }) {
   
   assertAddress(ADDRESSES.mentoBroker, "VITE_MENTO_BROKER_ADDRESS");
   assertAddress(ADDRESSES.mentoProvider, "VITE_MENTO_BIPOOL_ADDRESS");
-  const usdcAmount = usdcAmountForIntent(intent);
 
   // Hop 1: USDC -> USDm
   const usdmQuote = await publicClient.readContract({

@@ -162,9 +162,13 @@ export function PlanEditorScreen({
         </div>
       )}
 
-      {mode === "update" ? (
-        <button className="secondary-dark editor-home-button" type="button" onClick={onBack}>Back to plan</button>
-      ) : null}
+      <button
+        className="secondary-dark editor-home-button"
+        type="button"
+        onClick={mode === "update" ? onBack : onHome}
+      >
+        {mode === "update" ? "Back to plan" : "Back home"}
+      </button>
     </div>
   );
 }
