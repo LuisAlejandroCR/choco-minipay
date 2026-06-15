@@ -694,7 +694,7 @@ async function readSendNowHistory(publicClient, owner, fromBlock) {
         hash: transferLog.transactionHash,
         type: swapLog ? "USDC swap + cKES send" : "cKES send",
         deliveryMode: "now",
-        from: transferLog.args.from,
+        from: swapLog ? swapLog.args.payer : transferLog.args.from,
         to: `${shortAddress(transferLog.args.to)} - Celo`,
         toAddress: transferLog.args.to,
         routeEstimate: swapLog ? `${usdcIn} USDC -> ${amountKes} cKES via Mento` : "",

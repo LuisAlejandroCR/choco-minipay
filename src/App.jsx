@@ -35,6 +35,7 @@ import { DeletePlanScreen } from "./screens/DeletePlanScreen.jsx";
 import { ProcessingScreen } from "./screens/ProcessingScreen.jsx";
 import { DuplicateGuardScreen } from "./screens/DuplicateGuardScreen.jsx";
 import { ReviewScreen } from "./screens/ReviewScreen.jsx";
+import { TransactionSuccessScreen } from "./screens/TransactionSuccessScreen.jsx";
 import {
   ADDRESSES,
   cancelScheduleViaRegistry,
@@ -441,7 +442,7 @@ export default function App() {
     );
     setLastReceipt(transaction);
     setSelectedTransactionId(transaction.id);
-    goTo("receiptDetail");
+    goTo("transactionSuccess");
   }
 
   async function confirmAction() {
@@ -513,6 +514,7 @@ export default function App() {
     if (visibleScreen === "plans") return "Plans";
     if (visibleScreen === "planDetail") return "Details";
     if (visibleScreen === "history") return "History";
+    if (visibleScreen === "transactionSuccess") return "Sent";
     if (visibleScreen === "receiptDetail") return "Receipt";
     if (visibleScreen === "planEditor") return reviewMode === "update" ? "Edit plan" : deliveryMode === "now" ? "Send now" : "New schedule";
     if (visibleScreen === "deletePlan") return "Delete";
@@ -626,6 +628,14 @@ export default function App() {
                 setSelectedTransactionId(transactionId);
                 goTo("receiptDetail");
               }}
+            />
+          )}
+          {visibleScreen === "transactionSuccess" && lastReceipt && (
+            <TransactionSuccessScreen
+              transaction={lastReceipt}
+              onViewDetails={() => goTo("receiptDetail")}
+              onHome={() => setScreen("plan")}
+              onPlans={() => goTo("plans")}
             />
           )}
           {visibleScreen === "receiptDetail" && activeTransaction && (
