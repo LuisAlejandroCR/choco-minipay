@@ -30,6 +30,8 @@ export function ReviewScreen({
   onResolveContact,
   onEditContact,
   onRemoveContact,
+  contactLookupStatus = "idle",
+  contactLookupMessage = "",
 }) {
   const [cepoliaSummary, setCepoliaSummary] = useState(null);
   const [editAddr, setEditAddr] = useState("");
@@ -170,12 +172,24 @@ export function ReviewScreen({
                 Change contact
               </button>
             </>
+          ) : contactLookupStatus === "checking" ? (
+            <div>
+              <span>Contact</span>
+              <b>Checking saved contacts</b>
+              <small>{contactLookupMessage || "Choco checks Supabase before asking to create a contact."}</small>
+            </div>
           ) : (
             <>
               <div>
                 <span>Contact</span>
                 <b>{`Select ${receiptLabel}`}</b>
-                <small>Pick a saved contact or paste an address below.</small>
+                <small>
+                  {contactLookupStatus === "missing"
+                    ? "No saved contact found. Add a one-time address or save it for next time."
+                    : contactLookupStatus === "error"
+                      ? contactLookupMessage || "Could not check saved contacts. Add a one-time address to continue."
+                      : "Pick a saved contact or paste an address below."}
+                </small>
               </div>
               <button type="button" onClick={onPickContact}>Select contact</button>
               <ContactCapture
