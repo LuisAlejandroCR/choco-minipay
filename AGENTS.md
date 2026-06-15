@@ -10,6 +10,18 @@ Choco is a MiniPay-first remittance agent. Keep the implementation non-custodial
 - Keep Celo contract code under `contracts`.
 - Keep hackathon and release notes under `docs`.
 
+## Agent Skills
+
+This project uses the following agent skills (tracked in `skills-lock.json`). Install them with:
+
+```
+npx skills add celo-org/celopedia-skills
+npx skills add supabase/agent-skills
+```
+
+- **celopedia-skill** — Celo ecosystem reference (verified contract addresses, Mento protocol, MiniPay, ERC-8004). **Always consult this skill before changing any Celo contract address, exchange ID, or protocol integration.**
+- **supabase** — Supabase SDK patterns and Postgres best practices.
+
 ## Product Rules
 
 - Main network is Celo Mainnet.
