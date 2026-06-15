@@ -73,11 +73,11 @@ function runConfetti(canvas, onDone) {
   return () => cancelAnimationFrame(raf);
 }
 
-export function TransactionSuccessScreen({ transaction, onViewDetails, onHome, onPlans, onHistory }) {
+export function TransactionSuccessScreen({ transaction, onViewDetails, onDismiss }) {
   const [shareState, setShareState] = useState("");
   const canvasRef = useRef(null);
-  const onHistoryRef = useRef(onHistory);
-  onHistoryRef.current = onHistory;
+  const onDismissRef = useRef(onDismiss);
+  onDismissRef.current = onDismiss;
 
   const amountLabel = `${transaction.amount} ${transaction.asset}`;
   const toLabel = transaction.recipient || "Recipient";
@@ -87,7 +87,7 @@ export function TransactionSuccessScreen({ transaction, onViewDetails, onHome, o
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    return runConfetti(canvas, () => onHistoryRef.current?.());
+    return runConfetti(canvas, () => onDismissRef.current?.());
   }, []);
 
   async function share() {
@@ -110,20 +110,35 @@ export function TransactionSuccessScreen({ transaction, onViewDetails, onHome, o
   }
 
   return (
-    <div className="screen transaction-success-screen">
+    <div
+      className="success-modal-overlay"
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 200,
+        background: "rgba(0,0,0,0.65)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "24px",
+      }}
+    >
       <canvas
         ref={canvasRef}
         style={{
-          position: "absolute",
+          position: "fixed",
           inset: 0,
           width: "100%",
           height: "100%",
           pointerEvents: "none",
-          zIndex: 10,
+          zIndex: 201,
         }}
       />
 
-      <section className="success-card">
+      <div
+        className="success-modal-card"
+        style={{ position: "relative", zIndex: 202, width: "100%", maxWidth: 360 }}
+      >
         <div className="success-badge">
           <Check size={40} strokeWidth={2.5} />
         </div>
@@ -132,7 +147,7 @@ export function TransactionSuccessScreen({ transaction, onViewDetails, onHome, o
         <p className="success-recipient">to {toLabel}</p>
 
         <div className="success-actions">
-          <button className="primary-cta" type="button" onClick={() => { onViewDetails?.(); }}>
+          <button className="primary-cta" type="button" onClick={onViewDetails}>
             <Check size={18} />
             View movement details
           </button>
@@ -140,11 +155,11 @@ export function TransactionSuccessScreen({ transaction, onViewDetails, onHome, o
             <Share2 size={18} />
             {shareState ? `${shareState} receipt` : "Share receipt"}
           </button>
-          <button className="secondary-cta" type="button" onClick={() => onHistory?.()}>
-            Go to History
+          <button className="secondary-cta" type="button" onClick={onDismiss}>
+            Close
           </button>
         </div>
-      </section>
+      </div>
     </div>
   );
 }

@@ -34,7 +34,6 @@ export function formatLocalDate(date = new Date()) {
 export function formatHistoryDate(timestamp) {
   const datePart = String(timestamp).match(/\d{2}\/\d{2}\/\d{4}/)?.[0];
   if (!datePart) return timestamp;
-  if (datePart === formatLocalDate()) return "Today";
   const [month, day] = datePart.split("/");
   return `${month}/${day}`;
 }
