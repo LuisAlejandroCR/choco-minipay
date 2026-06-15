@@ -6,7 +6,7 @@ import { parseUnits } from "viem";
 import { AUDIT_KIND, logAuditAttempt } from "./lib/audit.js";
 import { verifyReadiness } from "./lib/cepolia.js";
 import { findContactByLabel, removeContact, upsertContact, SUPABASE_READY } from "./lib/contacts.js";
-import { ensureSupabaseAuth } from "./lib/supabase.js";
+import { ensureSupabaseAuth, getCachedSession } from "./lib/supabase.js";
 import { INITIAL_SCREEN, WORLD_MAP_URL } from "./config/runtime.js";
 import { DEFAULT_COMMANDS, defaultPlan } from "./data/chocoScenario.js";
 import { getWalletStatusLabel, resolveVisibleScreen } from "./lib/access-control.js";
@@ -261,22 +261,26 @@ export default function App() {
     // the user actually pastes an address) happens in resolveContactForTransfer below.
     if (SUPABASE_READY && wallet.address && labelForAudit) {
       try {
-        await ensureSupabaseAuth(wallet.address);
-        const contact = await findContactByLabel({ ownerWallet: wallet.address, label: labelForAudit });
-        if (contact?.wallet_address) {
-          setResolvedContacts((items) => ({
-            ...items,
-            [labelForAudit.toLowerCase()]: {
-              address: contact.wallet_address,
-              label: contact.label,
-              phone: "",
-              source: "contacts",
-              contactId: contact.id,
-            },
-          }));
+        // Use cached session only — never trigger personal_sign in the middle of plan building.
+        // ensureSupabaseAuth (which prompts for a signature) runs in pickContactForTransfer
+        // when the user explicitly taps "Select contact".
+        const session = await getCachedSession();
+        if (session) {
+          const contact = await findContactByLabel({ ownerWallet: wallet.address, label: labelForAudit });
+          if (contact?.wallet_address) {
+            setResolvedContacts((items) => ({
+              ...items,
+              [labelForAudit.toLowerCase()]: {
+                address: contact.wallet_address,
+                label: contact.label,
+                phone: "",
+                source: "contacts",
+                contactId: contact.id,
+              },
+            }));
+          }
         }
       } catch (contactError) {
-        // Contact lookup failures should not block the flow.
         console.warn("Contact lookup failed:", contactError.message);
       }
     }
@@ -362,6 +366,16 @@ export default function App() {
     if (SUPABASE_READY && wallet.address) {
       try {
         await ensureSupabaseAuth(wallet.address);
+        // After sign-in, try to auto-resolve by label so the user skips the picker entirely
+        const found = await findContactByLabel({ ownerWallet: wallet.address, label: contactKey });
+        if (found?.wallet_address) {
+          resolveContactForTransfer(found.wallet_address, {
+            label: found.label,
+            source: "contacts",
+            contactId: found.id,
+          });
+          return;
+        }
       } catch (authError) {
         setStatus("error");
         setMessage(authError.message || "Sign-in cancelled. Please try again.");
