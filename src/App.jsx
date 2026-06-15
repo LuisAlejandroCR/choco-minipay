@@ -295,6 +295,7 @@ export default function App() {
         label,
         phone: details.phone || "",
         source: details.source || "manual",
+        contactId: details.contactId || null,
       },
     }));
     setStatus("review");
