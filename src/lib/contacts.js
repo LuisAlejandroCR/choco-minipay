@@ -8,7 +8,7 @@ function normaliseWallet(value) {
 }
 
 function normaliseLabel(value) {
-  return String(value || "").trim();
+  return String(value || "").trim().replace(/\s+/g, " ");
 }
 
 // Receipt lookups are forgiving: case-insensitive on label, ignoring leading articles.
@@ -24,10 +24,9 @@ export async function findContactByLabel({ ownerWallet, label }) {
   const { data, error } = await supabase
     .from("contacts")
     .select("*")
-    .eq("owner_wallet", owner)
-    .ilike("label", key);
+    .ilike("owner_wallet", owner);
   if (error) throw new Error(`Could not look up contact: ${error.message}`);
-  return data?.[0] || null;
+  return (data || []).find((contact) => searchKey(contact.label) === key) || null;
 }
 
 export async function findContactByAddress({ ownerWallet, walletAddress }) {
@@ -35,8 +34,8 @@ export async function findContactByAddress({ ownerWallet, walletAddress }) {
   const { data, error } = await supabase
     .from("contacts")
     .select("*")
-    .eq("owner_wallet", normaliseWallet(ownerWallet))
-    .eq("wallet_address", normaliseWallet(walletAddress))
+    .ilike("owner_wallet", normaliseWallet(ownerWallet))
+    .ilike("wallet_address", normaliseWallet(walletAddress))
     .maybeSingle();
   if (error) throw new Error(`Could not look up contact: ${error.message}`);
   return data || null;
@@ -47,7 +46,7 @@ export async function listContacts(ownerWallet) {
   const { data, error } = await supabase
     .from("contacts")
     .select("*")
-    .eq("owner_wallet", normaliseWallet(ownerWallet))
+    .ilike("owner_wallet", normaliseWallet(ownerWallet))
     .order("updated_at", { ascending: false });
   if (error) throw new Error(`Could not list contacts: ${error.message}`);
   return data || [];
@@ -94,7 +93,7 @@ export async function removeContact({ ownerWallet, id }) {
   const { error } = await client
     .from("contacts")
     .delete()
-    .eq("owner_wallet", normaliseWallet(ownerWallet))
+    .ilike("owner_wallet", normaliseWallet(ownerWallet))
     .eq("id", id);
   if (error) throw new Error(`Could not remove contact: ${error.message}`);
   return true;

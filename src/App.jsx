@@ -74,6 +74,14 @@ function buildSafePreviewPlan(commandText, basePlan, deliveryMode) {
   }
 }
 
+function getPlanReceiptLabel(plan) {
+  return plan?.receiptLabel || plan?.recipient || plan?.intent?.receiptLabel || "";
+}
+
+function contactCacheKey(label) {
+  return String(label || "").trim().toLowerCase();
+}
+
 export default function App() {
   const [screen, setScreen] = useState(INITIAL_SCREEN);
   const [command, setCommand] = useState(DEFAULT_COMMANDS.schedule);
@@ -91,6 +99,7 @@ export default function App() {
   const [txHash, setTxHash] = useState("");
   const [showDemoPrompt, setShowDemoPrompt] = useState(APP_CONFIG.ui.showDemoPrompt);
   const [resolvedContacts, setResolvedContacts] = useState({});
+  const [contactLookup, setContactLookup] = useState({ key: "", status: "idle", message: "" });
   const [showContactPicker, setShowContactPicker] = useState(false);
 
   const wallet = useMiniPayWallet();
@@ -126,13 +135,22 @@ export default function App() {
     [lastReceipt, selectedTransactionId, transactions],
   );
   const reviewPlan = resolvedPreviewPlan ?? previewPlan;
-  const receiptLabel = reviewPlan.receiptLabel || reviewPlan.recipient || reviewPlan.intent?.receiptLabel || "";
-  const contactKey = receiptLabel.toLowerCase();
+  const receiptLabel = getPlanReceiptLabel(reviewPlan);
+  const contactKey = contactCacheKey(receiptLabel);
   const contactResolutionRequired = Boolean(reviewPlan.contactResolutionRequired || reviewPlan.intent?.contactResolutionRequired);
   const resolvedContact = contactKey ? resolvedContacts[contactKey] : null;
   const recipientAddress = contactResolutionRequired
     ? resolvedContact?.address || ""
     : demoRecipientAddress;
+  const contactLookupPending = Boolean(
+    visibleScreen === "review" &&
+    SUPABASE_READY &&
+    contactResolutionRequired &&
+    contactKey &&
+    wallet.address &&
+    !resolvedContact?.address &&
+    contactLookup.key !== contactKey,
+  );
   const actionReady = Boolean(
     wallet.address &&
     recipientAddress &&
@@ -163,6 +181,45 @@ export default function App() {
     }
     void refreshBalances(wallet.address);
   }, [wallet.address]);
+
+  useEffect(() => {
+    if (visibleScreen !== "review" || !contactResolutionRequired || !contactKey || !wallet.address || !SUPABASE_READY) {
+      setContactLookup({ key: contactKey, status: "idle", message: "" });
+      return undefined;
+    }
+
+    if (resolvedContact?.address) {
+      setContactLookup({ key: contactKey, status: "resolved", message: "" });
+      return undefined;
+    }
+
+    let active = true;
+    setContactLookup({ key: contactKey, status: "checking", message: "Checking saved contacts..." });
+
+    resolveSavedContactByLabel(reviewPlan, { requireAuth: true })
+      .then((contact) => {
+        if (!active) return;
+        if (contact?.wallet_address) {
+          setContactLookup({ key: contactKey, status: "resolved", message: "" });
+          setMessage(`${contact.label} found in saved contacts.`);
+          return;
+        }
+        setContactLookup({ key: contactKey, status: "missing", message: "No saved contact found." });
+      })
+      .catch((error) => {
+        if (!active) return;
+        setContactLookup({
+          key: contactKey,
+          status: "error",
+          message: error.message || "Could not check saved contacts.",
+        });
+        setMessage(error.message || "Could not check saved contacts.");
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [visibleScreen, contactResolutionRequired, contactKey, receiptLabel, wallet.address, resolvedContact?.address]);
 
   async function verifyWallet() {
     try {
@@ -228,6 +285,41 @@ export default function App() {
       }
       return currentCommand;
     });
+  }
+
+  function cacheSavedContact(contact, keyOverride = "") {
+    const key = keyOverride || contactCacheKey(contact?.label);
+    if (!key || !contact?.wallet_address) return;
+    setResolvedContacts((items) => ({
+      ...items,
+      [key]: {
+        address: contact.wallet_address,
+        label: contact.label,
+        phone: contact.payment_reason || "",
+        source: "contacts",
+        contactId: contact.id,
+      },
+    }));
+  }
+
+  async function resolveSavedContactByLabel(plan, { requireAuth = false } = {}) {
+    const label = getPlanReceiptLabel(plan);
+    const key = contactCacheKey(label);
+    if (!SUPABASE_READY || !wallet.address || !label || !key) return null;
+
+    if (requireAuth) {
+      await ensureSupabaseAuth(wallet.address);
+    } else {
+      const session = await getCachedSession();
+      if (!session) return null;
+    }
+
+    const contact = await findContactByLabel({ ownerWallet: wallet.address, label });
+    if (contact?.wallet_address) {
+      cacheSavedContact(contact, key);
+      return contact;
+    }
+    return null;
   }
 
   async function buildPlan(nextCommand = "") {
@@ -716,6 +808,8 @@ export default function App() {
               onResolveContact={resolveContactForTransfer}
               onEditContact={handleEditContact}
               onRemoveContact={handleRemoveContact}
+              contactLookupStatus={contactLookupPending ? "checking" : contactLookup.key === contactKey ? contactLookup.status : "idle"}
+              contactLookupMessage={contactLookupPending ? "Checking saved contacts..." : contactLookup.key === contactKey ? contactLookup.message : ""}
               supabaseReady={SUPABASE_READY}
             />
           )}
