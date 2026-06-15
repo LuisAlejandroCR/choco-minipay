@@ -18,6 +18,7 @@ import {
   findRecentSimilarTransfer,
   findSimilarPlan,
 } from "./utils/planUtils.js";
+import { ContactPicker } from "./components/ContactPicker.jsx";
 import { PitchScreen } from "./components/PitchScreen.jsx";
 import { QuickInfoPanel } from "./screens/QuickInfoPanel.jsx";
 import { SplashScreen } from "./screens/SplashScreen.jsx";
@@ -88,6 +89,7 @@ export default function App() {
   const [txHash, setTxHash] = useState("");
   const [showDemoPrompt, setShowDemoPrompt] = useState(APP_CONFIG.ui.showDemoPrompt);
   const [resolvedContacts, setResolvedContacts] = useState({});
+  const [showContactPicker, setShowContactPicker] = useState(false);
 
   const wallet = useMiniPayWallet();
   const { plans, transactions, refresh: refreshLedger } = useChocoLedger(wallet.address);
@@ -321,12 +323,15 @@ export default function App() {
 
   async function pickContactForTransfer() {
     if (!contactKey) return;
-    if (!navigator.contacts?.select) {
-      setStatus("error");
-      setMessage("Contact picker is not available here. Use a one-time recipient address for this transfer.");
+    if (SUPABASE_READY && wallet.address) {
+      setShowContactPicker(true);
       return;
     }
-
+    if (!navigator.contacts?.select) {
+      setStatus("error");
+      setMessage("No saved contacts. Enter an address below to continue.");
+      return;
+    }
     try {
       const [contact] = await navigator.contacts.select(["name", "tel"], { multiple: false });
       if (!contact) return;
@@ -647,6 +652,16 @@ export default function App() {
           )}
           {activeInfoPanel && (
             <QuickInfoPanel type={activeInfoPanel} onClose={() => setActiveInfoPanel(null)} />
+          )}
+          {showContactPicker && (
+            <ContactPicker
+              ownerWallet={wallet.address}
+              onSelect={({ address, label, contactId }) => {
+                setShowContactPicker(false);
+                resolveContactForTransfer(address, { label, source: "contacts", contactId });
+              }}
+              onClose={() => setShowContactPicker(false)}
+            />
           )}
         </div>
       </section>

@@ -32,7 +32,7 @@ export function ContactCapture({ alias, onSubmit, supabaseReady = false }) {
             placeholder="0x..."
             aria-label="Recipient wallet address"
           />
-          <button type="submit" disabled={!isValid}>Use</button>
+          <button type="submit" className="wallet-use-btn" disabled={!isValid}>Confirm address</button>
         </div>
         {supabaseReady && (
           <label className="contact-save-toggle">
