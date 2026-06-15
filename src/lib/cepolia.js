@@ -7,16 +7,6 @@ import { formatUnits, isAddress, parseUnits } from "viem";
 import { ADDRESSES, ERC20_ABI, MENTO_BROKER_ABI, makePublicClient, readUsdcBalance } from "./celo.js";
 import { APP_CONFIG } from "./app-config.js";
 
-// Fee currency adapter ABI (for debited gas token exchange rate)
-const FEE_ADAPTER_ABI = [
-  {
-    type: "function",
-    name: "getExchangeRate",
-    stateMutability: "view",
-    inputs: [{ name: "sellAmount", type: "uint256" }],
-    outputs: [{ name: "buyAmount", type: "uint256" }],
-  },
-];
 
 // Readiness verdicts (UX-only — never written on-chain). The audit contract is for events that
 // actually touched the chain (SUCCESS / FAILED_*). Pre-flight reasons live here, surfaced as
@@ -92,19 +82,16 @@ export async function quoteUsdcToCkes(usdcAmountFloat) {
   });
 }
 
-// Estimate gas cost in native CELO wei for USDC → cKES transfers.
-// Simulates each operation (approve, swaps, transfer) for accurate estimates.
-async function estimateTransferGasWei(account, recipient, usdcAmountRaw) {
-  if (!account || !isAddress(account) || !isAddress(recipient) || usdcAmountRaw === 0n) {
-    return parseUnits("0.0004", 18); // 0.0004 CELO fallback (~$0.0002 at $0.50/CELO)
-  }
-
+// Estimate the USDC fee for a USDC → cKES transfer using the CIP-64 fee currency approach.
+// Celopedia pattern: eth_gasPrice with feeCurrency returns the gas price already denominated
+// in the fee token (USDC adapter normalises 6-dec USDC to 18-dec for gas calculations).
+// No CELO → USDC conversion needed — the RPC node applies the oracle rate internally.
+async function estimateTransferFeeUsdc(account, recipient, usdcAmountRaw) {
   const publicClient = makePublicClient();
 
-  try {
-    let totalGas = 0n;
-
-    // 1. Estimate USDC approve to Mento Broker
+  // Gas units: actual approve estimate + conservative averages for swap + transfer
+  let totalGas = 46000n + 120000n + 52000n; // ~218k gas baseline
+  if (account && isAddress(account) && isAddress(recipient) && usdcAmountRaw > 0n) {
     try {
       const approveGas = await publicClient.estimateContractGas({
         address: ADDRESSES.usdc,
@@ -113,68 +100,21 @@ async function estimateTransferGasWei(account, recipient, usdcAmountRaw) {
         args: [ADDRESSES.mentoBroker, usdcAmountRaw],
         account,
       });
-      totalGas += approveGas;
-      console.log('[Gas] Approve:', Number(approveGas));
-    } catch {
-      totalGas += 46000n; // Fallback: typical approve gas
-    }
+      totalGas = approveGas + 120000n + 52000n;
+    } catch {}
+  }
 
-    // 2. Estimate Mento swaps (USDC → USDm → cKES)
-    // Note: Can't simulate swap without actual approval, use realistic average
-    const swapGas = 120000n; // Historical average for 2-hop Mento swap
-    totalGas += swapGas;
-    console.log('[Gas] Swap (2 hops):', Number(swapGas));
-
-    // 3. Estimate cKES transfer to recipient
-    try {
-      // Estimate how much cKES we'll get (for transfer simulation)
-      const ckesEstimate = parseUnits("100", 18); // Rough estimate for simulation
-      const transferGas = await publicClient.estimateContractGas({
-        address: ADDRESSES.kesm,
-        abi: ERC20_ABI,
-        functionName: "transfer",
-        args: [recipient, ckesEstimate],
-        account,
-      });
-      totalGas += transferGas;
-      console.log('[Gas] Transfer:', Number(transferGas));
-    } catch {
-      totalGas += 52000n; // Fallback: typical ERC20 transfer
-    }
-
-    console.log('[Gas] Total estimated:', Number(totalGas));
-
-    // Get gas price from CeloScan API (more accurate than RPC)
-    let gasPrice;
-    const celoscanApiKey = import.meta.env?.VITE_CELOSCAN_API_KEY;
-
-    if (celoscanApiKey) {
-      try {
-        const response = await fetch(`https://api.celoscan.io/api?module=proxy&action=eth_gasPrice&apikey=${celoscanApiKey}`);
-        const data = await response.json();
-        if (data.result) {
-          gasPrice = BigInt(data.result);
-          console.log('[Gas] Price from CeloScan API (Gwei):', Number(formatUnits(gasPrice, 9)));
-        }
-      } catch (err) {
-        console.log('[Gas] CeloScan API failed, using RPC fallback:', err.message);
-      }
-    }
-
-    // Fallback to RPC if CeloScan API is not configured or failed
-    if (!gasPrice) {
-      gasPrice = await publicClient.getGasPrice();
-      console.log('[Gas] Price from RPC (Gwei):', Number(formatUnits(gasPrice, 9)));
-    }
-
-    const gasCostWei = totalGas * gasPrice;
-    console.log('[Gas] Total cost (CELO):', Number(formatUnits(gasCostWei, 18)));
-
-    return gasCostWei;
-  } catch (err) {
-    console.log('[Gas] Estimation failed:', err.message);
-    // If gas price fetch fails, use conservative estimate
-    return parseUnits("0.0004", 18); // 0.0004 CELO (~$0.0002)
+  // Gas price denominated in the USDC fee adapter (celopedia CIP-64 pattern).
+  // The adapter normalises USDC (6 dec) to 18 dec, so formatUnits(fee, 18) = USDC display value.
+  try {
+    const gasPriceHex = await publicClient.request({
+      method: "eth_gasPrice",
+      params: [ADDRESSES.feeCurrency],
+    });
+    const feeInAdapter = totalGas * BigInt(gasPriceHex);
+    return Number(formatUnits(feeInAdapter, 18));
+  } catch {
+    return 0.0015; // ~$0.0015 conservative fallback
   }
 }
 
@@ -200,34 +140,9 @@ export async function summariseTransfer({ account, recipient, intent, walletRead
   const ckesFloat = Number(formatUnits(ckesRaw, 18));
 
   const usdcRaw = usdcRequested > 0 ? parseUnits(Number(usdcRequested).toFixed(6), 6) : 0n;
-  const gasWei = walletReady && recipient
-    ? await estimateTransferGasWei(account, recipient, usdcRaw)
-    : parseUnits("0.001", 18); // Conservative default if wallet not ready
-  const gasNativeFloat = Number(formatUnits(gasWei, 18));
-
-  console.log('[Cepolia] Gas estimate (CELO):', gasNativeFloat);
-
-  // Convert gas cost from CELO to USDC using the fee adapter exchange rate
-  const publicClient = makePublicClient();
-  let gasUsdcFloat = 0;
-  if (gasWei > 0n && ADDRESSES.feeCurrency && isAddress(ADDRESSES.feeCurrency)) {
-    try {
-      // getExchangeRate returns how much USDC you need to buy 1 CELO worth of gas
-      // Input: CELO amount (wei), Output: USDC amount (6 decimals)
-      const gasUsdcRaw = await publicClient.readContract({
-        address: ADDRESSES.feeCurrency,
-        abi: FEE_ADAPTER_ABI,
-        functionName: "getExchangeRate",
-        args: [gasWei],
-      });
-      gasUsdcFloat = Number(formatUnits(gasUsdcRaw, 6));
-      console.log('[Cepolia] Fee adapter returned:', gasUsdcFloat, 'USDC');
-    } catch (err) {
-      // Fallback: rough estimate ~$0.40 per CELO (adjust based on market)
-      gasUsdcFloat = gasNativeFloat * 0.4;
-      console.log('[Cepolia] Fee adapter failed, using fallback:', gasUsdcFloat, 'USDC', err.message);
-    }
-  }
+  const gasUsdcFloat = isAddress(ADDRESSES.feeCurrency || "")
+    ? await estimateTransferFeeUsdc(account, recipient || "", usdcRaw)
+    : 0.0015;
 
   // Always show fee in USDC (converted from CELO via fee adapter)
   const feeLabel = gasUsdcFloat > 0
