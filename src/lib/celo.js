@@ -333,7 +333,8 @@ export async function sendNow({ account, recipient, intent }) {
     feeCurrency: ADDRESSES.feeCurrency,
   });
   await publicClient.waitForTransactionReceipt({ hash });
-  return { approveHash, swap1Hash, swap2Hash, hash };
+  return { approveHash, swap1Hash, swap2Hash, hash, ckesReceived };
+  
 }
 
 export async function createScheduleViaRegistry({ account, recipient, intent }) {
