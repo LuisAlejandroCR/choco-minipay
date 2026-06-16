@@ -1,12 +1,9 @@
-import { CalendarDays, Check, CircleDollarSign, Pencil, ReceiptText, Trash2, Wallet } from "lucide-react";
+import { CalendarDays, Check, CircleDollarSign, Pencil, Trash2, Wallet } from "lucide-react";
 import { isAddress } from "viem";
 import { useEffect, useState } from "react";
-import { ChocoMark } from "../components/ChocoMark.jsx";
 import { ContactCapture } from "../components/ContactCapture.jsx";
-import { LightSheet } from "../components/LightSheet.jsx";
 import { SummaryCard } from "../components/SheetPrimitives.jsx";
 import { APP_CONFIG } from "../lib/app-config.js";
-import { getApprovalTarget } from "../lib/celo.js";
 import { summariseTransfer } from "../lib/cepolia.js";
 
 export function ReviewScreen({
@@ -89,18 +86,14 @@ export function ReviewScreen({
       : isSendNow
         ? "Confirm send"
         : "Confirm schedule";
-  const approvalTarget = getApprovalTarget({
-    deliveryMode: plan.deliveryMode,
-    intent: plan.intent,
-  });
-  const showApprovalTarget = walletReady && approvalTarget?.address && isAddress(approvalTarget.address);
-
   return (
-    <LightSheet>
-      <div className="sheet-top compact-confirmation-head">
-        <div className="sheet-icon"><ChocoMark size="small" /></div>
-        <h2>{isSendNow ? "Confirm send" : "Confirm schedule"}</h2>
-        <span className="sheet-chip">{APP_CONFIG.network.badge}</span>
+    <div className="screen review-screen">
+      <div className="screen-hero">
+        <span className="screen-hero-label">{isSendNow ? "Send now" : "Schedule"}</span>
+        <div className="screen-hero-row">
+          <h2 className="screen-hero-title">{isSendNow ? "Confirm send" : "Confirm schedule"}</h2>
+          <span className="sheet-chip">{APP_CONFIG.network.badge}</span>
+        </div>
       </div>
 
       <div className="summary-grid confirmation-grid">
@@ -202,16 +195,6 @@ export function ReviewScreen({
         </section>
       )}
 
-      {showApprovalTarget && (
-        <section className="approval-target-card" aria-label="Wallet approval target">
-          <span>Wallet approval</span>
-          <b>{approvalTarget.name}</b>
-          <small>
-            {approvalTarget.asset} approval to {shortAddr(approvalTarget.address)}. If MiniPay shows "unknown contract", compare this address before approving.
-          </small>
-        </section>
-      )}
-
       <div className="reference-card">
         <span>Reference</span>
         <b>{reference}</b>
@@ -231,7 +214,7 @@ export function ReviewScreen({
         {isSendNow ? <CircleDollarSign size={18} /> : walletReady ? <CalendarDays size={18} /> : <Wallet size={18} />}
         {primaryLabel}
       </button>
-      <button className="secondary-cta" type="button" onClick={onEdit}>Edit instruction</button>
-    </LightSheet>
+      <button className="secondary-dark" type="button" onClick={onEdit}>Edit instruction</button>
+    </div>
   );
 }

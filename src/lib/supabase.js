@@ -23,21 +23,24 @@ let _session = null;
 
 export async function signInWithWallet(address) {
   if (!supabase) throw new Error("Supabase is not configured.");
-  if (!window.ethereum) throw new Error("No wallet found. Please open Choco in MiniPay.");
 
   // 1. In-memory cache: still valid with >60 s to expiry
   if (_session && _session.expires_at > Math.floor(Date.now() / 1000) + 60) {
     return _session;
   }
 
-  // 2. Restored from localStorage by Supabase client (survives page reload / mini-app reopen)
+  // 2. Restored from localStorage by Supabase client (survives page reload / mini-app reopen).
+  // This path works without window.ethereum — a stored JWT never needs a wallet prompt.
   const { data: stored } = await supabase.auth.getSession();
   if (stored?.session && stored.session.expires_at > Math.floor(Date.now() / 1000) + 60) {
     _session = stored.session;
     return _session;
   }
 
-  // 3. Full sign-in: one personal_sign per expired/absent session
+  // 3. Full sign-in needs an injected wallet for personal_sign
+  if (!window.ethereum) throw new Error("No wallet found. Please open Choco in MiniPay.");
+
+  // 4. One personal_sign per expired/absent session
   const timestamp = Date.now();
   const message = `Sign in to Choco\nWallet: ${address}\nTime: ${timestamp}`;
 
