@@ -22,11 +22,17 @@ const usdmToCkes = process.env.MENTO_USDM_TO_CKES    || "0x89de88b8eb790de26f464
 const usdc      = process.env.USDC_ADDRESS            || "0xcebA9300f2b948710d2653dD7B07f33A8B32118C";
 const usdm      = process.env.USDM_ADDRESS            || "0x765DE816845861e75A25fCA122bb6898B8B1282a";
 const ckes      = process.env.KESM_ADDRESS            || "0x456a3D042C0DbD3db53D5489e98dFb038553B0d0";
+const ledger    = process.env.VITE_LEDGER_ADDRESS     || process.env.LEDGER_ADDRESS || "";
+
+if (!ledger) {
+  console.warn("⚠️  VITE_LEDGER_ADDRESS not set — deploying without ledger integration (send-now txs won't appear on ChocoLedger).");
+}
 
 console.log("\n🔄 Deploying ChocoCkesSwap to Celo Mainnet");
 console.log("=".repeat(60));
 console.log("Mento Broker:", broker);
 console.log("Mento Provider:", provider);
+console.log("ChocoLedger:", ledger || "(none)");
 console.log("=".repeat(60) + "\n");
 
 const artifact = JSON.parse(fs.readFileSync(path.join(root, "artifacts", "ChocoCkesSwap.json"), "utf8"));
@@ -34,10 +40,20 @@ const rpcUrl = process.env.CELO_RPC_URL || "https://forno.celo.org";
 const rpc = new ethers.JsonRpcProvider(rpcUrl, { chainId: 42220, name: "celo" });
 const wallet = new ethers.Wallet(privateKey, rpc);
 const factory = new ethers.ContractFactory(artifact.abi, artifact.bytecode, wallet);
-const contract = await factory.deploy(broker, provider, usdcToUsdm, usdmToCkes, usdc, usdm, ckes);
+const contract = await factory.deploy(
+  broker, provider, usdcToUsdm, usdmToCkes, usdc, usdm, ckes,
+  ledger || ethers.ZeroAddress
+);
 await contract.waitForDeployment();
 const swapAddress = await contract.getAddress();
 
 console.log("✅ ChocoCkesSwap:", swapAddress);
-console.log("\n📋 Add to frontend .env:");
+
+if (ledger) {
+  console.log("\n⚡ Next step — authorize the new swap contract on ChocoLedger:");
+  console.log(`   Cast: cast send ${ledger} "setSwapContract(address,bool)" ${swapAddress} true --rpc-url ${rpcUrl} --private-key $DEPLOYER_PRIVATE_KEY`);
+  console.log(`   Or call setSwapContract(${swapAddress}, true) on Celoscan.`);
+}
+
+console.log("\n📋 Add to Vercel env vars:");
 console.log(`VITE_CKES_SWAP_CONTRACT_ADDRESS=${swapAddress}\n`);

@@ -8,11 +8,6 @@ interface IERC20 {
     function balanceOf(address account) external view returns (uint256);
 }
 
-interface IERC20Permit {
-    function permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external;
-    function nonces(address owner) external view returns (uint256);
-}
-
 interface IMentoBroker {
     function getAmountOut(
         address exchangeProvider,
@@ -32,18 +27,32 @@ interface IMentoBroker {
     ) external returns (uint256);
 }
 
+interface IChocoLedger {
+    function logAttemptFor(
+        address payer,
+        uint8   kind,
+        address recipientWallet,
+        uint256 usdcAmount,
+        uint256 ckesAmount,
+        string  calldata note
+    ) external returns (uint256);
+}
+
 /// @title ChocoCkesSwap
 /// @notice One-shot USDC -> cKES swap wrapper around the Mento Broker. The caller approves USDC
-/// to this contract, calls swap(), and receives cKES. The wrapper holds no funds between calls.
+/// to this contract, calls swapAndSend(), and the recipient receives cKES directly.
 /// Two oracle-priced hops are required on Celo Mainnet: USDC -> USDm -> cKES (no direct pool).
+/// If a ChocoLedger address is configured, every successful swapAndSend is logged there automatically
+/// so all send-now transactions appear on the single ChocoLedger contract on Celoscan.
 contract ChocoCkesSwap {
-    IMentoBroker public immutable broker;
-    address public immutable exchangeProvider;
-    bytes32 public immutable usdcToUsdmId;
-    bytes32 public immutable usdmToCkesId;
-    IERC20 public immutable usdc;
-    IERC20 public immutable usdm;
-    IERC20 public immutable ckes;
+    IMentoBroker   public immutable broker;
+    address        public immutable exchangeProvider;
+    bytes32        public immutable usdcToUsdmId;
+    bytes32        public immutable usdmToCkesId;
+    IERC20         public immutable usdc;
+    IERC20         public immutable usdm;
+    IERC20         public immutable ckes;
+    IChocoLedger   public immutable ledger; // address(0) = logging disabled
 
     event UsdcToCkesSwap(
         address indexed payer,
@@ -63,15 +72,17 @@ contract ChocoCkesSwap {
         bytes32 usdmToCkesExchangeId,
         address usdcAddress,
         address usdmAddress,
-        address ckesAddress
+        address ckesAddress,
+        address ledgerAddress
     ) {
-        broker = IMentoBroker(brokerAddress);
+        broker           = IMentoBroker(brokerAddress);
         exchangeProvider = exchangeProviderAddress;
-        usdcToUsdmId = usdcToUsdmExchangeId;
-        usdmToCkesId = usdmToCkesExchangeId;
-        usdc = IERC20(usdcAddress);
-        usdm = IERC20(usdmAddress);
-        ckes = IERC20(ckesAddress);
+        usdcToUsdmId     = usdcToUsdmExchangeId;
+        usdmToCkesId     = usdmToCkesExchangeId;
+        usdc             = IERC20(usdcAddress);
+        usdm             = IERC20(usdmAddress);
+        ckes             = IERC20(ckesAddress);
+        ledger           = IChocoLedger(ledgerAddress);
     }
 
     /// @notice Quote the cKES output for a USDC input (combined two-hop quote).
@@ -81,41 +92,9 @@ contract ChocoCkesSwap {
         return broker.getAmountOut(exchangeProvider, usdmToCkesId, address(usdm), address(ckes), usdmOut);
     }
 
-    /// @notice Pull `usdcAmountIn` from the caller (transferFrom), run two Mento hops, and send the
-    /// resulting cKES to the caller. Reverts if the final cKES received is below `ckesMinOut`.
-    function swap(uint256 usdcAmountIn, uint256 ckesMinOut) external returns (uint256 ckesAmountOut) {
-        if (usdcAmountIn == 0) revert ZeroAmount();
-        require(usdc.transferFrom(msg.sender, address(this), usdcAmountIn), "usdc pull");
-
-        require(usdc.approve(address(broker), usdcAmountIn), "usdc approve");
-        uint256 usdmQuote = broker.getAmountOut(exchangeProvider, usdcToUsdmId, address(usdc), address(usdm), usdcAmountIn);
-        uint256 usdmReceived = broker.swapIn(
-            exchangeProvider,
-            usdcToUsdmId,
-            address(usdc),
-            address(usdm),
-            usdcAmountIn,
-            (usdmQuote * 985) / 1000
-        );
-
-        require(usdm.approve(address(broker), usdmReceived), "usdm approve");
-        uint256 ckesQuote = broker.getAmountOut(exchangeProvider, usdmToCkesId, address(usdm), address(ckes), usdmReceived);
-        ckesAmountOut = broker.swapIn(
-            exchangeProvider,
-            usdmToCkesId,
-            address(usdm),
-            address(ckes),
-            usdmReceived,
-            (ckesQuote * 985) / 1000
-        );
-
-        if (ckesAmountOut < ckesMinOut) revert SwapShort(ckesAmountOut, ckesMinOut);
-
-        require(ckes.transfer(msg.sender, ckesAmountOut), "ckes deliver");
-        emit UsdcToCkesSwap(msg.sender, usdcAmountIn, usdmReceived, ckesAmountOut, ckesMinOut);
-    }
     /// @notice Swap USDC to cKES via two Mento hops and send the result directly to `recipient`.
-    /// Reduces user confirmations from 5 to 2: one approve + this call.
+    /// On success the swap is auto-logged to ChocoLedger (if configured) so it appears alongside
+    /// scheduled payments in the unified on-chain history — no extra user transaction required.
     function swapAndSend(
         address recipient,
         uint256 usdcAmountIn,
@@ -144,43 +123,11 @@ contract ChocoCkesSwap {
         if (ckesAmountOut < ckesMinOut) revert SwapShort(ckesAmountOut, ckesMinOut);
         require(ckes.transfer(recipient, ckesAmountOut), "ckes deliver");
         emit UsdcToCkesSwap(msg.sender, usdcAmountIn, usdmReceived, ckesAmountOut, ckesMinOut);
-    }
 
-    /// @notice Like swapAndSend but uses an EIP-2612 permit instead of a prior approve(), so
-    /// the caller only needs one off-chain typed-data signature + this single on-chain call.
-    /// Eliminates the separate "Approve unknown contract" dialog in MiniPay.
-    function swapAndSendWithPermit(
-        address recipient,
-        uint256 usdcAmountIn,
-        uint256 ckesMinOut,
-        uint256 deadline,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external returns (uint256 ckesAmountOut) {
-        if (usdcAmountIn == 0) revert ZeroAmount();
-        require(recipient != address(0), "bad recipient");
-        IERC20Permit(address(usdc)).permit(msg.sender, address(this), usdcAmountIn, deadline, v, r, s);
-        require(usdc.transferFrom(msg.sender, address(this), usdcAmountIn), "usdc pull");
-
-        require(usdc.approve(address(broker), usdcAmountIn), "usdc approve");
-        uint256 usdmQuote = broker.getAmountOut(exchangeProvider, usdcToUsdmId, address(usdc), address(usdm), usdcAmountIn);
-        uint256 usdmReceived = broker.swapIn(
-            exchangeProvider, usdcToUsdmId,
-            address(usdc), address(usdm),
-            usdcAmountIn, (usdmQuote * 985) / 1000
-        );
-
-        require(usdm.approve(address(broker), usdmReceived), "usdm approve");
-        uint256 ckesQuote = broker.getAmountOut(exchangeProvider, usdmToCkesId, address(usdm), address(ckes), usdmReceived);
-        ckesAmountOut = broker.swapIn(
-            exchangeProvider, usdmToCkesId,
-            address(usdm), address(ckes),
-            usdmReceived, (ckesQuote * 985) / 1000
-        );
-
-        if (ckesAmountOut < ckesMinOut) revert SwapShort(ckesAmountOut, ckesMinOut);
-        require(ckes.transfer(recipient, ckesAmountOut), "ckes deliver");
-        emit UsdcToCkesSwap(msg.sender, usdcAmountIn, usdmReceived, ckesAmountOut, ckesMinOut);
+        // Log to ChocoLedger so send-now txs appear alongside schedule settlements in one place.
+        // Wrapped in try/catch: a ledger failure never reverts the transfer that already landed.
+        if (address(ledger) != address(0)) {
+            try ledger.logAttemptFor(msg.sender, 0, recipient, usdcAmountIn, ckesAmountOut, "send-now") {} catch {}
+        }
     }
 }

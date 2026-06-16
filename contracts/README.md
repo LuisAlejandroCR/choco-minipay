@@ -1,61 +1,276 @@
-# Choco Contracts - Celo Mainnet
+# Choco Contracts — Celo Mainnet
 
-Three contracts for Choco MiniPay remittances:
+Smart contracts powering Choco remittances on Celo. No contract holds user funds between calls.
 
-- **ChocoScheduleRegistry**: Fund-less registry for recurring transfers
-- **ChocoAuditLog**: Append-only log of all transfer attempts
-- **ChocoCkesSwap**: USDC→cKES swap wrapper (optional)
+## Contract Architecture
 
-None hold user funds. Users approve tokens separately; contracts only coordinate execution.
+```
+User wallet
+    │
+    │  approve(ChocoGateway, usdcAmount)
+    │  swapAndSend(recipient, usdcAmount, ckesMinOut)
+    ▼
+┌─────────────────────────────────────────────────────┐
+│  ChocoGateway                                       │
+│  · Deducts protocol fee (default 0.25%) → feeWallet │
+│  · Swaps USDC → USDm → cKES via Mento Broker        │
+│  · Delivers cKES directly to recipient              │
+│  · Stores TxRecord on-chain (queryable)             │
+│  · Calls ChocoLedger.logAttemptFor()                │
+└──────────────┬──────────────────────────────────────┘
+               │ logAttemptFor(payer, ...)
+               ▼
+┌─────────────────────────────────────────────────────┐
+│  ChocoLedger                                        │
+│  · AttemptLogged  — every send-now (via Gateway)    │
+│  · MonthlyScheduleCreated — user creates a plan     │
+│  · SettlementReceipt — keeper executes monthly pay  │
+│  · totalTransactions() — unified counter            │
+└─────────────────────────────────────────────────────┘
+```
 
-## Quick Deploy to Mainnet
+### Active contracts
 
-### 1. Setup
+| Contract | Purpose | Deploy script |
+|---|---|---|
+| **ChocoGateway** | Fee collection, USDC→cKES swap, on-chain tx storage | `deploy:gateway` |
+| **ChocoLedger** | Unified history: schedules + settlements + send-now audit | `deploy:ledger` |
+
+### Legacy contracts (do not redeploy)
+
+| Contract | Superseded by |
+|---|---|
+| `ChocoCkesSwap` | `ChocoGateway` |
+| `ChocoScheduleRegistry` | `ChocoLedger` |
+| `ChocoAuditLog` | `ChocoLedger` |
+
+---
+
+## Quick start
 
 ```bash
 cd contracts
 npm install
-cp .env.example .env
 ```
 
-Edit `.env`:
-```bash
-DEPLOYER_PRIVATE_KEY=0x...your_wallet_private_key...
-KEEPER_ADDRESS=0x...your_erc8004_agent_address...
+Set env vars (PowerShell):
+
+```powershell
+$env:DEPLOYER_PRIVATE_KEY  = "0x..."          # wallet that pays deploy gas (~7 CELO needed)
+$env:KEEPER_ADDRESS        = "0x..."          # EOA that will execute monthly settlements
+$env:FEE_RECIPIENT_ADDRESS = "0x..."          # wallet that receives the protocol fee
+$env:FEE_BPS               = "25"             # 25 = 0.25%; range 0–100
+$env:CELO_RPC_URL          = "https://rpc.ankr.com/celo"
 ```
 
-### 2. Deploy
+### Deploy order
 
-**Registry + Audit:**
+**Step 1 — ChocoLedger** (must come first; Gateway wires into it)
+
 ```bash
-npm run deploy:mainnet
+npm run deploy:ledger
 ```
 
-**Swap (optional):**
-```bash
-npm run deploy:swap
+Prints:
 ```
-
-### 3. Update Frontend
-
-Copy output addresses to `../.env`:
-```bash
-VITE_REGISTRY_ADDRESS=0x...
-VITE_AUDIT_CONTRACT_ADDRESS=0x...
+VITE_LEDGER_ADDRESS=0x...
+VITE_LEDGER_DEPLOY_BLOCK=...
 VITE_SETTLEMENT_SPENDER_ADDRESS=0x...
-VITE_REGISTRY_DEPLOY_BLOCK=...
-VITE_CKES_SWAP_CONTRACT_ADDRESS=0x...
 ```
 
-## How It Works
+**Step 2 — ChocoGateway**
 
-1. **Send Now**: User connects wallet → Choco reads balances → USDC routes through Mento to cKES → Direct transfer
-2. **Schedule**: User approves USDC to registry → Creates monthly schedule on-chain → Keeper executes + logs receipt
+```powershell
+$env:VITE_LEDGER_ADDRESS = "<from step 1>"
+npm run deploy:gateway
+```
 
-Registry is keyed by wallet address. Each user has isolated schedules without needing separate contract deployments.
+Prints:
+```
+VITE_CKES_SWAP_CONTRACT_ADDRESS=0x...
+VITE_CKES_SWAP_DEPLOY_BLOCK=...
+```
 
-## Security
+Also prints the `cast send` command to authorize ChocoGateway on ChocoLedger — run it before going live.
 
-⚠️ `.env` is gitignored - NEVER commit private keys
-- Deploy cost: ~0.06 CELO (~$0.03)
-- Verify on [Celoscan](https://celoscan.io/)
+**Step 3 — Authorize ChocoGateway on ChocoLedger**
+
+```bash
+cast send <LEDGER_ADDRESS> "setSwapContract(address,bool)" <GATEWAY_ADDRESS> true \
+  --rpc-url https://rpc.ankr.com/celo \
+  --private-key $DEPLOYER_PRIVATE_KEY
+```
+
+Or use Celoscan → Write Contract → `setSwapContract`.
+
+---
+
+## Frontend env vars
+
+Add to Vercel (or `.env.local` for local dev):
+
+```bash
+# Active
+VITE_LEDGER_ADDRESS=0x...
+VITE_LEDGER_DEPLOY_BLOCK=...
+VITE_SETTLEMENT_SPENDER_ADDRESS=0x...   # keeper EOA
+VITE_CKES_SWAP_CONTRACT_ADDRESS=0x...   # points to ChocoGateway
+VITE_FEE_CURRENCY_ADDRESS=0x...         # Celo fee currency (cUSD or native)
+
+# Fee config (informational; actual values are in the deployed Gateway)
+FEE_RECIPIENT_ADDRESS=0x...
+FEE_BPS=25
+```
+
+---
+
+## ChocoGateway — developer reference
+
+### Key functions
+
+```solidity
+// Quote cKES output after fee deduction (use for ckesMinOut calculation)
+function quote(uint256 usdcAmountIn) external view returns (uint256 ckesAmountOut);
+
+// Full breakdown: cKES out + fee in USDC + net USDC entering the swap
+function quoteWithFee(uint256 usdcAmountIn) external view
+    returns (uint256 ckesAmountOut, uint256 feeUsdc, uint256 swapUsdc);
+
+// Main entry point — caller must approve usdcAmountIn to this contract first
+function swapAndSend(address recipient, uint256 usdcAmountIn, uint256 ckesMinOut)
+    external returns (uint256 ckesAmountOut);
+
+// Query a single transaction by its sequential ID
+function getTx(uint256 txId) external view returns (TxRecord memory);
+
+// All tx IDs for a given payer wallet
+function getTxsByPayer(address payer) external view returns (uint256[] memory);
+
+// Cumulative protocol fee earned (USDC, 6 decimals)
+function totalFeeEarned() external view returns (uint256);
+
+// Admin: update fee config (capped at 1%)
+function setFee(address newFeeRecipient, uint16 newFeeBps) external;
+
+// Admin: transfer contract ownership
+function transferAdmin(address newAdmin) external;
+```
+
+### TxRecord struct
+
+```solidity
+struct TxRecord {
+    address payer;       // wallet that called swapAndSend
+    address recipient;   // cKES destination
+    uint256 usdcIn;      // full USDC pulled from payer (6 decimals)
+    uint256 feeUsdc;     // protocol fee deducted before swap (6 decimals)
+    uint256 ckesOut;     // cKES delivered to recipient (18 decimals)
+    uint64  timestamp;   // block.timestamp at execution
+}
+```
+
+### Events
+
+```solidity
+// Backwards-compatible — read by celo.js history reader
+event UsdcToCkesSwap(address indexed payer, uint256 usdcIn, uint256 usdmMid, uint256 ckesOut, uint256 ckesMinOut);
+
+// Rich event for analytics and Celoscan visibility
+event SwapRecorded(uint256 indexed txId, address indexed payer, address indexed recipient, uint256 usdcIn, uint256 feeUsdc, uint256 ckesOut);
+
+// Emitted when admin changes fee config
+event FeeUpdated(address indexed feeRecipient, uint16 feeBps);
+```
+
+### Fee model
+
+```
+usdcAmountIn  ──► feeUsdc = usdcAmountIn × feeBps / 10000  ──► feeRecipient
+              └─► swapUsdc = usdcAmountIn - feeUsdc         ──► Mento Broker
+```
+
+Default: `feeBps = 25` → **0.25%** (~10× cheaper than Western Union, in line with Wise).
+Admin can adjust at any time via `setFee()` without redeploying.
+
+---
+
+## ChocoLedger — developer reference
+
+### Key functions
+
+```solidity
+// Schedule management (called by user wallet)
+function createMonthlySchedule(...) external returns (uint256 id);
+function cancelSchedule(uint256 id) external;
+
+// Keeper-only: record a settled payment and auto-log to audit trail
+function recordSettlement(uint256 id, bool success, ...) external;
+
+// Authorized swap contracts only: log a send-now on behalf of the real payer
+function logAttemptFor(address payer, uint8 kind, address recipient, uint256 usdcAmount, uint256 ckesAmount, string calldata note) external returns (uint256);
+
+// Admin: register/deregister an authorized swap contract
+function setSwapContract(address swapContract, bool authorized) external;
+
+// Views
+function totalTransactions() external view returns (uint256);
+function getSchedule(uint256 id) external view returns (Schedule memory);
+function getAttempt(uint256 attemptId) external view returns (AuditEntry memory);
+function getAttemptsBySender(address sender) external view returns (uint256[] memory);
+```
+
+### Events (all visible on Celoscan)
+
+| Event | Emitted by | When |
+|---|---|---|
+| `MonthlyScheduleCreated` | user | `createMonthlySchedule` |
+| `ScheduleCancelled` | user or admin | `cancelSchedule` |
+| `SettlementReceipt` | keeper | `recordSettlement` |
+| `AttemptLogged` | Gateway (via `logAttemptFor`) or keeper | every send-now + settlement |
+
+### AttemptKind enum
+
+```solidity
+enum AttemptKind { SUCCESS, FAILED_SWAP, FAILED_TRANSFER, INSUFFICIENT_FUNDS, REJECTED }
+```
+
+---
+
+## Reading history with viem
+
+```js
+// All send-now swaps by a wallet
+const swapLogs = await publicClient.getLogs({
+  address: GATEWAY_ADDRESS,
+  event: parseAbiItem('event UsdcToCkesSwap(address indexed payer, uint256 usdcIn, uint256 usdmMid, uint256 ckesOut, uint256 ckesMinOut)'),
+  args: { payer: walletAddress },
+  fromBlock: BigInt(DEPLOY_BLOCK),
+});
+
+// All schedule creations
+const scheduleLogs = await publicClient.getLogs({
+  address: LEDGER_ADDRESS,
+  event: parseAbiItem('event MonthlyScheduleCreated(uint256 indexed id, address indexed owner, ...)'),
+  args: { owner: walletAddress },
+  fromBlock: BigInt(LEDGER_DEPLOY_BLOCK),
+});
+
+// Unified audit trail for a wallet (send-now + settlements)
+const ids = await publicClient.readContract({
+  address: LEDGER_ADDRESS,
+  abi: LEDGER_ABI,
+  functionName: 'getAttemptsBySender',
+  args: [walletAddress],
+});
+```
+
+---
+
+## Security notes
+
+- `.env` is gitignored — never commit private keys
+- `ChocoGateway` holds no funds between calls; any USDC/cKES balance after a tx is a bug
+- `logAttemptFor` is gated by `authorizedSwapContracts` — only registered Gateway addresses can write on behalf of payers
+- `setFee` is capped at 100 bps (1%) in the contract; no admin can set a higher fee without redeploying
+- Verify deployed bytecode on [Celoscan](https://celoscan.io/) after every deploy
+- Deploy cost: ~0.1 CELO per contract

@@ -55,6 +55,9 @@ contract ChocoLedger {
     mapping(uint256 => AuditEntry) public attempts;
     mapping(address => uint256[]) private attemptsBySender;
 
+    /// @notice Swap contracts authorized to call logAttemptFor on behalf of their payers.
+    mapping(address => bool) public authorizedSwapContracts;
+
     // ─── Events ────────────────────────────────────────────────────────────
 
     event KeeperUpdated(address indexed keeper);
@@ -116,6 +119,10 @@ contract ChocoLedger {
     function setKeeper(address nextKeeper) external onlyAdmin {
         keeper = nextKeeper;
         emit KeeperUpdated(nextKeeper);
+    }
+
+    function setSwapContract(address swapContract, bool authorized) external onlyAdmin {
+        authorizedSwapContracts[swapContract] = authorized;
     }
 
     // ─── Schedule management ───────────────────────────────────────────────
@@ -214,6 +221,24 @@ contract ChocoLedger {
         return _logAttempt(
             msg.sender, kind, receiptLabelHash, recipientWallet,
             usdcAmount, ckesAmount, swapTxHash, paymentTxHash, note
+        );
+    }
+
+    /// @notice Called by an authorized ChocoCkesSwap contract to record a swap on behalf of the
+    ///         actual payer. This is what makes all send-now transactions visible on ChocoLedger
+    ///         without requiring a separate user-signed tx.
+    function logAttemptFor(
+        address     payer,
+        AttemptKind kind,
+        address     recipientWallet,
+        uint256     usdcAmount,
+        uint256     ckesAmount,
+        string      calldata note
+    ) external returns (uint256 attemptId) {
+        require(authorizedSwapContracts[msg.sender], "not authorized");
+        return _logAttempt(
+            payer, kind, bytes32(0), recipientWallet,
+            usdcAmount, ckesAmount, bytes32(0), bytes32(0), note
         );
     }
 
