@@ -23,18 +23,28 @@ Opens `http://127.0.0.1:5173` with demo config (points to `choco-azure.vercel.ap
 ### 1. Deploy contracts (mainnet)
 
 ```powershell
-# Unified ledger — replaces the old ChocoScheduleRegistry + ChocoAuditLog pair
+# Step 1a — ChocoLedger (unified history: schedules + settlements + send-now audit)
 $env:DEPLOYER_PRIVATE_KEY = "0x..."
-$env:KEEPER_ADDRESS = "0x..."
+$env:KEEPER_ADDRESS       = "0x..."
 npm --prefix contracts run deploy:ledger
+# Prints: VITE_LEDGER_ADDRESS, VITE_LEDGER_DEPLOY_BLOCK, VITE_SETTLEMENT_SPENDER_ADDRESS
 
-# Swap wrapper (for Cepolia live quotes)
-npm --prefix contracts run deploy:swap
+# Step 1b — ChocoGateway (fee, USDC→cKES swap, TxRecord storage)
+$env:VITE_LEDGER_ADDRESS = "<from step 1a>"
+npm --prefix contracts run deploy:gateway
+# Prints: VITE_CKES_SWAP_CONTRACT_ADDRESS, VITE_CKES_SWAP_DEPLOY_BLOCK
+# Also prints the cast send command to authorize Gateway on Ledger — run it now.
 ```
 
-The deploy script prints `VITE_LEDGER_ADDRESS` and `VITE_LEDGER_DEPLOY_BLOCK` — note both values for step 3.
+Authorize ChocoGateway on ChocoLedger (printed by the deploy script):
 
-Note the deployed addresses and block numbers from Celoscan.
+```bash
+cast send <LEDGER_ADDRESS> "setSwapContract(address,bool)" <GATEWAY_ADDRESS> true \
+  --rpc-url https://forno.celo.org \
+  --private-key $DEPLOYER_PRIVATE_KEY
+```
+
+Note all deployed addresses and block numbers from the output and Celoscan.
 
 ### 2. Supabase setup (optional)
 
@@ -90,7 +100,7 @@ VITE_KESM_ADDRESS=0x456a3D042C0DbD3db53D5489e98dFb038553B0d0
 VITE_LEDGER_ADDRESS=<ChocoLedger address printed by deploy:ledger>
 VITE_LEDGER_DEPLOY_BLOCK=<block number printed by deploy:ledger>
 VITE_SETTLEMENT_SPENDER_ADDRESS=<keeper EOA>
-VITE_CKES_SWAP_CONTRACT_ADDRESS=<ChocoCkesSwap address>
+VITE_CKES_SWAP_CONTRACT_ADDRESS=<ChocoGateway address printed by deploy:gateway>
 
 # Supabase (from step 2, optional — leave blank to disable contact persistence)
 VITE_SUPABASE_URL=https://xxxxx.supabase.co
@@ -136,10 +146,11 @@ For content-addressed `agentURI`:
 
 1. Open `https://choco-minipay.vercel.app` in MiniPay on Android
 2. Connect wallet
-3. Test send-now: `send <address> 1 USDC now` → Build → Review → Confirm
+3. Test send-now: type `send <address> 5 cKES now` → Build → Review → Confirm
+   - Verify recipient receives **exactly 5 cKES** (exact-output path)
 4. Test schedule: `send <address> 1000 cKES monthly` → Build → Confirm
-5. Check History tab shows the movement
-6. Check Celoscan for the audit log event
+5. Check History tab shows both movements
+6. Check Celoscan for `AttemptLogged` on ChocoLedger (logged by ChocoGateway)
 
 ## Demo Deployment (choco-azure)
 
