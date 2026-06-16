@@ -1750,6 +1750,12 @@ a {
   opacity: 1;
 }
 
+/* Warning variant (voice blocked) — amber tint vs red error tint */
+.voice-warn-banner {
+  border-color: rgba(217, 166, 121, 0.35);
+  background: rgba(217, 166, 121, 0.1);
+}
+
 .pause-mark i {
   width: 4px;
   height: 17px;

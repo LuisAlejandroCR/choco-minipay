@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { ArrowRight, CalendarDays, CircleDollarSign, Mic, Trash2 } from "lucide-react";
 import { ChocoMark } from "../components/ChocoMark.jsx";
 import { useVoiceRecorder } from "../modules/voice/useVoiceRecorder.js";
@@ -29,6 +30,8 @@ export function PlanEditorScreen({
     clearVoiceError,
   } = useVoiceRecorder({ onTranscript: setCommand });
 
+  const [voiceWarn, setVoiceWarn] = useState(false);
+  const warnTimer = useRef(null);
   const hasText = command.trim().length > 0;
   const title = mode === "update"
     ? "Update plan"
@@ -56,8 +59,16 @@ export function PlanEditorScreen({
       void onBuild();
       return;
     }
-    if (!isVoiceBlocked) startRecording();
+    if (isVoiceBlocked) {
+      setVoiceWarn(true);
+      clearTimeout(warnTimer.current);
+      warnTimer.current = setTimeout(() => setVoiceWarn(false), 4000);
+      return;
+    }
+    startRecording();
   }
+
+  useEffect(() => () => clearTimeout(warnTimer.current), []);
 
   return (
     <div className="screen editor-screen">
@@ -126,15 +137,7 @@ export function PlanEditorScreen({
             <button
               className={`composer-action ${hasText ? "send" : "mic"}`}
               type="button"
-              aria-label={
-                hasText
-                  ? "Review transfer"
-                  : isVoiceBlocked
-                    ? "Voice unavailable — type your instruction"
-                    : "Record voice command"
-              }
-              title={!hasText && isVoiceBlocked ? "Voice is not supported in this browser" : undefined}
-              disabled={!hasText && isVoiceBlocked}
+              aria-label={hasText ? "Review transfer" : "Record voice command"}
               onClick={submitComposer}
             >
               {hasText ? <ArrowRight size={24} strokeWidth={3} /> : <Mic size={20} strokeWidth={2.6} />}
@@ -161,6 +164,13 @@ export function PlanEditorScreen({
       {statusMessage && (
         <div className="voice-error-banner" role="alert">
           <span>{statusMessage}</span>
+        </div>
+      )}
+
+      {voiceWarn && (
+        <div className="voice-error-banner voice-warn-banner" role="alert">
+          <span>Voice is not available in this browser — type your instruction instead.</span>
+          <button type="button" aria-label="Dismiss" onClick={() => setVoiceWarn(false)}>✕</button>
         </div>
       )}
 
