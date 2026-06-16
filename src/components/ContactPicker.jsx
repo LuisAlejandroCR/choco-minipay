@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Check, Pencil, Trash2, X } from "lucide-react";
 import { isAddress } from "viem";
 import { listContacts, removeContact, upsertContact } from "../lib/contacts.js";
+import { ensureSupabaseAuth } from "../lib/supabase.js";
 
 function shortAddr(addr) {
   const a = String(addr || "");
@@ -18,10 +19,17 @@ export function ContactPicker({ ownerWallet, onSelect, onClose, inline = false }
 
   useEffect(() => {
     if (!ownerWallet) { setLoading(false); return; }
-    listContacts(ownerWallet)
-      .then(setContacts)
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    let active = true;
+    (async () => {
+      try { await ensureSupabaseAuth(ownerWallet); } catch {}
+      if (!active) return;
+      try {
+        const data = await listContacts(ownerWallet);
+        if (active) setContacts(data);
+      } catch {}
+      if (active) setLoading(false);
+    })();
+    return () => { active = false; };
   }, [ownerWallet]);
 
   async function saveEdit(contact) {
