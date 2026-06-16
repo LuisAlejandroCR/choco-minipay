@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CalendarDays, CircleDollarSign, Clock, Eye, EyeOff, ExternalLink, List, ShieldCheck, X } from "lucide-react";
+import { ArrowDownLeft, CalendarDays, CircleDollarSign, Eye, EyeOff, ExternalLink, ShieldCheck, X } from "lucide-react";
 import { ChocoMark } from "../components/ChocoMark.jsx";
 import { BottomNav } from "../components/BottomNav.jsx";
 import { formatWalletAddress } from "../modules/wallet/useMiniPayWallet.js";
@@ -29,8 +29,28 @@ function DemoPrompt({ liveDemoUrl, onDismiss, onRunDemo }) {
   );
 }
 
+// Compact single-line preview used in the Recent activity section on home.
+function RecentRow({ tx, onSelect }) {
+  const isPlan = tx.type === "Plan confirmed" || tx.type === "Plan updated" || tx.status === "Scheduled";
+  return (
+    <button className="recent-row" type="button" onClick={() => onSelect(tx.id)}>
+      <span className={`recent-dot ${isPlan ? "plan" : "sent"}`}>
+        {isPlan ? <CalendarDays size={14} /> : <ArrowDownLeft size={14} />}
+      </span>
+      <span className="recent-info">
+        <b>{tx.recipient}</b>
+        <small>{tx.type}</small>
+      </span>
+      <span className={`recent-amount ${isPlan ? "plan" : "sent"}`}>
+        {isPlan ? "" : "−"}{tx.amount} <small>{tx.asset}</small>
+      </span>
+    </button>
+  );
+}
+
 export function PlanScreen({
   plans,
+  transactions = [],
   isWalletVerified,
   wallet,
   balances,
@@ -41,6 +61,7 @@ export function PlanScreen({
   onSendNow,
   onNewSchedule,
   onSelectPlan,
+  onSelectTransaction,
   showDemoPrompt = false,
   liveDemoUrl = "",
   onDismissDemo = () => {},
@@ -54,6 +75,7 @@ export function PlanScreen({
   const usdcBalance = visibleBalances.find((b) => b.key === "usdc");
   const primaryAmount = usdcBalance?.formatted ?? visibleBalances[0]?.formatted ?? "0.00";
   const walletShort = formatWalletAddress(wallet.address);
+  const recentTx = transactions.slice(0, 2);
 
   const heroSub = isWalletVerified
     ? wallet.isReadOnly
@@ -80,7 +102,7 @@ export function PlanScreen({
   return (
     <div className="screen plan-screen">
 
-      {/* ── HERO ────────────────────────────────────────────────────── */}
+      {/* ── HERO ─────────────────────────────────────────── */}
       <div className="home-hero">
         <div className="home-actions">
           <button type="button" aria-label="Profile"><ChocoMark size="tiny" /></button>
@@ -119,24 +141,17 @@ export function PlanScreen({
         )}
       </div>
 
-      {/* ── QUICK ACTIONS ───────────────────────────────────────────── */}
+      {/* ── ACTIONS ─────────────────────────────────────────── */}
       {isWalletVerified ? (
+        // Two primary actions only — Plans and History are already in the bottom nav.
         <div className="home-quick-actions" aria-label="Quick actions">
-          <button type="button" className="quick-action" onClick={onSendNow}>
-            <span className="quick-action-icon"><CircleDollarSign size={22} /></span>
-            <span>Send</span>
+          <button type="button" className="quick-action primary" onClick={onSendNow}>
+            <span className="quick-action-icon"><CircleDollarSign size={24} /></span>
+            <span>Send now</span>
           </button>
           <button type="button" className="quick-action" onClick={onNewSchedule}>
-            <span className="quick-action-icon"><CalendarDays size={22} /></span>
-            <span>Schedule</span>
-          </button>
-          <button type="button" className="quick-action" onClick={onPlans}>
-            <span className="quick-action-icon"><List size={22} /></span>
-            <span>Plans</span>
-          </button>
-          <button type="button" className="quick-action" onClick={onHistory}>
-            <span className="quick-action-icon"><Clock size={22} /></span>
-            <span>History</span>
+            <span className="quick-action-icon"><CalendarDays size={24} /></span>
+            <span>New schedule</span>
           </button>
         </div>
       ) : (
@@ -154,16 +169,17 @@ export function PlanScreen({
         </button>
       )}
 
-      {/* ── WALLET ASSETS + SCHEDULED PLANS ─────────────────────────── */}
+      {/* ── WALLET ASSETS + SCHEDULES + RECENT ──────────────── */}
       {isWalletVerified && (
         <section className="home-list" aria-label="Wallet overview">
+
+          {/* Compact asset chips */}
           <div className="section-heading">
             <span>Wallet assets</span>
             {visibleBalances.length > 1 && (
               <small className="section-count">{visibleBalances.length} assets</small>
             )}
           </div>
-
           {visibleBalances.length > 0 ? (
             <div className="balance-chips">
               {visibleBalances.map((item) => (
@@ -177,6 +193,7 @@ export function PlanScreen({
             <div className="empty-inline">No supported balances in this wallet yet.</div>
           )}
 
+          {/* Scheduled transfers — up to 3 with see-all if more */}
           {plans.length > 0 && (
             <>
               <div className="section-heading secondary-heading">
@@ -207,6 +224,22 @@ export function PlanScreen({
               )}
             </>
           )}
+
+          {/* Recent activity — last 2 transactions */}
+          {recentTx.length > 0 && (
+            <>
+              <div className="section-heading secondary-heading">
+                <span>Recent activity</span>
+                <button className="section-link" type="button" onClick={onHistory}>
+                  See all
+                </button>
+              </div>
+              {recentTx.map((item) => (
+                <RecentRow key={item.id} tx={item} onSelect={onSelectTransaction} />
+              ))}
+            </>
+          )}
+
         </section>
       )}
 
