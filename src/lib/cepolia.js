@@ -178,16 +178,18 @@ export async function summariseTransfer({ account, recipient, intent, walletRead
   const usdcRequested = Number(intent?.sourceAmount || 0);
   const ckesRequested = Number(intent?.amountKes || intent?.destinationAmount || 0);
 
-  // Get live cKES quote from Mento
+  // When the user stated an exact cKES target (amountKes), that IS what recipient gets —
+  // no need to quote. Only live-quote when cKES is not explicitly known (USDC-only intent).
   let ckesRaw = 0n;
   let liveQuote = false;
-  if (usdcRequested > 0) {
+  if (ckesRequested > 0) {
+    ckesRaw = parseUnits(String(ckesRequested), 18);
+  } else if (usdcRequested > 0) {
     try {
       ckesRaw = await quoteUsdcToCkes(usdcRequested);
       liveQuote = ckesRaw > 0n;
     } catch {
-      // Quote failure: use static estimate as fallback
-      ckesRaw = ckesRequested ? parseUnits(String(Math.max(1, Math.floor(ckesRequested))), 18) : 0n;
+      ckesRaw = 0n;
     }
   }
   const ckesFloat = Number(formatUnits(ckesRaw, 18));
