@@ -47,9 +47,9 @@ const SCREEN_TITLES = {
   receiptDetail: "Receipt",
   deletePlan: "Delete",
   demoTour: "Demo",
-  processing: "Planning",
+  processing: "Preparing",
   duplicateGuard: "Choco",
-  review: "Quote",
+  review: "Confirm",
   walletGate: "Wallet",
   plan: "Home",
 };

@@ -101,7 +101,7 @@ to avoid asking the user to sign just to record a non-event.
 |---|---|
 | Contact labels (`dad` → `0x…`) | Supabase `contacts` (user-authorized only) |
 | Plans (scheduled transfers) | ChocoLedger: `MonthlyScheduleCreated` events |
-| Send-now movements | ChocoGateway: `UsdcToCkesSwap` + cKES `Transfer` events |
+| Send-now movements | Active + legacy ChocoGateway contracts: `UsdcToCkesSwap` + cKES `Transfer` events |
 | Audit trail | ChocoLedger: `AttemptLogged` events |
 | User session / receipts | Nowhere — all state derived from wallet + chain |
 
@@ -109,6 +109,8 @@ to avoid asking the user to sign just to record a non-event.
 
 ```bash
 VITE_CKES_SWAP_CONTRACT_ADDRESS=0x...   # ChocoGateway address
+VITE_CKES_SWAP_DEPLOY_BLOCK=...         # earliest block among configured gateways
+VITE_CKES_SWAP_CONTRACT_ADDRESSES=0x...,0x...
 VITE_LEDGER_ADDRESS=0x...               # ChocoLedger address
 VITE_SUPABASE_URL=                      # optional — leave blank to disable contact persistence
 VITE_SUPABASE_ANON_KEY=
@@ -121,7 +123,7 @@ once when enabling it.
 ## Deployment order
 
 1. Deploy **ChocoLedger** → set `VITE_LEDGER_ADDRESS`, `VITE_LEDGER_DEPLOY_BLOCK`, `VITE_SETTLEMENT_SPENDER_ADDRESS`.
-2. Deploy **ChocoGateway** (needs `VITE_LEDGER_ADDRESS`) → set `VITE_CKES_SWAP_CONTRACT_ADDRESS`.
+2. Deploy **ChocoGateway** (needs `VITE_LEDGER_ADDRESS`) → set `VITE_CKES_SWAP_CONTRACT_ADDRESS`, `VITE_CKES_SWAP_DEPLOY_BLOCK`, and include active + legacy gateways in `VITE_CKES_SWAP_CONTRACT_ADDRESSES`.
 3. Authorize ChocoGateway on ChocoLedger: `setSwapContract(gatewayAddress, true)`.
 4. (Optional) Apply `supabase/schema.sql`; set `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`.
 

@@ -105,6 +105,15 @@ contract ChocoGateway {
     );
 
     event FeeUpdated(address indexed feeRecipient, uint16 feeBps);
+    event LedgerLogFailed(
+        address indexed ledger,
+        address indexed payer,
+        address indexed recipient,
+        uint256 usdcIn,
+        uint256 ckesOut,
+        string note,
+        bytes reason
+    );
 
     // ─── Errors ────────────────────────────────────────────────────────────
 
@@ -261,7 +270,10 @@ contract ChocoGateway {
 
         // 8. Log to ChocoLedger — never blocks the send on failure
         if (address(ledger) != address(0)) {
-            try ledger.logAttemptFor(msg.sender, 0, recipient, usdcAmountIn, ckesAmountOut, "send-now") {} catch {}
+            try ledger.logAttemptFor(msg.sender, 0, recipient, usdcAmountIn, ckesAmountOut, "send-now") {}
+            catch (bytes memory reason) {
+                emit LedgerLogFailed(address(ledger), msg.sender, recipient, usdcAmountIn, ckesAmountOut, "send-now", reason);
+            }
         }
     }
 
@@ -327,7 +339,10 @@ contract ChocoGateway {
 
         // 9. Log to ChocoLedger
         if (address(ledger) != address(0)) {
-            try ledger.logAttemptFor(msg.sender, 0, recipient, usdcAmountIn, ckesExactOut, "send-now-exact") {} catch {}
+            try ledger.logAttemptFor(msg.sender, 0, recipient, usdcAmountIn, ckesExactOut, "send-now-exact") {}
+            catch (bytes memory reason) {
+                emit LedgerLogFailed(address(ledger), msg.sender, recipient, usdcAmountIn, ckesExactOut, "send-now-exact", reason);
+            }
         }
     }
 

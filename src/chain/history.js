@@ -3,7 +3,48 @@ import { APP_CONFIG } from "../lib/app-config.js";
 import { ADDRESSES, makePublicClient } from "./client.js";
 import { REGISTRY_EVENTS_ABI, SWAP_EVENT_ABI, TRANSFER_EVENT_ABI } from "./abis.js";
 
+const LOG_CHUNK_SIZE = 45_000n;
+
 // --- Private formatting helpers ---
+
+export function uniqueAddresses(values = []) {
+  const seen = new Set();
+  return values
+    .filter((value) => isAddress(value || ""))
+    .map((value) => value)
+    .filter((value) => {
+      const key = String(value).toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+function getSwapAddresses() {
+  return uniqueAddresses([
+    ...(APP_CONFIG.contracts.ckesSwapAddresses || []),
+    APP_CONFIG.contracts.ckesSwap,
+  ]);
+}
+
+async function getContractEventsChunked(publicClient, params) {
+  const latest = params.toBlock && params.toBlock !== "latest"
+    ? BigInt(params.toBlock)
+    : await publicClient.getBlockNumber();
+  const first = params.fromBlock ? BigInt(params.fromBlock) : 0n;
+  if (first > latest) return [];
+
+  const logs = [];
+  for (let from = first; from <= latest; from += LOG_CHUNK_SIZE + 1n) {
+    const to = from + LOG_CHUNK_SIZE > latest ? latest : from + LOG_CHUNK_SIZE;
+    logs.push(...await publicClient.getContractEvents({
+      ...params,
+      fromBlock: from,
+      toBlock: to,
+    }));
+  }
+  return logs;
+}
 
 function formatDay(day) {
   const value = Number(day);
@@ -126,10 +167,11 @@ function mapSettlementToMovement(log, schedule, timestamp) {
 // to a recipient produce two events in the same tx and are correlated by txHash.
 async function readSendNowHistory(publicClient, owner, fromBlock) {
   const ckesAddress = ADDRESSES.kesm;
-  const swapAddress = APP_CONFIG.contracts.ckesSwap;
+  const swapAddresses = getSwapAddresses();
+  const swapAddressSet = new Set(swapAddresses.map((address) => String(address).toLowerCase()));
 
   // Direct cKES transfers sent by the owner (pure sends or old two-hop swap path)
-  const transfers = await publicClient.getContractEvents({
+  const transfers = await getContractEventsChunked(publicClient, {
     address: ckesAddress,
     abi: TRANSFER_EVENT_ABI,
     eventName: "Transfer",
@@ -138,9 +180,9 @@ async function readSendNowHistory(publicClient, owner, fromBlock) {
     toBlock: "latest",
   });
 
-  let swaps = [];
-  if (swapAddress && isAddress(swapAddress)) {
-    swaps = await publicClient.getContractEvents({
+  const swaps = [];
+  for (const swapAddress of swapAddresses) {
+    const logs = await getContractEventsChunked(publicClient, {
       address: swapAddress,
       abi: SWAP_EVENT_ABI,
       eventName: "UsdcToCkesSwap",
@@ -148,6 +190,7 @@ async function readSendNowHistory(publicClient, owner, fromBlock) {
       fromBlock,
       toBlock: "latest",
     });
+    swaps.push(...logs);
   }
 
   const swapByTx = new Map(swaps.map((log) => [log.transactionHash, log]));
@@ -162,25 +205,29 @@ async function readSendNowHistory(publicClient, owner, fromBlock) {
   // Direct send movements: owner → recipient, skip the old swap's intermediate return leg
   const directMovements = transfers
     .filter((log) => String(log.args.to).toLowerCase() !== String(owner).toLowerCase())
-    .filter((log) => !(swapAddress && String(log.args.from).toLowerCase() === String(swapAddress).toLowerCase()))
+    .filter((log) => !swapAddressSet.has(String(log.args.from).toLowerCase()))
     .map((log) => ({ transferLog: log, swapLog: swapByTx.get(log.transactionHash) || null }));
 
   // swapAndSend movements: owner paid USDC but cKES was delivered by the swap contract
   // directly to the recipient — so there is no owner-initiated cKES transfer in directMovements.
   const swapOnlySwaps = swaps.filter((s) => !directTxHashes.has(s.transactionHash));
   let swapDeliveryMovements = [];
-  if (swapOnlySwaps.length > 0 && swapAddress && isAddress(swapAddress)) {
+  if (swapOnlySwaps.length > 0 && swapAddresses.length > 0) {
     const swapOnlySet = new Set(swapOnlySwaps.map((s) => s.transactionHash));
-    const deliveries = await publicClient.getContractEvents({
-      address: ckesAddress,
-      abi: TRANSFER_EVENT_ABI,
-      eventName: "Transfer",
-      args: { from: swapAddress },
-      fromBlock,
-      toBlock: "latest",
-    });
+    const deliveries = [];
+    for (const swapAddress of swapAddresses) {
+      deliveries.push(...await getContractEventsChunked(publicClient, {
+        address: ckesAddress,
+        abi: TRANSFER_EVENT_ABI,
+        eventName: "Transfer",
+        args: { from: swapAddress },
+        fromBlock,
+        toBlock: "latest",
+      }));
+    }
     swapDeliveryMovements = deliveries
       .filter((log) => swapOnlySet.has(log.transactionHash))
+      .filter((log) => String(log.args.to).toLowerCase() !== String(owner).toLowerCase())
       .map((log) => ({ transferLog: log, swapLog: swapByTx.get(log.transactionHash) || null }));
   }
 
@@ -192,17 +239,21 @@ async function readSendNowHistory(publicClient, owner, fromBlock) {
     ...swapDeliveryMovements.map((e) => e.transferLog.transactionHash),
   ]);
   let orphanSwapDeliveries = [];
-  if (swapAddress && isAddress(swapAddress)) {
-    const allSwapDeliveries = await publicClient.getContractEvents({
-      address: ckesAddress,
-      abi: TRANSFER_EVENT_ABI,
-      eventName: "Transfer",
-      args: { from: swapAddress },
-      fromBlock,
-      toBlock: "latest",
-    });
+  if (swapAddresses.length > 0) {
+    const allSwapDeliveries = [];
+    for (const swapAddress of swapAddresses) {
+      allSwapDeliveries.push(...await getContractEventsChunked(publicClient, {
+        address: ckesAddress,
+        abi: TRANSFER_EVENT_ABI,
+        eventName: "Transfer",
+        args: { from: swapAddress },
+        fromBlock,
+        toBlock: "latest",
+      }));
+    }
     orphanSwapDeliveries = allSwapDeliveries
       .filter((log) => !capturedTxHashes.has(log.transactionHash))
+      .filter((log) => String(log.args.to).toLowerCase() !== String(owner).toLowerCase())
       .map((log) => ({ transferLog: log, swapLog: null }));
   }
 
@@ -253,12 +304,14 @@ export async function readOwnerLedger(owner) {
   const publicClient = makePublicClient();
   const deployBlock = APP_CONFIG.contracts.ledgerDeployBlock || APP_CONFIG.contracts.registryDeployBlock;
   const fromBlock = deployBlock ? BigInt(deployBlock) : 0n;
+  const sendNowDeployBlock = APP_CONFIG.contracts.ckesSwapDeployBlock || deployBlock;
+  const sendNowFromBlock = sendNowDeployBlock ? BigInt(sendNowDeployBlock) : 0n;
 
   // Send-now history is always read (cKES Transfers + Swap events). Schedule data only when the
   // ledger is deployed, so the UI still has History for send-now transactions pre-deploy.
   let sendNowHistory = [];
   try {
-    sendNowHistory = await readSendNowHistory(publicClient, owner, fromBlock);
+    sendNowHistory = await readSendNowHistory(publicClient, owner, sendNowFromBlock);
   } catch {
     sendNowHistory = [];
   }
@@ -269,7 +322,7 @@ export async function readOwnerLedger(owner) {
   }
 
   try {
-    const created = await publicClient.getContractEvents({
+    const created = await getContractEventsChunked(publicClient, {
       address: ledgerOrRegistry,
       abi: REGISTRY_EVENTS_ABI,
       eventName: "MonthlyScheduleCreated",
@@ -277,7 +330,7 @@ export async function readOwnerLedger(owner) {
       fromBlock,
       toBlock: "latest",
     });
-    const cancelled = await publicClient.getContractEvents({
+    const cancelled = await getContractEventsChunked(publicClient, {
       address: ledgerOrRegistry,
       abi: REGISTRY_EVENTS_ABI,
       eventName: "ScheduleCancelled",
@@ -286,7 +339,7 @@ export async function readOwnerLedger(owner) {
     });
     const ids = created.map((log) => log.args.id);
     const settlements = ids.length
-      ? await publicClient.getContractEvents({
+      ? await getContractEventsChunked(publicClient, {
         address: ledgerOrRegistry,
         abi: REGISTRY_EVENTS_ABI,
         eventName: "SettlementReceipt",

@@ -91,6 +91,11 @@ VITE_CKES_SWAP_CONTRACT_ADDRESS=0x...
 VITE_CKES_SWAP_DEPLOY_BLOCK=...
 ```
 
+Use `VITE_CKES_SWAP_CONTRACT_ADDRESS` for the active gateway that signs new send-now
+transactions. If you deployed earlier gateways during testing, keep them in
+`VITE_CKES_SWAP_CONTRACT_ADDRESSES` so the frontend can rebuild old and new movements from
+events.
+
 Also prints the `cast send` command to authorize ChocoGateway on ChocoLedger — run it before going live.
 
 **Step 3 — Authorize ChocoGateway on ChocoLedger**
@@ -115,6 +120,8 @@ VITE_LEDGER_ADDRESS=0x...
 VITE_LEDGER_DEPLOY_BLOCK=...
 VITE_SETTLEMENT_SPENDER_ADDRESS=0x...   # keeper EOA
 VITE_CKES_SWAP_CONTRACT_ADDRESS=0x...   # points to ChocoGateway
+VITE_CKES_SWAP_DEPLOY_BLOCK=...         # earliest block among configured gateways
+VITE_CKES_SWAP_CONTRACT_ADDRESSES=0x...,0x...
 VITE_FEE_CURRENCY_ADDRESS=0x...         # Celo fee currency (cUSD or native)
 
 # Fee config (informational; actual values are in the deployed Gateway)

@@ -37,7 +37,10 @@ off-chain except contacts the user explicitly saves.
 | **ChocoGateway** | Fee (0.25%), USDC→cKES swap, on-chain TxRecord storage, ChocoLedger.logAttemptFor |
 | **ChocoLedger** | Unified history: schedules + settlements + send-now audit |
 
-Env var `VITE_CKES_SWAP_CONTRACT_ADDRESS` points to ChocoGateway. See `contracts/README.md`.
+Env var `VITE_CKES_SWAP_CONTRACT_ADDRESS` points to the active ChocoGateway for new sends.
+If multiple gateways were deployed during testing, set `VITE_CKES_SWAP_CONTRACT_ADDRESSES`
+to the comma-separated active + legacy gateway list so History can rebuild every send-now
+movement from chain events. See `contracts/README.md`.
 
 ## Frontend architecture
 
@@ -105,6 +108,8 @@ VITE_LEDGER_ADDRESS=0x...
 VITE_LEDGER_DEPLOY_BLOCK=...
 VITE_SETTLEMENT_SPENDER_ADDRESS=0x...    # keeper EOA
 VITE_CKES_SWAP_CONTRACT_ADDRESS=0x...   # ChocoGateway
+VITE_CKES_SWAP_DEPLOY_BLOCK=...         # earliest block among configured gateways
+VITE_CKES_SWAP_CONTRACT_ADDRESSES=0x...,0x...
 
 # Mento V2 (mainnet defaults in .env.example)
 VITE_MENTO_BROKER_ADDRESS=...
