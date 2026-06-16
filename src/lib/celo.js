@@ -165,8 +165,61 @@ export const CKES_SWAP_ABI = [
     inputs: [{ name: "usdcAmountIn", type: "uint256" }],
     outputs: [{ name: "ckesAmountOut", type: "uint256" }],
   },
+  {
+    type: "function",
+    name: "quoteWithFee",
+    stateMutability: "view",
+    inputs: [{ name: "usdcAmountIn", type: "uint256" }],
+    outputs: [
+      { name: "ckesAmountOut", type: "uint256" },
+      { name: "feeUsdc",       type: "uint256" },
+      { name: "swapUsdc",      type: "uint256" },
+    ],
+  },
+  {
+    type: "function",
+    name: "quoteExactOut",
+    stateMutability: "view",
+    inputs: [{ name: "ckesExactOut", type: "uint256" }],
+    outputs: [{ name: "usdcAmountIn", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "swapAndSendExact",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "recipient",    type: "address" },
+      { name: "usdcAmountIn", type: "uint256" },
+      { name: "ckesExactOut", type: "uint256" },
+    ],
+    outputs: [{ name: "ckesAmountOut", type: "uint256" }],
+  },
 ];
 
+
+// Live quote from ChocoGateway — returns the real cKES the recipient will receive plus the
+// protocol fee, using the current Mento oracle price. Call this before showing the review screen
+// so the user sees the exact delivery amount, not the hardcoded-rate estimate.
+export async function quoteLiveSend(usdcAmountHuman) {
+  if (!ADDRESSES.ckesSwap || !usdcAmountHuman) return null;
+  try {
+    const publicClient = makePublicClient();
+    const usdcAmount   = parseUnits(String(Number(usdcAmountHuman).toFixed(6)), 6);
+    const [ckesAmountOut, feeUsdc] = await publicClient.readContract({
+      address:      ADDRESSES.ckesSwap,
+      abi:          CKES_SWAP_ABI,
+      functionName: "quoteWithFee",
+      args:         [usdcAmount],
+    });
+    return {
+      ckesOut:  ckesAmountOut,           // BigInt, 18 decimals
+      feeUsdc,                           // BigInt, 6 decimals
+      usdcIn:   usdcAmount,              // BigInt, 6 decimals
+    };
+  } catch {
+    return null;
+  }
+}
 
 export function isMiniPay() {
   return typeof window !== "undefined" && window.ethereum?.isMiniPay === true;
@@ -338,6 +391,33 @@ export async function sendNow({ account, recipient, intent }) {
   // 2-confirmation fast path via ChocoCkesSwap (approve + swapAndSend).
   // Falls back to the 5-step direct Mento path when ckesSwap is not configured.
   if (isAddress(ADDRESSES.ckesSwap || "")) {
+    // Exact-output path: user requested a specific cKES amount — deliver it precisely.
+    if (intent.amountKes) {
+      const ckesExact = parseUnits(String(Number(intent.amountKes)), 18);
+      const usdcNeeded = await publicClient.readContract({
+        address: ADDRESSES.ckesSwap,
+        abi: CKES_SWAP_ABI,
+        functionName: "quoteExactOut",
+        args: [ckesExact],
+      });
+      const approveHash = await approveTokenIfNeeded({
+        account,
+        tokenAddress: ADDRESSES.usdc,
+        spender: ADDRESSES.ckesSwap,
+        amount: usdcNeeded,
+      });
+      const hash = await walletClient.writeContract({
+        address: ADDRESSES.ckesSwap,
+        abi: CKES_SWAP_ABI,
+        functionName: "swapAndSendExact",
+        args: [recipient, usdcNeeded, ckesExact],
+        feeCurrency: ADDRESSES.feeCurrency,
+      });
+      await publicClient.waitForTransactionReceipt({ hash });
+      return { approveHash, swap1Hash: null, swap2Hash: null, hash, ckesReceived: ckesExact };
+    }
+
+    // Fixed-input fallback: used when only a USDC amount is specified (no cKES target).
     const ckesQuoted = await publicClient.readContract({
       address: ADDRESSES.ckesSwap,
       abi: CKES_SWAP_ABI,
