@@ -21,6 +21,7 @@ export function PlanEditorScreen({
     recordingSeconds,
     voiceError,
     hasSpeechSupport,
+    isVoiceBlocked,
     startRecording,
     cancelRecording,
     stopRecording,
@@ -55,7 +56,7 @@ export function PlanEditorScreen({
       void onBuild();
       return;
     }
-    startRecording();
+    if (!isVoiceBlocked) startRecording();
   }
 
   return (
@@ -125,7 +126,15 @@ export function PlanEditorScreen({
             <button
               className={`composer-action ${hasText ? "send" : "mic"}`}
               type="button"
-              aria-label={hasText ? "Review transfer" : "Record voice command"}
+              aria-label={
+                hasText
+                  ? "Review transfer"
+                  : isVoiceBlocked
+                    ? "Voice unavailable — type your instruction"
+                    : "Record voice command"
+              }
+              title={!hasText && isVoiceBlocked ? "Voice is not supported in this browser" : undefined}
+              disabled={!hasText && isVoiceBlocked}
               onClick={submitComposer}
             >
               {hasText ? <ArrowRight size={24} strokeWidth={3} /> : <Mic size={20} strokeWidth={2.6} />}

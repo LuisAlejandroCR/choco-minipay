@@ -1494,6 +1494,11 @@ a {
   color: var(--cocoa-900);
 }
 
+.composer-action:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 .voice-recorder {
   min-height: 52px;
   display: grid;
@@ -2693,6 +2698,19 @@ a {
   width: 40px;
   height: 40px;
   border-radius: 14px;
+}
+
+.see-all-plans {
+  width: 100%;
+  padding: 11px 0;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  border-top: 1px solid var(--line-soft);
+  margin-top: 4px;
 }
 
 .history-list {
