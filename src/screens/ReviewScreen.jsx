@@ -88,6 +88,9 @@ export function ReviewScreen({
         ? "Confirm send"
         : "Confirm schedule";
   const canCaptureContact = !supabaseReady || contactLookupStatus === "missing";
+  const contactErrorNeedsWallet = !walletReady || /wallet/i.test(contactLookupMessage);
+  const contactErrorActionLabel = contactErrorNeedsWallet ? "Connect wallet" : "Retry saved contacts";
+  const onContactErrorAction = contactErrorNeedsWallet ? onConnect : onPickContact;
   return (
     <div className="screen review-screen">
       <div className="screen-hero">
@@ -181,8 +184,8 @@ export function ReviewScreen({
                 <b>Could not check saved contacts</b>
                 <small>{contactLookupMessage || "Try loading saved contacts again before entering a new address."}</small>
               </div>
-              <button type="button" onClick={onPickContact}>
-                Retry saved contacts
+              <button type="button" onClick={onContactErrorAction}>
+                {contactErrorActionLabel}
               </button>
             </>
           ) : (
