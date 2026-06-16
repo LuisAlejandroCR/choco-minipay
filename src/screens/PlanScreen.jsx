@@ -1,9 +1,9 @@
-import { ArrowRight, CircleDollarSign, ExternalLink, ShieldCheck, X } from "lucide-react";
+import { useState } from "react";
+import { CalendarDays, CircleDollarSign, Clock, Eye, EyeOff, ExternalLink, List, ShieldCheck, X } from "lucide-react";
 import { ChocoMark } from "../components/ChocoMark.jsx";
 import { BottomNav } from "../components/BottomNav.jsx";
 import { formatWalletAddress } from "../modules/wallet/useMiniPayWallet.js";
 import { getTimingLabel } from "../utils/planUtils.js";
-import { defaultPlan } from "../data/chocoScenario.js";
 import { demoPromptContent } from "../content/demoFlow.js";
 
 function DemoPrompt({ liveDemoUrl, onDismiss, onRunDemo }) {
@@ -39,38 +39,48 @@ export function PlanScreen({
   onPlans,
   onHistory,
   onSendNow,
+  onNewSchedule,
   onSelectPlan,
   showDemoPrompt = false,
   liveDemoUrl = "",
   onDismissDemo = () => {},
   onRunDemo = () => {},
 }) {
-  const nextPlan = plans[0] || defaultPlan;
+  const [hideBalance, setHideBalance] = useState(false);
+
+  const nextPlan = plans[0] || null;
   const isVerifyingWallet = wallet.status === "loading" || wallet.status === "opening-wallet";
-  const isReadOnlyAddress = wallet.isReadOnly;
-  const walletHelp = isWalletVerified
-    ? `${formatWalletAddress(wallet.address)} - ${wallet.network.label}`
-    : wallet.statusLabel;
-  const actionLabel = isWalletVerified
-    ? "New transfer"
-    : wallet.needsMobileWallet
-      ? "Connect mobile wallet"
+  const visibleBalances = balances.filter((item) => item.raw && item.raw !== 0n);
+  const usdcBalance = visibleBalances.find((b) => b.key === "usdc");
+  const primaryAmount = usdcBalance?.formatted ?? visibleBalances[0]?.formatted ?? "0.00";
+  const walletShort = formatWalletAddress(wallet.address);
+
+  const heroSub = isWalletVerified
+    ? wallet.isReadOnly
+      ? `${walletShort} — connect wallet app to sign.`
+      : nextPlan
+        ? `Next: ${nextPlan.amount} ${nextPlan.asset} → ${nextPlan.recipient} · ${getTimingLabel(nextPlan)}`
+        : `${walletShort} · no active schedules`
+    : "";
+
+  const connectLabel = wallet.needsMobileWallet
+    ? "Connect mobile wallet"
     : !wallet.hasProvider
       ? "Connect browser wallet"
-    : isVerifyingWallet
-      ? "Verifying wallet"
-      : "Verify wallet";
-  const actionHelp = isWalletVerified
-    ? "Send now or schedule with voice"
-    : wallet.needsMobileWallet
-      ? "Choose MetaMask Mobile or MiniPay"
+      : isVerifyingWallet
+        ? "Verifying wallet…"
+        : "Verify wallet";
+
+  const connectHelp = wallet.needsMobileWallet
+    ? "Choose MetaMask Mobile or MiniPay"
     : !wallet.hasProvider
       ? "Install or enable MetaMask"
-    : walletHelp;
-  const visibleBalances = balances.filter((item) => item.raw && item.raw !== 0n);
+      : walletStatusLabel;
 
   return (
     <div className="screen plan-screen">
+
+      {/* ── HERO ────────────────────────────────────────────────────── */}
       <div className="home-hero">
         <div className="home-actions">
           <button type="button" aria-label="Profile"><ChocoMark size="tiny" /></button>
@@ -81,82 +91,125 @@ export function PlanScreen({
           <span>Network</span>
           <b>{wallet.network.label}</b>
         </div>
-        <div className="balance-copy">
-          <span>{isWalletVerified ? walletStatusLabel : "Wallet access"}</span>
-          <strong>{isWalletVerified ? plans.length > 0 ? nextPlan.amount : "Ready" : "Locked"}</strong>
-          <p>
-            {isWalletVerified
-              ? isReadOnlyAddress
-                ? `${formatWalletAddress(wallet.address)} - connect wallet app before signing.`
-                : plans.length > 0
-                  ? `${nextPlan.asset} to ${nextPlan.recipient} - ${getTimingLabel(nextPlan)}`
-                  : "No active plans yet. Start with a text or voice transfer instruction."
-              : `Verify on ${wallet.network.label} to unlock wallet-signed transfers, scheduled actions, and receipts.`}
-          </p>
-        </div>
+
+        {isWalletVerified ? (
+          <div className="balance-hero">
+            <span className="balance-hero-label">USDC balance</span>
+            <div className="balance-hero-row">
+              <strong className="balance-hero-amount">
+                {hideBalance ? "••••••" : primaryAmount}
+              </strong>
+              <button
+                className="balance-toggle"
+                type="button"
+                aria-label={hideBalance ? "Show balance" : "Hide balance"}
+                onClick={() => setHideBalance((v) => !v)}
+              >
+                {hideBalance ? <Eye size={16} /> : <EyeOff size={16} />}
+              </button>
+            </div>
+            {heroSub && <p className="balance-hero-sub">{heroSub}</p>}
+          </div>
+        ) : (
+          <div className="balance-copy">
+            <span>Wallet access</span>
+            <strong>Locked</strong>
+            <p>{`Verify on ${wallet.network.label} to unlock transfers, schedules, and receipts.`}</p>
+          </div>
+        )}
       </div>
 
-      <button
-        className={`home-start-action ${isWalletVerified ? "" : "verify-action"}`}
-        type="button"
-        disabled={!isWalletVerified && isVerifyingWallet}
-        onClick={isWalletVerified ? onSendNow : onVerifyWallet}
-      >
-        <span className="home-start-icon">
-          {isWalletVerified ? <CircleDollarSign size={20} /> : <ShieldCheck size={20} />}
-        </span>
-        <span>
-          <b>{actionLabel}</b>
-          <small>{actionHelp}</small>
-        </span>
-        <ArrowRight size={21} />
-      </button>
-
-      {isWalletVerified && (
-      <section className="home-list" aria-label="Connected wallet assets">
-        <div className="section-heading">
-          <span>Connected wallet assets</span>
-          {visibleBalances.length > 1 && <small className="section-count">{visibleBalances.length} assets</small>}
+      {/* ── QUICK ACTIONS ───────────────────────────────────────────── */}
+      {isWalletVerified ? (
+        <div className="home-quick-actions" aria-label="Quick actions">
+          <button type="button" className="quick-action" onClick={onSendNow}>
+            <span className="quick-action-icon"><CircleDollarSign size={22} /></span>
+            <span>Send</span>
+          </button>
+          <button type="button" className="quick-action" onClick={onNewSchedule}>
+            <span className="quick-action-icon"><CalendarDays size={22} /></span>
+            <span>Schedule</span>
+          </button>
+          <button type="button" className="quick-action" onClick={onPlans}>
+            <span className="quick-action-icon"><List size={22} /></span>
+            <span>Plans</span>
+          </button>
+          <button type="button" className="quick-action" onClick={onHistory}>
+            <span className="quick-action-icon"><Clock size={22} /></span>
+            <span>History</span>
+          </button>
         </div>
-
-        {visibleBalances.length > 0 ? visibleBalances.map((item) => (
-          <div className="plan-row compact-row" key={item.key}>
-            <div className="plan-row-icon"><ChocoMark size="tiny" /></div>
-            <div>
-              <b>{item.label}</b>
-              <span>Read from wallet on-chain</span>
-            </div>
-            <small>{item.formatted}</small>
-          </div>
-        )) : (
-          <div className="empty-inline">No supported asset balances detected in this wallet yet.</div>
-        )}
-
-        {plans.length > 0 && (
-          <>
-            <div className="section-heading secondary-heading">
-              <span>Scheduled transfers</span>
-              {plans.length > 1 && <small className="section-count">{plans.length} active</small>}
-            </div>
-            {plans.slice(0, 3).map((item) => (
-              <button className="plan-row compact-row" type="button" key={item.id} onClick={() => onSelectPlan(item.id)}>
-                <div className="plan-row-icon"><ChocoMark size="tiny" /></div>
-                <div>
-                  <b>{item.recipient}</b>
-                  <span>{item.amount} {item.asset} - {getTimingLabel(item)}</span>
-                </div>
-                <small>{item.status}</small>
-              </button>
-            ))}
-            {plans.length > 3 && (
-              <button className="see-all-plans" type="button" onClick={onPlans}>
-                See all {plans.length} plans
-              </button>
-            )}
-          </>
-        )}
-      </section>
+      ) : (
+        <button
+          className="home-start-action verify-action"
+          type="button"
+          disabled={isVerifyingWallet}
+          onClick={onVerifyWallet}
+        >
+          <span className="home-start-icon"><ShieldCheck size={20} /></span>
+          <span>
+            <b>{connectLabel}</b>
+            <small>{connectHelp}</small>
+          </span>
+        </button>
       )}
+
+      {/* ── WALLET ASSETS + SCHEDULED PLANS ─────────────────────────── */}
+      {isWalletVerified && (
+        <section className="home-list" aria-label="Wallet overview">
+          <div className="section-heading">
+            <span>Wallet assets</span>
+            {visibleBalances.length > 1 && (
+              <small className="section-count">{visibleBalances.length} assets</small>
+            )}
+          </div>
+
+          {visibleBalances.length > 0 ? (
+            <div className="balance-chips">
+              {visibleBalances.map((item) => (
+                <div className="balance-chip" key={item.key}>
+                  <b>{hideBalance ? "••" : item.formatted}</b>
+                  <span>{item.label}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="empty-inline">No supported balances in this wallet yet.</div>
+          )}
+
+          {plans.length > 0 && (
+            <>
+              <div className="section-heading secondary-heading">
+                <span>Scheduled transfers</span>
+                {plans.length > 1 && (
+                  <small className="section-count">{plans.length} active</small>
+                )}
+              </div>
+              {plans.slice(0, 3).map((item) => (
+                <button
+                  className="plan-row compact-row"
+                  type="button"
+                  key={item.id}
+                  onClick={() => onSelectPlan(item.id)}
+                >
+                  <div className="plan-row-icon"><ChocoMark size="tiny" /></div>
+                  <div>
+                    <b>{item.recipient}</b>
+                    <span>{item.amount} {item.asset} · {getTimingLabel(item)}</span>
+                  </div>
+                  <small>{item.status}</small>
+                </button>
+              ))}
+              {plans.length > 3 && (
+                <button className="see-all-plans" type="button" onClick={onPlans}>
+                  See all {plans.length} plans
+                </button>
+              )}
+            </>
+          )}
+        </section>
+      )}
+
       <BottomNav active="home" onHome={() => {}} onPlans={onPlans} onHistory={onHistory} />
       {showDemoPrompt && (
         <DemoPrompt liveDemoUrl={liveDemoUrl} onDismiss={onDismissDemo} onRunDemo={onRunDemo} />
