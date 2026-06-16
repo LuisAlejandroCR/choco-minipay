@@ -328,6 +328,7 @@ export default function App() {
               onPlans={() => goTo("plans")}
               onHistory={() => goTo("history")}
               onSendNow={openImmediateSend}
+              onNewSchedule={openNewPlan}
               onSelectPlan={(planId) => {
                 setSelectedPlanId(planId);
                 goTo("planDetail");

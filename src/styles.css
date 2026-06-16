@@ -1069,6 +1069,126 @@ a {
   color: var(--cocoa-900);
 }
 
+/* ── Balance hero (replaces balance-copy when wallet is connected) ──── */
+.balance-hero {
+  margin-top: auto;
+  padding-bottom: 4px;
+}
+
+.balance-hero-label {
+  display: block;
+  font-size: 11px;
+  color: var(--latte-300);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.balance-hero-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.balance-hero-amount {
+  font-size: 44px;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--cream);
+  letter-spacing: -0.02em;
+}
+
+.balance-toggle {
+  color: var(--muted);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: rgba(246, 232, 212, 0.06);
+}
+
+.balance-hero-sub {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--latte-300);
+  line-height: 1.4;
+}
+
+/* ── Quick action grid ──────────────────────────────────────────────── */
+.home-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.quick-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 14px 6px 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: 18px;
+  background: rgba(16, 9, 6, 0.58);
+  color: var(--cream);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  transition: transform 0.1s ease, border-color 0.1s ease;
+}
+
+.quick-action:active {
+  transform: scale(0.95);
+  border-color: rgba(246, 232, 212, 0.22);
+}
+
+.quick-action-icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: rgba(246, 232, 212, 0.09);
+  color: var(--cream);
+}
+
+/* ── Compact balance chips ──────────────────────────────────────────── */
+.balance-chips {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.balance-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 6px;
+  border: 1px solid var(--line-soft);
+  border-radius: 16px;
+  background: rgba(16, 9, 6, 0.38);
+  text-align: center;
+}
+
+.balance-chip b {
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--cream);
+}
+
+.balance-chip span {
+  font-size: 9px;
+  color: var(--muted);
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
 .home-list {
   display: grid;
   gap: 10px;
@@ -2765,6 +2885,92 @@ a {
   color: var(--latte-300);
   font-size: 12px;
   font-weight: 850;
+}
+
+/* ── History: date groups ───────────────────────────────────────────── */
+.tx-day-group {
+  display: grid;
+  gap: 8px;
+}
+
+.tx-day-label {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 850;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  padding: 6px 0 2px;
+}
+
+.tx-dot {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+}
+
+.tx-dot.sent {
+  background: rgba(246, 232, 212, 0.1);
+  color: var(--cream);
+}
+
+.tx-dot.plan {
+  background: rgba(246, 232, 212, 0.06);
+  color: var(--muted);
+}
+
+.tx-dot.failed {
+  background: rgba(200, 60, 60, 0.1);
+  color: rgba(220, 100, 100, 0.8);
+}
+
+.tx-details {
+  min-width: 0;
+}
+
+.tx-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.tx-amount {
+  font-size: 13px;
+  font-weight: 800;
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.tx-amount small {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.tx-amount.sent {
+  color: var(--cream);
+}
+
+.tx-amount.plan {
+  color: var(--muted);
+}
+
+.tx-amount.failed {
+  color: rgba(220, 100, 100, 0.7);
+}
+
+.tx-time {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
 }
 
 .empty-plans {
