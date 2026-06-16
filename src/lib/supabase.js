@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { isAddress, stringToHex } from "viem";
 
 const url = import.meta.env?.VITE_SUPABASE_URL || "";
 const anonKey = import.meta.env?.VITE_SUPABASE_ANON_KEY || "";
@@ -21,8 +22,18 @@ export function assertSupabase() {
 // already loaded in this JS execution context.
 let _session = null;
 
+export function buildWalletSignInMessage(address, timestamp = Date.now()) {
+  return `Sign in to Choco\nWallet: ${address}\nTime: ${timestamp}`;
+}
+
+export function buildPersonalSignPayload(message) {
+  return stringToHex(message);
+}
+
 export async function signInWithWallet(address) {
   if (!supabase) throw new Error("Supabase is not configured.");
+  const walletAddress = String(address || "").trim();
+  if (!isAddress(walletAddress)) throw new Error("Connect a valid Celo wallet before loading saved contacts.");
 
   // 1. In-memory cache: still valid with >60 s to expiry
   if (_session && _session.expires_at > Math.floor(Date.now() / 1000) + 60) {
@@ -42,17 +53,18 @@ export async function signInWithWallet(address) {
 
   // 4. One personal_sign per expired/absent session
   const timestamp = Date.now();
-  const message = `Sign in to Choco\nWallet: ${address}\nTime: ${timestamp}`;
+  const message = buildWalletSignInMessage(walletAddress, timestamp);
+  const signPayload = buildPersonalSignPayload(message);
 
   const signature = await window.ethereum.request({
     method: "personal_sign",
-    params: [message, address],
+    params: [signPayload, walletAddress],
   });
 
   const res = await fetch(`${url}/functions/v1/auth-wallet`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ address, signature, message }),
+    body: JSON.stringify({ address: walletAddress, signature, message }),
   });
 
   if (!res.ok) {
