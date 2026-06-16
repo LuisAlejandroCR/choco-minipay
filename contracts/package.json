@@ -2,6 +2,7 @@
   "name": "choco-contracts",
   "version": "0.2.0",
   "private": true,
+  "type": "module",
   "description": "Fund-less Choco schedule registry for Celo Mainnet remittance plans.",
   "scripts": {
     "build": "node scripts/compile.cjs",
@@ -16,7 +17,7 @@
   "dependencies": {
     "dotenv": "^16.4.5",
     "ethers": "^6.16.0",
-    "solc": "^0.5.0"
+    "solc": "^0.8.26"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-verify": "^3.0.20",
