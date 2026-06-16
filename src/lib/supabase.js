@@ -30,6 +30,28 @@ export function buildPersonalSignPayload(message) {
   return stringToHex(message);
 }
 
+export function buildAuthWalletHeaders(key = anonKey) {
+  const headers = { "Content-Type": "application/json" };
+  if (key) {
+    headers.apikey = key;
+    headers.Authorization = `Bearer ${key}`;
+  }
+  return headers;
+}
+
+export async function readAuthWalletError(response) {
+  const fallback = `Wallet authentication failed (${response.status})`;
+  const contentType = response.headers?.get?.("content-type") || "";
+
+  if (contentType.includes("application/json")) {
+    const body = await response.json().catch(() => null);
+    return body?.error || body?.message || fallback;
+  }
+
+  const text = await response.text().catch(() => "");
+  return text?.trim() || fallback;
+}
+
 export async function signInWithWallet(address) {
   if (!supabase) throw new Error("Supabase is not configured.");
   const walletAddress = String(address || "").trim();
@@ -63,16 +85,16 @@ export async function signInWithWallet(address) {
 
   const res = await fetch(`${url}/functions/v1/auth-wallet`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: buildAuthWalletHeaders(),
     body: JSON.stringify({ address: walletAddress, signature, message }),
   });
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error || "Wallet authentication failed");
+    throw new Error(await readAuthWalletError(res));
   }
 
   const { token_hash } = await res.json();
+  if (!token_hash) throw new Error("Wallet authentication did not return a Supabase session token.");
 
   const { data, error } = await supabase.auth.verifyOtp({ token_hash, type: "magiclink" });
   if (error) throw new Error(`Supabase session error: ${error.message}`);

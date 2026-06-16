@@ -23,6 +23,7 @@ export function useMiniPayWallet() {
   const hasProvider = hasEthereumProvider();
   const mobile = isMobileBrowser();
   const miniPay = isMiniPay();
+  const canSign = Boolean(address && hasProvider && !isReadOnly);
 
   useEffect(() => {
     if (!hasProvider) return undefined;
@@ -40,6 +41,7 @@ export function useMiniPayWallet() {
       const [nextAddress] = accounts;
       setAddress(nextAddress || "");
       setStatus(nextAddress ? "ready" : "idle");
+      setIsReadOnly(false);
       setError("");
     }
 
@@ -65,6 +67,7 @@ export function useMiniPayWallet() {
     isMobile: mobile,
     isMiniPay: miniPay,
     isReadOnly,
+    canSign,
     isReady: Boolean(address),
     isTestnet: false,
     needsMobileWallet: mobile && !hasProvider,
@@ -80,7 +83,7 @@ export function useMiniPayWallet() {
       : status === "loading" || status === "opening-wallet"
         ? "Opening wallet"
         : error || "Connect wallet on Celo Mainnet",
-  }), [address, error, hasProvider, miniPay, mobile, status]);
+  }), [address, error, hasProvider, isReadOnly, canSign, miniPay, mobile, status]);
 
   async function verifyWallet() {
     try {
@@ -88,6 +91,7 @@ export function useMiniPayWallet() {
       setError("");
       const nextAddress = await connectInjectedWallet();
       setAddress(nextAddress);
+      setIsReadOnly(false);
       setStatus("ready");
       return nextAddress;
     } catch (nextError) {
