@@ -124,7 +124,7 @@ export function useContactResolution({
     }));
     onMessage?.(`${label} selected for this transfer.`);
 
-    if (SUPABASE_READY && wallet.address && saveContact && details.source !== "contacts") {
+    if (SUPABASE_READY && wallet.address && !wallet.isReadOnly && saveContact && details.source !== "contacts") {
       try {
         await ensureSupabaseAuth(wallet.address);
         const saved = await upsertContact({
@@ -145,7 +145,7 @@ export function useContactResolution({
   }
 
   async function editContact(newAddress) {
-    if (!resolvedContact?.contactId || !contactKey) return;
+    if (!resolvedContact?.contactId || !contactKey || wallet.isReadOnly) return;
     try {
       await ensureSupabaseAuth(wallet.address);
       await upsertContact({
@@ -163,7 +163,7 @@ export function useContactResolution({
   }
 
   async function removeResolvedContact() {
-    if (!resolvedContact?.contactId || !contactKey) return;
+    if (!resolvedContact?.contactId || !contactKey || wallet.isReadOnly) return;
     try {
       await ensureSupabaseAuth(wallet.address);
       await removeContact({ ownerWallet: wallet.address, id: resolvedContact.contactId });
