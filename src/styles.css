@@ -4516,3 +4516,186 @@ a {
   font-size: 13px;
   line-height: 1.35;
 }
+
+/* ── screen-hero sub-detail line (PlanDetailScreen amount/asset) ──────── */
+.screen-hero-detail {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* ── ReviewScreen — dark overrides (replaces LightSheet cream context) ── */
+.review-screen {
+  gap: 12px;
+}
+
+.review-screen .summary-card {
+  border-color: var(--line-soft);
+  background: rgba(16, 9, 6, 0.58);
+}
+
+.review-screen .summary-card span {
+  color: var(--muted);
+}
+
+.review-screen .summary-card b {
+  color: var(--cream);
+}
+
+.review-screen .confirmation-grid .summary-card b {
+  font-size: 17px;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.review-screen .contact-resolution-card {
+  border-color: var(--line-soft);
+  background: rgba(16, 9, 6, 0.58);
+  color: var(--cream);
+}
+
+.review-screen .contact-resolution-card span {
+  color: var(--muted);
+}
+
+.review-screen .contact-resolution-card b {
+  color: var(--cream);
+}
+
+.review-screen .contact-resolution-card small {
+  color: var(--muted);
+}
+
+.review-screen .contact-resolution-card > button {
+  border: 1px solid var(--line-soft);
+  background: rgba(16, 9, 6, 0.4);
+  color: var(--cream);
+}
+
+.review-screen .contact-capture {
+  border-color: var(--line-soft);
+  background: rgba(16, 9, 6, 0.4);
+}
+
+.review-screen .contact-capture-eyebrow {
+  color: var(--muted);
+}
+
+.review-screen .contact-capture-heading {
+  color: var(--latte-300);
+}
+
+.review-screen .contact-save-toggle {
+  color: var(--muted);
+}
+
+.review-screen .contact-save-toggle input[type="checkbox"] {
+  accent-color: var(--latte-500);
+}
+
+.review-screen .contact-picker-input {
+  border-color: var(--line-soft);
+  background: rgba(16, 9, 6, 0.4);
+  color: var(--cream);
+}
+
+.review-screen .cp-btn-cancel {
+  border-color: var(--line-soft);
+  color: var(--muted);
+}
+
+.review-screen .reference-card {
+  width: 100%;
+  margin: 14px 0 0;
+  padding: 14px;
+  background: rgba(16, 9, 6, 0.4);
+  border: 1px solid var(--line-soft);
+  color: var(--muted);
+  border-radius: 8px;
+}
+
+.review-screen .reference-card span {
+  color: var(--muted);
+}
+
+.review-screen .reference-card b {
+  display: block;
+  margin-top: 6px;
+  color: var(--cream);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.review-screen .notice {
+  background: rgba(16, 9, 6, 0.4);
+  border: 1px solid var(--line-soft);
+  color: var(--muted);
+}
+
+.review-screen .notice.danger {
+  border-color: rgba(235, 100, 88, 0.35);
+  background: rgba(120, 30, 30, 0.18);
+  color: #f8c5bd;
+}
+
+/* ── ReceiptDetailScreen — dark overrides (replaces cream receipt-detail-card) */
+.receipt-detail-screen .receipt-card {
+  border-color: var(--line-soft);
+  background: rgba(16, 9, 6, 0.58);
+}
+
+.receipt-detail-screen .receipt-row {
+  border-top-color: var(--line-soft);
+}
+
+.receipt-detail-screen .receipt-icon {
+  background: rgba(217, 166, 121, 0.12);
+  color: var(--latte-300);
+}
+
+.receipt-detail-screen .receipt-row span {
+  color: var(--muted);
+}
+
+.receipt-detail-screen .receipt-row b {
+  color: var(--cream);
+}
+
+.receipt-detail-screen .hash {
+  color: var(--muted);
+}
+
+.receipt-detail-screen .receipt-expand {
+  border-color: var(--line-soft);
+  background: rgba(16, 9, 6, 0.4);
+  color: var(--cream);
+}
+
+.receipt-detail-screen .verify-panel {
+  border-color: var(--line-soft);
+  background: rgba(16, 9, 6, 0.4);
+}
+
+.receipt-detail-screen .qr-card img {
+  background: var(--paper);
+  border-color: var(--line-soft);
+}
+
+.receipt-detail-screen .qr-card a {
+  color: var(--latte-300);
+}
+
+.receipt-detail-screen .notice {
+  background: rgba(16, 9, 6, 0.4);
+  border: 1px solid var(--line-soft);
+  color: var(--muted);
+}
+
+.receipt-detail-screen .primary-cta {
+  margin-top: 16px;
+}
+
+.receipt-detail-screen .secondary-dark {
+  margin-top: 10px;
+}

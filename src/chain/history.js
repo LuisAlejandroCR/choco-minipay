@@ -184,7 +184,29 @@ async function readSendNowHistory(publicClient, owner, fromBlock) {
       .map((log) => ({ transferLog: log, swapLog: swapByTx.get(log.transactionHash) || null }));
   }
 
-  const movements = [...directMovements, ...swapDeliveryMovements];
+  // Fallback: capture cKES Transfers FROM the swap contract that didn't correlate with a
+  // UsdcToCkesSwap event (ABI mismatch or event not emitted). Appear as "cKES send" in history
+  // rather than "USDC swap + cKES send" since the swap log is unavailable.
+  const capturedTxHashes = new Set([
+    ...directMovements.map((e) => e.transferLog.transactionHash),
+    ...swapDeliveryMovements.map((e) => e.transferLog.transactionHash),
+  ]);
+  let orphanSwapDeliveries = [];
+  if (swapAddress && isAddress(swapAddress)) {
+    const allSwapDeliveries = await publicClient.getContractEvents({
+      address: ckesAddress,
+      abi: TRANSFER_EVENT_ABI,
+      eventName: "Transfer",
+      args: { from: swapAddress },
+      fromBlock,
+      toBlock: "latest",
+    });
+    orphanSwapDeliveries = allSwapDeliveries
+      .filter((log) => !capturedTxHashes.has(log.transactionHash))
+      .map((log) => ({ transferLog: log, swapLog: null }));
+  }
+
+  const movements = [...directMovements, ...swapDeliveryMovements, ...orphanSwapDeliveries];
 
   const blockNumbers = [...new Set(movements.map((entry) => entry.transferLog.blockNumber))];
   const blocks = await Promise.all(blockNumbers.map((blockNumber) => publicClient.getBlock({ blockNumber })));
