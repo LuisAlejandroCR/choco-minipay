@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Bell, MessageCircleQuestionMark, X } from "lucide-react";
 import { useMiniPayWallet } from "./modules/wallet/useMiniPayWallet.js";
 import { useChocoLedger } from "./modules/ledger/useChocoLedger.js";
-import { verifyReadiness } from "./lib/cepolia.js";
-import { findContactByLabel, removeContact, upsertContact, SUPABASE_READY } from "./lib/contacts.js";
-import { ensureSupabaseAuth, getCachedSession } from "./lib/supabase.js";
+import { useTransfer } from "./modules/transfer/useTransfer.js";
+import { useContactResolution } from "./modules/contacts/useContactResolution.js";
+import { SUPABASE_READY } from "./lib/contacts.js";
 import { INITIAL_SCREEN, WORLD_MAP_URL } from "./config/runtime.js";
 import { DEFAULT_COMMANDS, defaultPlan } from "./data/chocoScenario.js";
 import { getWalletStatusLabel, resolveVisibleScreen } from "./lib/access-control.js";
@@ -12,11 +12,11 @@ import { APP_CONFIG } from "./lib/app-config.js";
 import { getTransactionExplorerUrl } from "./lib/transactions.js";
 import {
   SPLASH_DURATION_MS,
-  buildPlanFromCommand,
-  buildTransactionFromPlan,
+  buildSafePreviewPlan,
   findRecentSimilarTransfer,
   findSimilarPlan,
 } from "./utils/planUtils.js";
+import { ADDRESSES, cancelScheduleViaRegistry, readStablecoinBalances } from "./lib/celo.js";
 import { ContactPicker } from "./components/ContactPicker.jsx";
 import { PitchScreen } from "./components/PitchScreen.jsx";
 import { QuickInfoPanel } from "./screens/QuickInfoPanel.jsx";
@@ -34,57 +34,11 @@ import { ProcessingScreen } from "./screens/ProcessingScreen.jsx";
 import { DuplicateGuardScreen } from "./screens/DuplicateGuardScreen.jsx";
 import { ReviewScreen } from "./screens/ReviewScreen.jsx";
 import { TransactionSuccessScreen } from "./screens/TransactionSuccessScreen.jsx";
-import {
-  ADDRESSES,
-  cancelScheduleViaRegistry,
-  createScheduleViaRegistry,
-  readStablecoinBalances,
-  sendNow,
-} from "./lib/celo.js";
-
-function buildSafePreviewPlan(commandText, basePlan, deliveryMode) {
-  try {
-    return buildPlanFromCommand(commandText, basePlan, deliveryMode);
-  } catch (error) {
-    return {
-      ...basePlan,
-      amount: "",
-      amountMinor: 0,
-      recipient: "",
-      asset: APP_CONFIG.assets.destination,
-      payAsset: APP_CONFIG.assets.source,
-      status: "Draft",
-      deliveryMode,
-      intent: {
-        rawCommand: String(commandText || ""),
-        isReady: false,
-        missing: ["recipient", "amount", "currency"],
-        confidence: 0,
-        minimumConfidence: APP_CONFIG.transfer.minimumConfidence,
-        agent: {
-          isReady: false,
-          confidence: 0,
-          missing: ["recipient", "amount", "currency"],
-        },
-        error: error.message,
-      },
-    };
-  }
-}
-
-function getPlanReceiptLabel(plan) {
-  return plan?.receiptLabel || plan?.recipient || plan?.intent?.receiptLabel || "";
-}
-
-function contactCacheKey(label) {
-  return String(label || "").trim().toLowerCase();
-}
 
 export default function App() {
+  // --- Core app state ---
   const [screen, setScreen] = useState(INITIAL_SCREEN);
   const [command, setCommand] = useState(DEFAULT_COMMANDS.schedule);
-  const [lastReceipt, setLastReceipt] = useState(null);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [selectedPlanId, setSelectedPlanId] = useState("");
   const [selectedTransactionId, setSelectedTransactionId] = useState("");
   const [reviewMode, setReviewMode] = useState("create");
@@ -92,18 +46,24 @@ export default function App() {
   const [activeInfoPanel, setActiveInfoPanel] = useState(null);
   const [resolvedPreviewPlan, setResolvedPreviewPlan] = useState(null);
   const [balances, setBalances] = useState([]);
-  const [status, setStatus] = useState("idle");
-  const [message, setMessage] = useState("Connect your wallet so Choco can check stablecoin funds.");
-  const [approvalHash, setApprovalHash] = useState("");
-  const [txHash, setTxHash] = useState("");
   const [showDemoPrompt, setShowDemoPrompt] = useState(APP_CONFIG.ui.showDemoPrompt);
-  const [resolvedContacts, setResolvedContacts] = useState({});
-  const [contactLookup, setContactLookup] = useState({ key: "", status: "idle", message: "" });
-  const [showContactPicker, setShowContactPicker] = useState(false);
 
+  // --- Platform hooks ---
   const wallet = useMiniPayWallet();
   const { plans, transactions, refresh: refreshLedger } = useChocoLedger(wallet.address);
   const visibleScreen = resolveVisibleScreen(screen, wallet.isReady);
+
+  // --- Helpers (defined before feature hooks; closures capture hook values at call time) ---
+  async function refreshBalances(address = wallet.address) {
+    if (!address) return;
+    setBalances(await readStablecoinBalances(address));
+  }
+
+  function goTo(nextScreen) {
+    setScreen(resolveVisibleScreen(nextScreen, wallet.isReady));
+  }
+
+  // --- Derived plan values (must be computed before feature hooks that consume them) ---
   const demoRecipientAddress = ADDRESSES.demoRecipient || "";
   const registryReady = Boolean(ADDRESSES.ledger || ADDRESSES.registry);
   const settlementReady = Boolean(ADDRESSES.settlementSpender);
@@ -115,6 +75,37 @@ export default function App() {
     () => buildSafePreviewPlan(command, activePlan || defaultPlan, deliveryMode),
     [activePlan, command, deliveryMode],
   );
+  const reviewPlan = resolvedPreviewPlan ?? previewPlan;
+
+  // --- Feature hooks ---
+  // contacts must be declared before transfer so transfer.onContactResolved can reference
+  // contacts.setResolvedContacts. The onError/onMessage callbacks reference transfer via
+  // closure — safe because they are only invoked from user events, never during hook init.
+  const contacts = useContactResolution({
+    wallet,
+    visibleScreen,
+    reviewPlan,
+    demoRecipientAddress,
+    // transfer is declared below — safe because these closures are only invoked from user
+    // events, never during hook initialisation (temporal dead zone is never hit in practice).
+    // eslint-disable-next-line no-use-before-define
+    onError: (msg) => transfer.setMessage(msg),
+    // eslint-disable-next-line no-use-before-define
+    onMessage: (msg) => transfer.setMessage(msg),
+  });
+
+  const transfer = useTransfer({
+    wallet,
+    onPlanBuilt: setResolvedPreviewPlan,
+    onContactResolved: (key, contact) =>
+      contacts.setResolvedContacts((prev) => ({ ...prev, [key]: contact })),
+    onTransactionCreated: setSelectedTransactionId,
+    onNavigate: goTo,
+    onRefreshLedger: refreshLedger,
+    onRefreshBalances: refreshBalances,
+  });
+
+  // --- Derived display values ---
   const similarPlan = useMemo(
     () => findSimilarPlan(plans, previewPlan, reviewMode === "update" ? activePlan?.id : ""),
     [activePlan, plans, previewPlan, reviewMode],
@@ -129,49 +120,30 @@ export default function App() {
       ? similarTransfer
       : similarPlan;
   const activeTransaction = useMemo(
-    () => transactions.find((item) => item.id === selectedTransactionId)
-      || (lastReceipt && lastReceipt.id === selectedTransactionId ? lastReceipt : null),
-    [lastReceipt, selectedTransactionId, transactions],
-  );
-  const reviewPlan = resolvedPreviewPlan ?? previewPlan;
-  const receiptLabel = getPlanReceiptLabel(reviewPlan);
-  const contactKey = contactCacheKey(receiptLabel);
-  const contactResolutionRequired = Boolean(reviewPlan.contactResolutionRequired || reviewPlan.intent?.contactResolutionRequired);
-  const resolvedContact = contactKey ? resolvedContacts[contactKey] : null;
-  const recipientAddress = contactResolutionRequired
-    ? resolvedContact?.address || ""
-    : demoRecipientAddress;
-  const contactLookupPending = Boolean(
-    visibleScreen === "review" &&
-    SUPABASE_READY &&
-    contactResolutionRequired &&
-    contactKey &&
-    wallet.address &&
-    !resolvedContact?.address &&
-    contactLookup.key !== contactKey,
+    () =>
+      transactions.find((item) => item.id === selectedTransactionId) ||
+      (transfer.lastReceipt?.id === selectedTransactionId ? transfer.lastReceipt : null),
+    [transfer.lastReceipt, selectedTransactionId, transactions],
   );
   const actionReady = Boolean(
     wallet.address &&
-    recipientAddress &&
+    contacts.recipientAddress &&
     reviewPlan.intent?.isReady &&
     (reviewPlan.deliveryMode === "now" || (registryReady && settlementReady)),
   );
-  const setupNotice = wallet.isReady && reviewPlan.deliveryMode === "schedule" && (!registryReady || !settlementReady)
-    ? "Scheduling needs the on-chain ledger and keeper set (VITE_LEDGER_ADDRESS, VITE_SETTLEMENT_SPENDER_ADDRESS)."
-    : "";
-  const txUrl = getTransactionExplorerUrl(txHash);
-  const approvalUrl = getTransactionExplorerUrl(approvalHash);
+  const setupNotice =
+    wallet.isReady && reviewPlan.deliveryMode === "schedule" && (!registryReady || !settlementReady)
+      ? "Scheduling needs the on-chain ledger and keeper set (VITE_LEDGER_ADDRESS, VITE_SETTLEMENT_SPENDER_ADDRESS)."
+      : "";
+  const txUrl = getTransactionExplorerUrl(transfer.txHash);
+  const approvalUrl = getTransactionExplorerUrl(transfer.approvalHash);
 
+  // --- Effects ---
   useEffect(() => {
     if (screen !== "splash") return undefined;
     const timer = window.setTimeout(() => setScreen("pitch"), SPLASH_DURATION_MS);
     return () => window.clearTimeout(timer);
   }, [screen]);
-
-  async function refreshBalances(address = wallet.address) {
-    if (!address) return;
-    setBalances(await readStablecoinBalances(address));
-  }
 
   useEffect(() => {
     if (!wallet.address) {
@@ -181,63 +153,31 @@ export default function App() {
     void refreshBalances(wallet.address);
   }, [wallet.address]);
 
-  useEffect(() => {
-    if (visibleScreen !== "review" || !contactResolutionRequired || !contactKey || !wallet.address || !SUPABASE_READY) {
-      setContactLookup({ key: contactKey, status: "idle", message: "" });
-      return undefined;
-    }
-
-    if (resolvedContact?.address) {
-      setContactLookup({ key: contactKey, status: "resolved", message: "" });
-      return undefined;
-    }
-
-    let active = true;
-    setContactLookup({ key: contactKey, status: "checking", message: "Checking saved contacts..." });
-
-    resolveSavedContactByLabel(reviewPlan, { requireAuth: true })
-      .then((contact) => {
-        if (!active) return;
-        if (contact?.wallet_address) {
-          setContactLookup({ key: contactKey, status: "resolved", message: "" });
-          setMessage(`${contact.label} found in saved contacts.`);
-          return;
-        }
-        setContactLookup({ key: contactKey, status: "missing", message: "No saved contact found." });
-      })
-      .catch((error) => {
-        if (!active) return;
-        setContactLookup({
-          key: contactKey,
-          status: "error",
-          message: error.message || "Could not check saved contacts.",
-        });
-        setMessage(error.message || "Could not check saved contacts.");
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [visibleScreen, contactResolutionRequired, contactKey, receiptLabel, wallet.address, resolvedContact?.address]);
-
-  async function verifyWallet() {
+  // --- Event handlers ---
+  async function connectWallet() {
+    transfer.setStatus("pending");
+    transfer.setMessage("Opening wallet...");
     try {
-      setStatus("pending");
-      setMessage("Opening wallet...");
       const address = await wallet.verifyWallet();
       await refreshBalances(address);
-      setStatus("review");
-      setMessage("Wallet connected on Celo Mainnet. Choose now or schedule.");
+      transfer.setStatus("review");
+      transfer.setMessage("Wallet connected on Celo Mainnet. Choose now or schedule.");
       return address;
     } catch (error) {
-      setStatus("error");
-      setMessage(error.message);
+      transfer.setStatus("error");
+      transfer.setMessage(error.message);
       return "";
     }
   }
 
-  function goTo(nextScreen) {
-    setScreen(resolveVisibleScreen(nextScreen, wallet.isReady));
+  async function handleBuildPlan(nextCommand = "") {
+    const commandForBuild = nextCommand || command || DEFAULT_COMMANDS.schedule;
+    if (nextCommand) setCommand(nextCommand);
+    await transfer.buildPlan(commandForBuild, activePlan || defaultPlan, deliveryMode);
+  }
+
+  async function handleConfirmAction() {
+    await transfer.confirmAction(reviewPlan, contacts.recipientAddress, reviewMode);
   }
 
   function runDemo() {
@@ -286,216 +226,6 @@ export default function App() {
     });
   }
 
-  function cacheSavedContact(contact, keyOverride = "") {
-    const key = keyOverride || contactCacheKey(contact?.label);
-    if (!key || !contact?.wallet_address) return;
-    setResolvedContacts((items) => ({
-      ...items,
-      [key]: {
-        address: contact.wallet_address,
-        label: contact.label,
-        phone: contact.payment_reason || "",
-        source: "contacts",
-        contactId: contact.id,
-      },
-    }));
-  }
-
-  async function resolveSavedContactByLabel(plan, { requireAuth = false } = {}) {
-    const label = getPlanReceiptLabel(plan);
-    const key = contactCacheKey(label);
-    if (!SUPABASE_READY || !wallet.address || !label || !key) return null;
-
-    if (requireAuth) {
-      await ensureSupabaseAuth(wallet.address);
-    } else {
-      const session = await getCachedSession();
-      if (!session) return null;
-    }
-
-    const contact = await findContactByLabel({ ownerWallet: wallet.address, label });
-    if (contact?.wallet_address) {
-      cacheSavedContact(contact, key);
-      return contact;
-    }
-    return null;
-  }
-
-  async function buildPlan(nextCommand = "") {
-    const commandForBuild = nextCommand || command || DEFAULT_COMMANDS.schedule;
-    if (nextCommand) setCommand(nextCommand);
-    const plan = buildSafePreviewPlan(commandForBuild, activePlan || defaultPlan, deliveryMode);
-    setResolvedPreviewPlan(plan);
-    setApprovalHash("");
-    setTxHash("");
-    if (!plan.intent?.isReady) {
-      setStatus("error");
-      setMessage(`Agent Choco needs: ${plan.intent?.missing?.join(", ") || "more detail"}.`);
-      return;
-    }
-
-    // Cepolia Skill owns transaction readiness (USDC balance, wallet, intent shape). The verdict
-    // is UX-only — no on-chain audit is written for pre-flight failures, because nothing touched
-    // the chain. The audit contract is reserved for SUCCESS / FAILED_SWAP / FAILED_TRANSFER.
-    const labelForAudit = plan.intent?.receiptLabel || plan.recipient || "";
-    if (wallet.address) {
-      const readiness = await verifyReadiness({ account: wallet.address, intent: plan.intent });
-      if (!readiness.ok) {
-        setStatus("error");
-        setMessage(readiness.message || "Cepolia Skill could not verify readiness.");
-        return;
-      }
-    }
-
-    // Contact lookup ("Receipt" by label). If Supabase has the label for this wallet, pre-resolve
-    // the destination so the user does not have to paste an address. The persistence step (when
-    // the user actually pastes an address) happens in resolveContactForTransfer below.
-    if (SUPABASE_READY && wallet.address && labelForAudit) {
-      try {
-        // Use cached session only — never trigger personal_sign in the middle of plan building.
-        // ensureSupabaseAuth (which prompts for a signature) runs in pickContactForTransfer
-        // when the user explicitly taps "Select contact".
-        const session = await getCachedSession();
-        if (session) {
-          const contact = await findContactByLabel({ ownerWallet: wallet.address, label: labelForAudit });
-          if (contact?.wallet_address) {
-            setResolvedContacts((items) => ({
-              ...items,
-              [labelForAudit.toLowerCase()]: {
-                address: contact.wallet_address,
-                label: contact.label,
-                phone: "",
-                source: "contacts",
-                contactId: contact.id,
-              },
-            }));
-          }
-        }
-      } catch (contactError) {
-        console.warn("Contact lookup failed:", contactError.message);
-      }
-    }
-
-    setStatus(wallet.address ? "review" : "idle");
-    setMessage(wallet.address ? "Review the action before signing." : "Connect your wallet so Choco can check stablecoin funds.");
-    goTo("processing");
-  }
-
-  async function resolveContactForTransfer(address, options = {}) {
-    if (!contactKey) return;
-    const { saveContact = false, ...details } = options;
-    const label = details.label || receiptLabel;
-    setResolvedContacts((items) => ({
-      ...items,
-      [contactKey]: {
-        address,
-        label,
-        phone: details.phone || "",
-        source: details.source || "manual",
-        contactId: details.contactId || null,
-      },
-    }));
-    setStatus("review");
-    setMessage(`${label} selected for this transfer.`);
-
-    // Persist contact to Supabase ONLY if user explicitly authorized it via checkbox.
-    // Skip when the address came from a prior contact lookup (source === "contacts").
-    if (SUPABASE_READY && wallet.address && saveContact && details.source !== "contacts") {
-      try {
-        await ensureSupabaseAuth(wallet.address);
-        const saved = await upsertContact({
-          ownerWallet: wallet.address,
-          label,
-          walletAddress: address,
-          paymentReason: details.phone || "",
-        });
-        setResolvedContacts((items) => ({
-          ...items,
-          [contactKey]: { ...items[contactKey], source: "contacts", contactId: saved.id },
-        }));
-        setMessage(`${label} selected and saved for future transfers.`);
-      } catch (saveError) {
-        // Persistence failures should not block this transfer.
-        console.warn("Could not save contact:", saveError.message);
-      }
-    }
-  }
-
-  async function handleEditContact(newAddress) {
-    if (!resolvedContact?.contactId || !contactKey) return;
-    try {
-      await ensureSupabaseAuth(wallet.address);
-      await upsertContact({ ownerWallet: wallet.address, label: resolvedContact.label, walletAddress: newAddress });
-      setResolvedContacts((items) => ({
-        ...items,
-        [contactKey]: { ...items[contactKey], address: newAddress.toLowerCase() },
-      }));
-    } catch (err) {
-      setStatus("error");
-      setMessage(err.message || "Could not update contact address.");
-    }
-  }
-
-  async function handleRemoveContact() {
-    if (!resolvedContact?.contactId || !contactKey) return;
-    try {
-      await ensureSupabaseAuth(wallet.address);
-      await removeContact({ ownerWallet: wallet.address, id: resolvedContact.contactId });
-      setResolvedContacts((items) => {
-        const next = { ...items };
-        delete next[contactKey];
-        return next;
-      });
-    } catch (err) {
-      setStatus("error");
-      setMessage(err.message || "Could not remove contact.");
-    }
-  }
-
-  async function pickContactForTransfer() {
-    if (!contactKey) return;
-    if (SUPABASE_READY && wallet.address) {
-      try {
-        await ensureSupabaseAuth(wallet.address);
-        // After sign-in, try to auto-resolve by label so the user skips the picker entirely
-        const found = await findContactByLabel({ ownerWallet: wallet.address, label: contactKey });
-        if (found?.wallet_address) {
-          resolveContactForTransfer(found.wallet_address, {
-            label: found.label,
-            source: "contacts",
-            contactId: found.id,
-          });
-          return;
-        }
-      } catch (authError) {
-        setStatus("error");
-        setMessage(authError.message || "Sign-in cancelled. Please try again.");
-        return;
-      }
-      setShowContactPicker(true);
-      return;
-    }
-    if (!navigator.contacts?.select) {
-      setStatus("error");
-      setMessage("No saved contacts. Enter an address below to continue.");
-      return;
-    }
-    try {
-      const [contact] = await navigator.contacts.select(["name", "tel"], { multiple: false });
-      if (!contact) return;
-      const label = contact.name?.[0] || receiptLabel;
-      const phone = contact.tel?.[0] || "";
-      resolveContactForTransfer(demoRecipientAddress, { label, phone });
-      if (!demoRecipientAddress) {
-        setStatus("error");
-        setMessage("Contact selected. Add a one-time wallet address to continue until ODIS lookup is connected.");
-      }
-    } catch (error) {
-      setStatus("error");
-      setMessage(error.message || "Could not open contacts.");
-    }
-  }
-
   function continueDuplicateAttempt() {
     if (previewPlan.deliveryMode === "now") {
       goTo("review");
@@ -515,64 +245,18 @@ export default function App() {
       return;
     }
     try {
-      setStatus("pending");
-      setMessage("Cancelling schedule on-chain...");
+      transfer.setStatus("pending");
+      transfer.setMessage("Cancelling schedule on-chain...");
       await cancelScheduleViaRegistry({ account: wallet.address, id: activePlan.onchainId });
       await refreshLedger();
-      setStatus("idle");
-      setMessage("Schedule cancelled on-chain.");
+      transfer.setStatus("idle");
+      transfer.setMessage("Schedule cancelled on-chain.");
     } catch (error) {
-      setStatus("error");
-      setMessage(error.message);
+      transfer.setStatus("error");
+      transfer.setMessage(error.message);
     }
     setSelectedPlanId("");
     goTo("plans");
-  }
-
-  function commitPlanReceipt(plan, hash, approveHash = "") {
-    const committedPlan = {
-      ...plan,
-      hash,
-      approveHash,
-      status: plan.deliveryMode === "now" ? "Sent" : "Active",
-    };
-
-    // History and plans are re-read from chain via refreshLedger(); this transient receipt only
-    // backs the confirmation screen for the action that was just signed (nothing is stored).
-    const transaction = buildTransactionFromPlan(
-      committedPlan,
-      plan.deliveryMode === "now" ? "Action sent" : reviewMode === "update" ? "Plan updated" : "Plan confirmed",
-      wallet.address,
-      recipientAddress,
-    );
-    setLastReceipt(transaction);
-    setSelectedTransactionId(transaction.id);
-    goTo("history");
-    setShowSuccessModal(true);
-  }
-
-  async function confirmAction() {
-    try {
-      const address = wallet.address || await verifyWallet();
-      if (!address) return;
-
-      setStatus("pending");
-      setMessage(reviewPlan.deliveryMode === "now" ? "Preparing wallet-signed send now..." : "Preparing wallet-signed monthly action...");
-      const result = reviewPlan.deliveryMode === "now"
-        ? await sendNow({ account: address, recipient: recipientAddress, intent: reviewPlan.intent })
-        : await createScheduleViaRegistry({ account: address, recipient: recipientAddress, intent: reviewPlan.intent });
-
-      setApprovalHash(result.approveHash || "");
-      setTxHash(result.hash);
-      setStatus("success");
-      setMessage(reviewPlan.deliveryMode === "now" ? "Money sent from your wallet. Receipt filed." : "Monthly action created. Receipt filed.");
-      commitPlanReceipt(reviewPlan, result.hash, result.approveHash || "");
-      refreshBalances(address).catch(() => {});
-      refreshLedger().catch(() => {});
-    } catch (error) {
-      setStatus("error");
-      setMessage(error.message);
-    }
   }
 
   const screenTitle = useMemo(() => {
@@ -651,7 +335,7 @@ export default function App() {
             <WalletGateScreen
               wallet={wallet}
               onVerifyWallet={async () => {
-                const address = await verifyWallet();
+                const address = await connectWallet();
                 if (address) setScreen("plan");
               }}
               onHome={() => setScreen("plan")}
@@ -696,11 +380,11 @@ export default function App() {
               }}
             />
           )}
-          {showSuccessModal && lastReceipt && (
+          {transfer.showSuccessModal && transfer.lastReceipt && (
             <TransactionSuccessScreen
-              transaction={lastReceipt}
-              onViewDetails={() => { setShowSuccessModal(false); goTo("receiptDetail"); }}
-              onDismiss={() => setShowSuccessModal(false)}
+              transaction={transfer.lastReceipt}
+              onViewDetails={() => { transfer.setShowSuccessModal(false); goTo("receiptDetail"); }}
+              onDismiss={() => transfer.setShowSuccessModal(false)}
             />
           )}
           {visibleScreen === "receiptDetail" && activeTransaction && (
@@ -720,8 +404,8 @@ export default function App() {
                 deliveryMode={deliveryMode}
                 setDeliveryMode={changeDeliveryMode}
                 agentIntent={previewPlan.intent}
-                statusMessage={status === "error" ? message : ""}
-                onBuild={buildPlan}
+                statusMessage={transfer.status === "error" ? transfer.message : ""}
+                onBuild={handleBuildPlan}
                 onHome={() => setScreen("plan")}
                 onBack={reviewMode === "update" ? () => goTo("planDetail") : null}
               />
@@ -750,39 +434,38 @@ export default function App() {
             <ReviewScreen
               plan={reviewPlan}
               walletReady={wallet.isReady}
-              status={status}
-              message={message}
+              status={transfer.status}
+              message={transfer.message}
               setupNotice={setupNotice}
               actionReady={actionReady}
               approvalUrl={approvalUrl}
               txUrl={txUrl}
-              contactResolutionRequired={contactResolutionRequired}
-              resolvedContact={resolvedContact}
-              recipientAddress={recipientAddress}
+              contactResolutionRequired={contacts.contactResolutionRequired}
+              resolvedContact={contacts.resolvedContact}
+              recipientAddress={contacts.recipientAddress}
               walletAccount={wallet.address}
-              onConnect={verifyWallet}
-              onConfirm={confirmAction}
+              onConnect={connectWallet}
+              onConfirm={handleConfirmAction}
               onEdit={() => setScreen("planEditor")}
-              onPickContact={pickContactForTransfer}
-              onResolveContact={resolveContactForTransfer}
-              onEditContact={handleEditContact}
-              onRemoveContact={handleRemoveContact}
-              contactLookupStatus={contactLookupPending ? "checking" : contactLookup.key === contactKey ? contactLookup.status : "idle"}
-              contactLookupMessage={contactLookupPending ? "Checking saved contacts..." : contactLookup.key === contactKey ? contactLookup.message : ""}
+              onPickContact={contacts.pickContact}
+              onResolveContact={contacts.resolveContact}
+              onEditContact={contacts.editContact}
+              onRemoveContact={contacts.removeResolvedContact}
+              contactLookupStatus={contacts.contactLookupStatus}
+              contactLookupMessage={contacts.contactLookupMessage}
               supabaseReady={SUPABASE_READY}
             />
           )}
           {activeInfoPanel && (
             <QuickInfoPanel type={activeInfoPanel} onClose={() => setActiveInfoPanel(null)} />
           )}
-          {showContactPicker && (
+          {contacts.showContactPicker && (
             <ContactPicker
               ownerWallet={wallet.address}
               onSelect={({ address, label, contactId }) => {
-                setShowContactPicker(false);
-                resolveContactForTransfer(address, { label, source: "contacts", contactId });
+                contacts.resolveContact(address, { label, source: "contacts", contactId });
               }}
-              onClose={() => setShowContactPicker(false)}
+              onClose={() => contacts.setShowContactPicker(false)}
             />
           )}
         </div>

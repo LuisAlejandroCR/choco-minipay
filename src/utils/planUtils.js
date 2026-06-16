@@ -141,8 +141,8 @@ export function buildSafePreviewPlan(commandText, basePlan = defaultPlan, delive
       amount: "",
       amountMinor: 0,
       recipient: "",
-      asset: CHOCO_SCENARIO.destinationAsset || "cKES",
-      payAsset: CHOCO_SCENARIO.sourceAsset || "USDC",
+      asset: APP_CONFIG.assets.destination,
+      payAsset: APP_CONFIG.assets.source,
       status: "Draft",
       deliveryMode,
       intent: {
