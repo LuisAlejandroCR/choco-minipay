@@ -12,6 +12,7 @@
 // those stay in the screen component. After stopRecording() the caller decides
 // whether to proceed (e.g. call onBuild() if the command is non-empty).
 import { useEffect, useRef, useState } from "react";
+import { isMiniPay } from "../../lib/celo.js";
 import { normalizeVoiceTranscript } from "./voiceNormalize.js";
 
 export function useVoiceRecorder({ onTranscript }) {
@@ -19,6 +20,9 @@ export function useVoiceRecorder({ onTranscript }) {
   const [isPaused, setIsPaused] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [voiceError, setVoiceError] = useState("");
+  // MiniPay WebView blocks the Speech Recognition service at the browser level
+  // (fires service-not-allowed). Detect upfront so the mic button starts disabled.
+  const [isVoiceBlocked, setIsVoiceBlocked] = useState(() => isMiniPay());
   const speechRef = useRef(null);
   const hasSpeechSupport = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
 
@@ -55,6 +59,7 @@ export function useVoiceRecorder({ onTranscript }) {
 
     if (!hasSpeechSupport) {
       setVoiceError("Voice input is not available in this browser. Type your message instead.");
+      setIsVoiceBlocked(true);
       return;
     }
 
@@ -87,6 +92,7 @@ export function useVoiceRecorder({ onTranscript }) {
                 ? "Voice is blocked in this browser context."
                 : "Voice input failed. Type your message instead.";
       setVoiceError(msg);
+      if (event.error === "service-not-allowed") setIsVoiceBlocked(true);
       const rec = speechRef.current;
       speechRef.current = null;
       rec?.stop();
@@ -148,6 +154,7 @@ export function useVoiceRecorder({ onTranscript }) {
     recordingSeconds,
     voiceError,
     hasSpeechSupport,
+    isVoiceBlocked,
     startRecording,
     cancelRecording,
     stopRecording,

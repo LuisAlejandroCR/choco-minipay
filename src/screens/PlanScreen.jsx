@@ -116,6 +116,7 @@ export function PlanScreen({
       <section className="home-list" aria-label="Connected wallet assets">
         <div className="section-heading">
           <span>Connected wallet assets</span>
+          {visibleBalances.length > 1 && <small className="section-count">{visibleBalances.length} assets</small>}
         </div>
 
         {visibleBalances.length > 0 ? visibleBalances.map((item) => (
@@ -135,8 +136,9 @@ export function PlanScreen({
           <>
             <div className="section-heading secondary-heading">
               <span>Scheduled transfers</span>
+              {plans.length > 1 && <small className="section-count">{plans.length} active</small>}
             </div>
-            {plans.slice(0, 1).map((item) => (
+            {plans.slice(0, 3).map((item) => (
               <button className="plan-row compact-row" type="button" key={item.id} onClick={() => onSelectPlan(item.id)}>
                 <div className="plan-row-icon"><ChocoMark size="tiny" /></div>
                 <div>
@@ -146,6 +148,11 @@ export function PlanScreen({
                 <small>{item.status}</small>
               </button>
             ))}
+            {plans.length > 3 && (
+              <button className="see-all-plans" type="button" onClick={onPlans}>
+                See all {plans.length} plans
+              </button>
+            )}
           </>
         )}
       </section>

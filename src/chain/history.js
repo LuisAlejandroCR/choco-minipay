@@ -38,6 +38,12 @@ function isCkesAsset(address) {
   return String(address).toLowerCase() === String(ADDRESSES.kesm).toLowerCase();
 }
 
+// Display just the last 4 hex chars for anonymous recipients. Supabase contact labels
+// override this in useChocoLedger.attachContactLabels before the UI sees the value.
+function tailAddress(address) {
+  return isAddress(address) ? `...${address.slice(-4)}` : "Unknown";
+}
+
 // --- Private log → model mappers ---
 
 function mapScheduleToPlan(log) {
@@ -46,7 +52,7 @@ function mapScheduleToPlan(log) {
   return {
     id: `schedule-${a.id}`,
     onchainId: Number(a.id),
-    recipient: shortAddress(a.recipient),
+    recipient: tailAddress(a.recipient),
     recipientAddress: a.recipient,
     amount: amountKes.toLocaleString("en-US"),
     amountMinor: amountKes,
@@ -71,7 +77,7 @@ function mapScheduleToMovement(log, timestamp) {
   return {
     id: `tx-${log.transactionHash}-${log.logIndex}`,
     planId: `schedule-${a.id}`,
-    recipient: shortAddress(a.recipient),
+    recipient: tailAddress(a.recipient),
     amount: amountKes.toLocaleString("en-US"),
     asset: APP_CONFIG.assets.destination,
     payAsset: isCkesAsset(a.sourceAsset) ? APP_CONFIG.assets.destination : APP_CONFIG.assets.source,
@@ -95,7 +101,7 @@ function mapSettlementToMovement(log, schedule, timestamp) {
   return {
     id: `settle-${log.transactionHash}-${log.logIndex}`,
     planId: `schedule-${a.id}`,
-    recipient: schedule ? shortAddress(schedule.recipient) : "Recipient",
+    recipient: schedule ? tailAddress(schedule.recipient) : "Recipient",
     amount: amountKes.toLocaleString("en-US"),
     asset: APP_CONFIG.assets.destination,
     payAsset: schedule && isCkesAsset(schedule.sourceAsset) ? APP_CONFIG.assets.destination : APP_CONFIG.assets.source,
@@ -192,7 +198,7 @@ async function readSendNowHistory(publicClient, owner, fromBlock) {
       return {
         id: `send-${transferLog.transactionHash}-${transferLog.logIndex}`,
         planId: "send-now",
-        recipient: shortAddress(transferLog.args.to),
+        recipient: tailAddress(transferLog.args.to),
         recipientAddress: transferLog.args.to,
         amount: amountKes.toLocaleString("en-US"),
         amountMinor: amountKes,
