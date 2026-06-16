@@ -23,19 +23,27 @@ function compile() {
   return JSON.parse(solc.compile(JSON.stringify(input)));
 }
 
-test("ChocoCkesSwap compiles", () => {
+test("ChocoGateway compiles without errors", () => {
   const output = compile();
   const errors = (output.errors || []).filter((item) => item.severity === "error");
   assert.deepEqual(errors, []);
-  const contract = output.contracts["ChocoCkesSwap.sol"].ChocoCkesSwap;
+  const contract = output.contracts["ChocoGateway.sol"].ChocoGateway;
   assert.ok(contract.evm.bytecode.object.length > 1000);
 });
 
-test("swap ABI exposes swapAndSend, quote, and UsdcToCkesSwap event", () => {
+test("ChocoGateway emits LedgerLogFailed when ledger logging is not recorded", () => {
   const output = compile();
-  const abi = output.contracts["ChocoCkesSwap.sol"].ChocoCkesSwap.abi;
-  const names = abi.map((item) => item.name).filter(Boolean);
-  assert.ok(names.includes("swapAndSend"));
-  assert.ok(names.includes("quote"));
-  assert.ok(names.includes("UsdcToCkesSwap"));
+  const abi = output.contracts["ChocoGateway.sol"].ChocoGateway.abi;
+  const event = abi.find((item) => item.type === "event" && item.name === "LedgerLogFailed");
+
+  assert.ok(event);
+  assert.deepEqual(event.inputs.map((input) => input.name), [
+    "ledger",
+    "payer",
+    "recipient",
+    "usdcIn",
+    "ckesOut",
+    "note",
+    "reason",
+  ]);
 });

@@ -101,6 +101,8 @@ VITE_LEDGER_ADDRESS=<ChocoLedger address printed by deploy:ledger>
 VITE_LEDGER_DEPLOY_BLOCK=<block number printed by deploy:ledger>
 VITE_SETTLEMENT_SPENDER_ADDRESS=<keeper EOA>
 VITE_CKES_SWAP_CONTRACT_ADDRESS=<ChocoGateway address printed by deploy:gateway>
+VITE_CKES_SWAP_DEPLOY_BLOCK=<earliest block among configured ChocoGateway addresses>
+VITE_CKES_SWAP_CONTRACT_ADDRESSES=<active gateway>,<legacy gateway if any>
 
 # Supabase (from step 2, optional — leave blank to disable contact persistence)
 VITE_SUPABASE_URL=https://xxxxx.supabase.co
@@ -151,6 +153,10 @@ For content-addressed `agentURI`:
 4. Test schedule: `send <address> 1000 cKES monthly` → Build → Confirm
 5. Check History tab shows both movements
 6. Check Celoscan for `AttemptLogged` on ChocoLedger (logged by ChocoGateway)
+
+If History is missing send-now movements after a redeploy, confirm the active and legacy
+gateway addresses are both present in `VITE_CKES_SWAP_CONTRACT_ADDRESSES`. The active
+`VITE_CKES_SWAP_CONTRACT_ADDRESS` is used for new sends; the list is used for audit/history.
 
 ## Demo Deployment (choco-azure)
 

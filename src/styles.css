@@ -1,22 +1,25 @@
 :root {
   color-scheme: dark;
-  --black: #050302;
-  --cocoa-950: #100906;
-  --cocoa-900: #1a100b;
-  --cocoa-850: #20140e;
-  --cocoa-800: #28180f;
-  --cocoa-700: #3a2415;
-  --cocoa-600: #5b371f;
-  --cocoa-500: #6b4226;
-  --latte-500: #d9a679;
-  --latte-300: #ead0b2;
-  --cream: #f6e8d4;
-  --paper: #f7ecdc;
-  --paper-2: #ead8c0;
-  --line: rgba(217, 166, 121, 0.18);
-  --line-soft: rgba(246, 232, 212, 0.12);
-  --text: #fff8ef;
-  --muted: #c4ad96;
+  --black: #070403;
+  --cocoa-950: #120906;
+  --cocoa-900: #1b0f0a;
+  --cocoa-850: #24150e;
+  --cocoa-800: #2d1b12;
+  --cocoa-700: #442918;
+  --cocoa-600: #664027;
+  --cocoa-500: #805438;
+  --latte-500: #c99060;
+  --latte-300: #e6c5a1;
+  --cream: #fff1dc;
+  --paper: #f8ead7;
+  --paper-2: #ead5ba;
+  --line: rgba(201, 144, 96, 0.22);
+  --line-soft: rgba(255, 241, 220, 0.13);
+  --text: #fff8ee;
+  --muted: #cbb59d;
+  --surface: rgba(28, 16, 10, 0.7);
+  --surface-strong: rgba(18, 9, 6, 0.76);
+  --surface-soft: rgba(255, 241, 220, 0.08);
 }
 
 * {
@@ -67,8 +70,8 @@ a {
   justify-content: center;
   padding: 28px;
   background:
-    radial-gradient(circle at 18% 16%, rgba(217, 166, 121, 0.11), transparent 32%),
-    radial-gradient(circle at 80% 70%, rgba(91, 55, 31, 0.28), transparent 34%),
+    radial-gradient(circle at 18% 16%, rgba(201, 144, 96, 0.1), transparent 32%),
+    radial-gradient(circle at 80% 70%, rgba(102, 64, 39, 0.26), transparent 34%),
     var(--black);
 }
 
@@ -77,8 +80,8 @@ a {
   max-width: 430px;
   flex: 0 1 430px;
   min-height: min(900px, 100dvh);
-  background: #000;
-  border: 1px solid rgba(246, 232, 212, 0.08);
+  background: #030201;
+  border: 1px solid rgba(255, 241, 220, 0.08);
   overflow-x: hidden;
   overflow-y: auto;
   box-shadow: 0 34px 90px rgba(0, 0, 0, 0.42);
@@ -147,9 +150,9 @@ a {
   padding: 24px 22px calc(24px + env(safe-area-inset-bottom));
   border-radius: 28px 28px 0 0;
   background:
-    linear-gradient(135deg, rgba(217, 166, 121, 0.07) 25%, transparent 25%) 0 0 / 44px 44px,
-    linear-gradient(225deg, rgba(217, 166, 121, 0.045) 25%, transparent 25%) 0 0 / 44px 44px,
-    linear-gradient(180deg, var(--cocoa-850), var(--cocoa-900));
+    linear-gradient(135deg, rgba(255, 241, 220, 0.055) 25%, transparent 25%) 0 0 / 44px 44px,
+    linear-gradient(225deg, rgba(201, 144, 96, 0.05) 25%, transparent 25%) 0 0 / 44px 44px,
+    linear-gradient(180deg, #2a1a11 0%, var(--cocoa-900) 56%, var(--cocoa-950) 100%);
   overflow-x: hidden;
   overflow-y: auto;
   position: relative;
@@ -4834,4 +4837,106 @@ a {
   border-color: rgba(217, 166, 121, 0.2);
   background: rgba(40, 24, 15, 0.4);
   color: var(--latte-300);
+}
+
+/* Final palette refinement: balanced cocoa surfaces + soft vanilla actions. */
+.home-start-action,
+.asset-card,
+.composer,
+.schedule-bar,
+.bottom-nav,
+.detail-line,
+.summary-tile,
+.plan-row,
+.transaction-row,
+.ready-check-row {
+  border-color: rgba(255, 241, 220, 0.12);
+  background: var(--surface-strong);
+}
+
+.bottom-nav button.active {
+  background: rgba(255, 241, 220, 0.14);
+  color: var(--cream);
+}
+
+.primary-cta {
+  background: linear-gradient(180deg, #fff4e4, var(--cream));
+  color: var(--cocoa-900);
+  box-shadow: 0 10px 24px rgba(5, 3, 2, 0.16);
+}
+
+.secondary-dark {
+  border-color: rgba(255, 241, 220, 0.13);
+  background: rgba(18, 9, 6, 0.34);
+}
+
+.review-screen .summary-card {
+  border-color: rgba(201, 144, 96, 0.18);
+  background: rgba(36, 21, 14, 0.72);
+}
+
+.screen-hero-label {
+  color: var(--latte-500);
+  opacity: 0.82;
+}
+
+.plan-row:hover,
+.transaction-row:hover {
+  border-color: rgba(201, 144, 96, 0.26);
+  background: rgba(45, 27, 18, 0.66);
+}
+
+.home-hero {
+  border: 1px solid rgba(255, 241, 220, 0.1);
+  background:
+    linear-gradient(135deg, rgba(255, 241, 220, 0.055) 25%, transparent 25%) 0 0 / 36px 36px,
+    linear-gradient(225deg, rgba(201, 144, 96, 0.045) 25%, transparent 25%) 0 0 / 36px 36px,
+    rgba(36, 21, 14, 0.78);
+}
+
+.review-screen .reference-card {
+  border-left: 3px solid rgba(201, 144, 96, 0.58);
+  background: rgba(36, 21, 14, 0.68);
+}
+
+.review-screen .reference-card span {
+  color: var(--latte-300);
+  opacity: 0.78;
+}
+
+.review-screen .contact-resolution-card {
+  border-color: rgba(201, 144, 96, 0.18);
+  background: rgba(36, 21, 14, 0.62);
+}
+
+.review-screen .contact-resolution-card > button {
+  border-color: rgba(201, 144, 96, 0.24);
+  background: rgba(18, 9, 6, 0.28);
+  color: var(--latte-300);
+}
+
+.agent-phone-card {
+  min-height: min(520px, calc(100dvh - 210px));
+  border-color: rgba(255, 241, 220, 0.12);
+  background:
+    linear-gradient(135deg, rgba(255, 241, 220, 0.055) 25%, transparent 25%) 0 0 / 42px 42px,
+    linear-gradient(180deg, rgba(45, 27, 18, 0.78), rgba(18, 9, 6, 0.94));
+}
+
+.agent-plan {
+  background: rgba(255, 241, 220, 0.075);
+}
+
+.agent-plan strong {
+  font-size: 32px;
+}
+
+.agent-line {
+  border-color: rgba(255, 241, 220, 0.11);
+  background: rgba(18, 9, 6, 0.44);
+}
+
+.agent-next {
+  color: var(--latte-300);
+  opacity: 0.72;
 }

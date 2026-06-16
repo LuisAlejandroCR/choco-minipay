@@ -1,6 +1,13 @@
 const env = import.meta.env || {};
 const configuredChainId = Number(env.VITE_CELO_CHAIN_ID || 42220);
 
+function parseAddressList(value) {
+  return String(value || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 function cleanMainnetLabel(value, fallback) {
   const label = String(value || fallback);
   return configuredChainId === 42220 ? label.replace(/\s*testnet\s*/gi, " ").replace(/\s+/g, " ").trim() : label;
@@ -35,6 +42,8 @@ export const APP_CONFIG = {
     registryDeployBlock: env.VITE_REGISTRY_DEPLOY_BLOCK || "",
     audit: env.VITE_AUDIT_CONTRACT_ADDRESS || "",
     ckesSwap: env.VITE_CKES_SWAP_CONTRACT_ADDRESS || "",
+    ckesSwapDeployBlock: env.VITE_CKES_SWAP_DEPLOY_BLOCK || "",
+    ckesSwapAddresses: parseAddressList(env.VITE_CKES_SWAP_CONTRACT_ADDRESSES || env.VITE_CKES_SWAP_CONTRACT_ADDRESS),
   },
   mento: {
     broker: env.VITE_MENTO_BROKER_ADDRESS || "0x777A8255cA72412f0d706dc03C9D1987306B4CaD",
