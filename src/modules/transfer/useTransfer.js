@@ -9,6 +9,7 @@ import { buildSafePreviewPlan, buildTransactionFromPlan } from "../../utils/plan
 // and receipt creation. App.jsx wires it to the rest of the UI via callbacks.
 export function useTransfer({
   wallet,
+  appStatus,            // { status, setStatus, message, setMessage } from useAppStatus
   onPlanBuilt,          // (plan) => void  — calls setResolvedPreviewPlan
   onContactResolved,    // (key, contact) => void  — merges into resolvedContacts
   onTransactionCreated, // (transactionId) => void  — sets selectedTransactionId
@@ -16,8 +17,8 @@ export function useTransfer({
   onRefreshLedger,      // () => Promise<void>
   onRefreshBalances,    // (address) => Promise<void>
 }) {
-  const [status, setStatus] = useState("idle");
-  const [message, setMessage] = useState("Connect your wallet so Choco can check stablecoin funds.");
+  // status/message live in useAppStatus so contact resolution can write to the same surface.
+  const { setStatus, setMessage } = appStatus;
   const [approvalHash, setApprovalHash] = useState("");
   const [txHash, setTxHash] = useState("");
   const [lastReceipt, setLastReceipt] = useState(null);
@@ -128,8 +129,6 @@ export function useTransfer({
   }
 
   return {
-    status, setStatus,
-    message, setMessage,
     approvalHash,
     txHash,
     lastReceipt,

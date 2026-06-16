@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Bell, MessageCircleQuestionMark, X } from "lucide-react";
 import { useMiniPayWallet } from "./modules/wallet/useMiniPayWallet.js";
 import { useChocoLedger } from "./modules/ledger/useChocoLedger.js";
+import { useAppStatus } from "./modules/app/useAppStatus.js";
 import { useTransfer } from "./modules/transfer/useTransfer.js";
 import { useContactResolution } from "./modules/contacts/useContactResolution.js";
 import { SUPABASE_READY } from "./lib/contacts.js";
@@ -34,6 +35,24 @@ import { ProcessingScreen } from "./screens/ProcessingScreen.jsx";
 import { DuplicateGuardScreen } from "./screens/DuplicateGuardScreen.jsx";
 import { ReviewScreen } from "./screens/ReviewScreen.jsx";
 import { TransactionSuccessScreen } from "./screens/TransactionSuccessScreen.jsx";
+
+// Static topbar titles by screen. planEditor is the one dynamic case (depends on review/delivery
+// mode) and is handled separately in the screenTitle memo below.
+const SCREEN_TITLES = {
+  splash: "Choco",
+  pitch: "Choco",
+  plans: "Plans",
+  planDetail: "Details",
+  history: "History",
+  receiptDetail: "Receipt",
+  deletePlan: "Delete",
+  demoTour: "Demo",
+  processing: "Planning",
+  duplicateGuard: "Choco",
+  review: "Quote",
+  walletGate: "Wallet",
+  plan: "Home",
+};
 
 export default function App() {
   // --- Core app state ---
@@ -78,24 +97,22 @@ export default function App() {
   const reviewPlan = resolvedPreviewPlan ?? previewPlan;
 
   // --- Feature hooks ---
-  // contacts must be declared before transfer so transfer.onContactResolved can reference
-  // contacts.setResolvedContacts. The onError/onMessage callbacks reference transfer via
-  // closure — safe because they are only invoked from user events, never during hook init.
+  // appStatus is the shared status/message surface. Declaring it first lets both feature hooks
+  // write to it without referencing each other — no forward reference, no eslint-disable.
+  const appStatus = useAppStatus();
+
   const contacts = useContactResolution({
     wallet,
     visibleScreen,
     reviewPlan,
     demoRecipientAddress,
-    // transfer is declared below — safe because these closures are only invoked from user
-    // events, never during hook initialisation (temporal dead zone is never hit in practice).
-    // eslint-disable-next-line no-use-before-define
-    onError: (msg) => transfer.setMessage(msg),
-    // eslint-disable-next-line no-use-before-define
-    onMessage: (msg) => transfer.setMessage(msg),
+    onError: appStatus.setMessage,
+    onMessage: appStatus.setMessage,
   });
 
   const transfer = useTransfer({
     wallet,
+    appStatus,
     onPlanBuilt: setResolvedPreviewPlan,
     onContactResolved: (key, contact) =>
       contacts.setResolvedContacts((prev) => ({ ...prev, [key]: contact })),
@@ -155,17 +172,17 @@ export default function App() {
 
   // --- Event handlers ---
   async function connectWallet() {
-    transfer.setStatus("pending");
-    transfer.setMessage("Opening wallet...");
+    appStatus.setStatus("pending");
+    appStatus.setMessage("Opening wallet...");
     try {
       const address = await wallet.verifyWallet();
       await refreshBalances(address);
-      transfer.setStatus("review");
-      transfer.setMessage("Wallet connected on Celo Mainnet. Choose now or schedule.");
+      appStatus.setStatus("review");
+      appStatus.setMessage("Wallet connected on Celo Mainnet. Choose now or schedule.");
       return address;
     } catch (error) {
-      transfer.setStatus("error");
-      transfer.setMessage(error.message);
+      appStatus.setStatus("error");
+      appStatus.setMessage(error.message);
       return "";
     }
   }
@@ -245,35 +262,25 @@ export default function App() {
       return;
     }
     try {
-      transfer.setStatus("pending");
-      transfer.setMessage("Cancelling schedule on-chain...");
+      appStatus.setStatus("pending");
+      appStatus.setMessage("Cancelling schedule on-chain...");
       await cancelScheduleViaRegistry({ account: wallet.address, id: activePlan.onchainId });
       await refreshLedger();
-      transfer.setStatus("idle");
-      transfer.setMessage("Schedule cancelled on-chain.");
+      appStatus.setStatus("idle");
+      appStatus.setMessage("Schedule cancelled on-chain.");
     } catch (error) {
-      transfer.setStatus("error");
-      transfer.setMessage(error.message);
+      appStatus.setStatus("error");
+      appStatus.setMessage(error.message);
     }
     setSelectedPlanId("");
     goTo("plans");
   }
 
   const screenTitle = useMemo(() => {
-    if (visibleScreen === "splash") return "Choco";
-    if (visibleScreen === "pitch") return "Choco";
-    if (visibleScreen === "plans") return "Plans";
-    if (visibleScreen === "planDetail") return "Details";
-    if (visibleScreen === "history") return "History";
-    if (visibleScreen === "receiptDetail") return "Receipt";
-    if (visibleScreen === "planEditor") return reviewMode === "update" ? "Edit plan" : deliveryMode === "now" ? "Send now" : "New schedule";
-    if (visibleScreen === "deletePlan") return "Delete";
-    if (visibleScreen === "demoTour") return "Demo";
-    if (visibleScreen === "processing") return "Planning";
-    if (visibleScreen === "duplicateGuard") return "Choco";
-    if (visibleScreen === "review") return "Quote";
-    if (visibleScreen === "walletGate") return "Wallet";
-    return "Home";
+    if (visibleScreen === "planEditor") {
+      return reviewMode === "update" ? "Edit plan" : deliveryMode === "now" ? "Send now" : "New schedule";
+    }
+    return SCREEN_TITLES[visibleScreen] || "Home";
   }, [deliveryMode, reviewMode, visibleScreen]);
 
   return (
@@ -404,7 +411,7 @@ export default function App() {
                 deliveryMode={deliveryMode}
                 setDeliveryMode={changeDeliveryMode}
                 agentIntent={previewPlan.intent}
-                statusMessage={transfer.status === "error" ? transfer.message : ""}
+                statusMessage={appStatus.status === "error" ? appStatus.message : ""}
                 onBuild={handleBuildPlan}
                 onHome={() => setScreen("plan")}
                 onBack={reviewMode === "update" ? () => goTo("planDetail") : null}
@@ -434,8 +441,8 @@ export default function App() {
             <ReviewScreen
               plan={reviewPlan}
               walletReady={wallet.isReady}
-              status={transfer.status}
-              message={transfer.message}
+              status={appStatus.status}
+              message={appStatus.message}
               setupNotice={setupNotice}
               actionReady={actionReady}
               approvalUrl={approvalUrl}
