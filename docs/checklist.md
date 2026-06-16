@@ -1,5 +1,12 @@
 # Mainnet Deployment Checklist
 
+> **Current state (June 2025):** ChocoGateway + ChocoLedger deployed on Celo Mainnet. Vercel
+> env vars up to date. Frontend split into feature hooks (`useTransfer`, `useContactResolution`)
+> and chain modules (`src/chain/`). Exact-output swap (`swapAndSendExact`) live.
+> Historical architecture blocks below are preserved for context.
+
+---
+
 This is the deployable system (`Choco for Minipay`). The reference repo (`Choco Minipay`) is a
 behavior benchmark only. What follows is what changed in this repo and what is still an on-chain step.
 

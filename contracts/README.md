@@ -60,7 +60,7 @@ $env:DEPLOYER_PRIVATE_KEY  = "0x..."          # wallet that pays deploy gas (~7 
 $env:KEEPER_ADDRESS        = "0x..."          # EOA that will execute monthly settlements
 $env:FEE_RECIPIENT_ADDRESS = "0x..."          # wallet that receives the protocol fee
 $env:FEE_BPS               = "25"             # 25 = 0.25%; range 0–100
-$env:CELO_RPC_URL          = "https://rpc.ankr.com/celo"
+$env:CELO_RPC_URL          = "https://forno.celo.org"
 ```
 
 ### Deploy order
@@ -97,7 +97,7 @@ Also prints the `cast send` command to authorize ChocoGateway on ChocoLedger —
 
 ```bash
 cast send <LEDGER_ADDRESS> "setSwapContract(address,bool)" <GATEWAY_ADDRESS> true \
-  --rpc-url https://rpc.ankr.com/celo \
+  --rpc-url https://forno.celo.org \
   --private-key $DEPLOYER_PRIVATE_KEY
 ```
 
