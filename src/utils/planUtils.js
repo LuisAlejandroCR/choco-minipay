@@ -182,7 +182,11 @@ export function buildTransactionFromPlan(plan, type = "Plan confirmed", fromAddr
     type,
     deliveryMode: plan.deliveryMode,
     from: fromAddress || CHOCO_SCENARIO.senderAddress,
-    to: plan.recipient ? `${getRecipientContactLabel(plan)} - MiniPay contact` : "Recipient pending",
+    to: toAddress
+      ? (plan.recipient && !/^\.\.\./.test(plan.recipient)
+          ? `${getRecipientContactLabel(plan)} · ...${toAddress.slice(-4)}`
+          : `...${toAddress.slice(-4)}`)
+      : plan.recipient || "Recipient",
     toAddress,
   };
 }

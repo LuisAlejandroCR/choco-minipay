@@ -19,6 +19,7 @@ export function useMiniPayWallet() {
   const [address, setAddress] = useState("");
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
+  const [isReadOnly, setIsReadOnly] = useState(false);
   const hasProvider = hasEthereumProvider();
   const mobile = isMobileBrowser();
   const miniPay = isMiniPay();
@@ -63,7 +64,7 @@ export function useMiniPayWallet() {
     hasProvider,
     isMobile: mobile,
     isMiniPay: miniPay,
-    isReadOnly: false,
+    isReadOnly,
     isReady: Boolean(address),
     isTestnet: false,
     needsMobileWallet: mobile && !hasProvider,
@@ -96,6 +97,13 @@ export function useMiniPayWallet() {
     }
   }
 
+  function connectManual(addr) {
+    setAddress(addr);
+    setStatus("ready");
+    setIsReadOnly(true);
+    setError("");
+  }
+
   function openMiniPay() {
     window.location.href = "https://minipay.opera.com/";
   }
@@ -111,6 +119,7 @@ export function useMiniPayWallet() {
   return {
     ...wallet,
     verifyWallet,
+    connectManual,
     openMiniPay,
     openMetaMaskMobile,
     openMetaMaskDownload,

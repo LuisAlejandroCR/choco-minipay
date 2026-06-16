@@ -1,10 +1,17 @@
+import { useState } from "react";
+import { isAddress } from "viem";
 import { ShieldCheck } from "lucide-react";
 import { BottomNav } from "../components/BottomNav.jsx";
 
 export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
+  const [manualAddr, setManualAddr] = useState("");
   const isVerifyingWallet = wallet.status === "loading" || wallet.status === "opening-wallet";
   const needsMobileWallet = wallet.needsMobileWallet;
   const needsDesktopWallet = !wallet.isMobile && !wallet.hasProvider;
+
+  const trimmedAddr = manualAddr.trim();
+  const isValidAddr = isAddress(trimmedAddr);
+  const addrPreview = trimmedAddr.length >= 4 ? `...${trimmedAddr.slice(-4)}` : "";
 
   return (
     <div className="screen wallet-gate-screen">
@@ -35,9 +42,36 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
             <button className="primary-cta" type="button" disabled={isVerifyingWallet} onClick={wallet.openMetaMaskMobile}>
               {isVerifyingWallet ? "Opening wallet" : "Open in wallet"}
             </button>
-            <button className="secondary-dark" type="button" onClick={wallet.openMiniPay}>
-              Open in MiniPay
-            </button>
+
+            <div className="wallet-manual-input">
+              <label className="wallet-manual-label">Or paste your wallet address</label>
+              <div className="wallet-manual-row">
+                <input
+                  type="text"
+                  className="wallet-manual-field"
+                  inputMode="text"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck="false"
+                  placeholder="0x…"
+                  value={isValidAddr ? addrPreview : manualAddr}
+                  onChange={(e) => setManualAddr(e.target.value)}
+                  aria-label="Paste wallet address"
+                />
+                {isValidAddr && (
+                  <button
+                    className="secondary-dark"
+                    type="button"
+                    onClick={() => wallet.connectManual(trimmedAddr)}
+                  >
+                    Connect
+                  </button>
+                )}
+              </div>
+              {isValidAddr && (
+                <small className="wallet-addr-preview">Read-only · {addrPreview}</small>
+              )}
+            </div>
           </div>
         ) : needsDesktopWallet ? (
           <div className="wallet-mobile-actions">

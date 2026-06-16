@@ -75,16 +75,8 @@ export function ReceiptDetailScreen({ transaction, onBack, onHome, onPlans }) {
               <div className="notice">Explorer receipt appears after the wallet signs and the transaction is mined.</div>
             )}
             <div className="verify-list">
-              <ReceiptRow icon={<Wallet size={18} />} label="From" value={transaction.from} mono />
-              <ReceiptRow
-                icon={<Check size={18} />}
-                label="To"
-                value={
-                  transaction.toAddress && !String(transaction.to || "").startsWith("0x")
-                    ? `${transaction.to} · ${transaction.toAddress.slice(0, 6)}...${transaction.toAddress.slice(-4)}`
-                    : transaction.to || ""
-                }
-              />
+              <ReceiptRow icon={<Wallet size={18} />} label="From" value={transaction.from ? `...${transaction.from.slice(-4)}` : ""} mono />
+              <ReceiptRow icon={<Check size={18} />} label="To" value={transaction.to || ""} />
               <ReceiptRow icon={<CalendarDays size={18} />} label="Date" value={transaction.date} />
               <ReceiptRow icon={<ReceiptText size={18} />} label="Hash" value={formatTransactionHash(transaction.hash)} mono />
             </div>

@@ -60,7 +60,7 @@ export function ReviewScreen({
 
   function shortAddr(a) {
     const s = String(a || "");
-    return s.length < 14 ? s : `${s.slice(0, 8)}…${s.slice(-6)}`;
+    return s.length > 4 ? `...${s.slice(-4)}` : s;
   }
 
   function handleSaveEdit() {

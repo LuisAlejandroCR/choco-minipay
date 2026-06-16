@@ -2857,6 +2857,77 @@ a {
   opacity: 1;
 }
 
+/* ── Filter pills (History + Plans screens) ─────────────────────────── */
+.filter-pills {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.filter-pill {
+  padding: 6px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--line-soft);
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.filter-pill.active {
+  background: var(--cream);
+  color: var(--dark);
+  border-color: var(--cream);
+}
+
+/* ── Wallet manual address input (WalletGateScreen) ─────────────────── */
+.wallet-manual-input {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.wallet-manual-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.wallet-manual-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.wallet-manual-field {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 13px;
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  background: rgba(16, 9, 6, 0.55);
+  color: var(--cream);
+  font-size: 14px;
+  font-family: monospace;
+}
+
+.wallet-manual-field::placeholder {
+  color: var(--muted);
+}
+
+.wallet-addr-preview {
+  font-size: 12px;
+  color: var(--muted);
+  font-family: monospace;
+}
+
 /* Recent activity compact rows on home */
 .recent-row {
   width: 100%;
