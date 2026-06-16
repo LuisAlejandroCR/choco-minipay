@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { isAddress } from "viem";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, X } from "lucide-react";
 import { BottomNav } from "../components/BottomNav.jsx";
 
 export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
@@ -11,7 +11,11 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
 
   const trimmedAddr = manualAddr.trim();
   const isValidAddr = isAddress(trimmedAddr);
-  const addrPreview = trimmedAddr.length >= 4 ? `...${trimmedAddr.slice(-4)}` : "";
+
+  function handleConnect() {
+    wallet.connectManual(trimmedAddr);
+    onHome();
+  }
 
   return (
     <div className="screen wallet-gate-screen">
@@ -39,13 +43,19 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
 
         {needsMobileWallet ? (
           <div className="wallet-mobile-actions">
-            <button className="primary-cta" type="button" disabled={isVerifyingWallet} onClick={wallet.openMetaMaskMobile}>
-              {isVerifyingWallet ? "Opening wallet" : "Open in wallet"}
+            <button
+              className="primary-cta"
+              type="button"
+              disabled={isVerifyingWallet}
+              onClick={wallet.openMetaMaskMobile}
+            >
+              {isVerifyingWallet ? "Opening wallet…" : "Open in wallet"}
             </button>
 
+            {/* Manual address entry — read-only after validation so state never gets corrupted */}
             <div className="wallet-manual-input">
-              <label className="wallet-manual-label">Or paste your wallet address</label>
-              <div className="wallet-manual-row">
+              <label className="wallet-manual-label">Or paste your address</label>
+              <div className={`wallet-manual-row${isValidAddr ? " row-validated" : ""}`}>
                 <input
                   type="text"
                   className="wallet-manual-field"
@@ -54,22 +64,33 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
                   autoCorrect="off"
                   spellCheck="false"
                   placeholder="0x…"
-                  value={isValidAddr ? addrPreview : manualAddr}
+                  value={manualAddr}
+                  readOnly={isValidAddr}
                   onChange={(e) => setManualAddr(e.target.value)}
                   aria-label="Paste wallet address"
                 />
                 {isValidAddr && (
                   <button
-                    className="secondary-dark"
+                    className="wallet-clear-btn"
                     type="button"
-                    onClick={() => wallet.connectManual(trimmedAddr)}
+                    aria-label="Clear address"
+                    onClick={() => setManualAddr("")}
                   >
-                    Connect
+                    <X size={14} />
                   </button>
                 )}
               </div>
               {isValidAddr && (
-                <small className="wallet-addr-preview">Read-only · {addrPreview}</small>
+                <>
+                  <small className="wallet-addr-preview">Read-only · ...{trimmedAddr.slice(-4)}</small>
+                  <button
+                    className="primary-cta"
+                    type="button"
+                    onClick={handleConnect}
+                  >
+                    Connect ...{trimmedAddr.slice(-4)}
+                  </button>
+                </>
               )}
             </div>
           </div>
@@ -79,12 +100,12 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
               Get MetaMask
             </button>
             <button className="secondary-dark" type="button" disabled={isVerifyingWallet} onClick={onVerifyWallet}>
-              {isVerifyingWallet ? "Checking wallet" : "I enabled it, check again"}
+              {isVerifyingWallet ? "Checking wallet…" : "I enabled it, check again"}
             </button>
           </div>
         ) : (
           <button className="primary-cta" type="button" disabled={isVerifyingWallet} onClick={onVerifyWallet}>
-            {isVerifyingWallet ? "Verifying wallet" : "Verify wallet"}
+            {isVerifyingWallet ? "Verifying wallet…" : "Verify wallet"}
           </button>
         )}
 

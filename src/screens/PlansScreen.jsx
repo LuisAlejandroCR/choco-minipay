@@ -1,41 +1,72 @@
 import { useState } from "react";
-import { Check, Plus } from "lucide-react";
+import { Check, Plus, Search } from "lucide-react";
 import { ChocoMark } from "../components/ChocoMark.jsx";
 import { BottomNav } from "../components/BottomNav.jsx";
 import { getSimilarPlanIds, getTimingLabel } from "../utils/planUtils.js";
 
-const PLAN_FILTERS = [
+const STATUS_FILTERS = [
   { id: "all", label: "All" },
   { id: "Active", label: "Active" },
   { id: "Paused", label: "Paused" },
 ];
 
+function applyFilters(plans, statusFilter, query) {
+  let result = statusFilter === "all" ? plans : plans.filter((p) => p.status === statusFilter);
+  if (query.trim()) {
+    const q = query.trim().toLowerCase();
+    result = result.filter(
+      (p) =>
+        String(p.recipient || "").toLowerCase().includes(q) ||
+        String(p.amount || "").includes(q) ||
+        String(p.asset || "").toLowerCase().includes(q),
+    );
+  }
+  return result;
+}
+
 export function PlansScreen({ plans, onSelectPlan, onNewPlan, onHome, onHistory }) {
-  const [filter, setFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [query, setQuery] = useState("");
+
   const similarPlanIds = getSimilarPlanIds(plans);
-  const visible = filter === "all" ? plans : plans.filter((p) => p.status === filter);
+  const visible = applyFilters(plans, statusFilter, query);
 
   return (
     <div className="screen plans-screen">
-      <div className="layer-heading">
-        <div>
-          <span>Manage</span>
-          <h2>Plans</h2>
+      <div className="screen-hero">
+        <span className="screen-hero-label">Manage</span>
+        <div className="screen-hero-row">
+          <h2 className="screen-hero-title">Plans</h2>
+          <button className="screen-hero-action" type="button" onClick={onNewPlan}>
+            <Plus size={16} />Schedule
+          </button>
         </div>
-        <button type="button" onClick={onNewPlan}><Plus size={18} />Schedule</button>
       </div>
 
-      <div className="filter-pills" role="group" aria-label="Filter plans">
-        {PLAN_FILTERS.map((f) => (
-          <button
-            key={f.id}
-            className={`filter-pill${filter === f.id ? " active" : ""}`}
-            type="button"
-            onClick={() => setFilter(f.id)}
-          >
-            {f.label}
-          </button>
-        ))}
+      <div className="screen-filters">
+        <div className="filter-pills" role="group" aria-label="Filter plans">
+          {STATUS_FILTERS.map((f) => (
+            <button
+              key={f.id}
+              className={`filter-pill${statusFilter === f.id ? " active" : ""}`}
+              type="button"
+              onClick={() => setStatusFilter(f.id)}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <div className="filter-search-row">
+          <Search size={15} className="filter-search-icon" />
+          <input
+            className="filter-search-input"
+            type="search"
+            placeholder="Search recipient…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            aria-label="Search plans"
+          />
+        </div>
       </div>
 
       {visible.length > 0 ? (
@@ -54,7 +85,7 @@ export function PlansScreen({ plans, onSelectPlan, onNewPlan, onHome, onHistory 
                   <div className="plan-row-icon"><ChocoMark size="tiny" /></div>
                   <div>
                     <b>{item.recipient}</b>
-                    <span>{item.amount} {item.asset} - {getTimingLabel(item)}</span>
+                    <span>{item.amount} {item.asset} · {getTimingLabel(item)}</span>
                   </div>
                   <small className={isSimilar ? "warning" : ""}>{isSimilar ? "Similar" : item.status}</small>
                 </button>
@@ -65,9 +96,11 @@ export function PlansScreen({ plans, onSelectPlan, onNewPlan, onHome, onHistory 
       ) : (
         <div className="empty-plans">
           <ChocoMark size="small" />
-          <h2>{filter === "all" ? "No plans yet" : `No ${filter.toLowerCase()} plans`}</h2>
-          <p>{filter === "all" ? "Create a scheduled transfer with text or voice. One-time sends stay in history." : "Try a different filter."}</p>
-          {filter === "all" && <button type="button" onClick={onNewPlan}>Schedule transfer</button>}
+          <h2>{query ? "No matches" : statusFilter === "all" ? "No plans yet" : `No ${statusFilter.toLowerCase()} plans`}</h2>
+          <p>{query ? "Try a different search term." : statusFilter === "all" ? "Create a scheduled transfer with text or voice. One-time sends stay in history." : "Try a different filter."}</p>
+          {!query && statusFilter === "all" && (
+            <button type="button" onClick={onNewPlan}>Schedule transfer</button>
+          )}
         </div>
       )}
 

@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { AlertCircle, ArrowDownLeft, CalendarDays, Clock, ReceiptText } from "lucide-react";
+import { AlertCircle, ArrowDownLeft, CalendarDays, Clock, ReceiptText, Search } from "lucide-react";
 import { BottomNav } from "../components/BottomNav.jsx";
 
-// Group a sorted transaction list into day buckets for display.
 function dayKey(sortKey) {
   if (!sortKey) return "Pending";
   const ts = sortKey * 1000;
@@ -34,49 +33,20 @@ function timeLabel(sortKey) {
   return new Date(sortKey * 1000).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
 }
 
-// A "Plan confirmed" is a schedule registration — no money moved yet.
 function isScheduleEvent(tx) {
   return tx.type === "Plan confirmed" || tx.type === "Plan updated" || tx.status === "Scheduled";
 }
 
 function TxDot({ tx }) {
-  if (tx.status === "Failed") {
-    return (
-      <span className="tx-dot failed" aria-label="Failed">
-        <AlertCircle size={16} />
-      </span>
-    );
-  }
-  if (isScheduleEvent(tx)) {
-    return (
-      <span className="tx-dot plan" aria-label="Scheduled">
-        <CalendarDays size={16} />
-      </span>
-    );
-  }
-  if (!tx.sortKey) {
-    return (
-      <span className="tx-dot plan" aria-label="Pending">
-        <Clock size={16} />
-      </span>
-    );
-  }
-  return (
-    <span className="tx-dot sent" aria-label="Sent">
-      <ArrowDownLeft size={16} />
-    </span>
-  );
+  if (tx.status === "Failed") return <span className="tx-dot failed" aria-label="Failed"><AlertCircle size={16} /></span>;
+  if (isScheduleEvent(tx)) return <span className="tx-dot plan" aria-label="Scheduled"><CalendarDays size={16} /></span>;
+  if (!tx.sortKey) return <span className="tx-dot plan" aria-label="Pending"><Clock size={16} /></span>;
+  return <span className="tx-dot sent" aria-label="Sent"><ArrowDownLeft size={16} /></span>;
 }
 
 function TxAmount({ tx }) {
-  const cls = tx.status === "Failed"
-    ? "tx-amount failed"
-    : isScheduleEvent(tx)
-      ? "tx-amount plan"
-      : "tx-amount sent";
-
+  const cls = tx.status === "Failed" ? "tx-amount failed" : isScheduleEvent(tx) ? "tx-amount plan" : "tx-amount sent";
   const prefix = isScheduleEvent(tx) || tx.status === "Failed" ? "" : "−";
-
   return (
     <div className={cls}>
       <span>{prefix}{tx.amount}</span>
@@ -85,43 +55,66 @@ function TxAmount({ tx }) {
   );
 }
 
-const HISTORY_FILTERS = [
+const TYPE_FILTERS = [
   { id: "all", label: "All" },
   { id: "sent", label: "Sent" },
   { id: "schedules", label: "Schedules" },
 ];
 
-function applyHistoryFilter(transactions, filter) {
-  if (filter === "sent") return transactions.filter((tx) => !isScheduleEvent(tx) && tx.status !== "Failed");
-  if (filter === "schedules") return transactions.filter((tx) => isScheduleEvent(tx));
-  return transactions;
+function applyFilters(transactions, typeFilter, query) {
+  let result = transactions;
+  if (typeFilter === "sent") result = result.filter((tx) => !isScheduleEvent(tx) && tx.status !== "Failed");
+  if (typeFilter === "schedules") result = result.filter((tx) => isScheduleEvent(tx));
+  if (query.trim()) {
+    const q = query.trim().toLowerCase();
+    result = result.filter(
+      (tx) =>
+        String(tx.recipient || "").toLowerCase().includes(q) ||
+        String(tx.type || "").toLowerCase().includes(q) ||
+        String(tx.amount || "").includes(q),
+    );
+  }
+  return result;
 }
 
 export function HistoryScreen({ transactions, onSelectTransaction, onHome, onPlans }) {
-  const [filter, setFilter] = useState("all");
-  const visible = applyHistoryFilter(transactions, filter);
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [query, setQuery] = useState("");
+
+  const visible = applyFilters(transactions, typeFilter, query);
   const groups = groupByDay(visible);
 
   return (
     <div className="screen history-screen">
-      <div className="layer-heading">
-        <div>
-          <span>Receipts</span>
-          <h2>Movements</h2>
-        </div>
+      <div className="screen-hero">
+        <span className="screen-hero-label">Receipts</span>
+        <h2 className="screen-hero-title">Movements</h2>
       </div>
 
-      <div className="filter-pills" role="group" aria-label="Filter movements">
-        {HISTORY_FILTERS.map((f) => (
-          <button
-            key={f.id}
-            className={`filter-pill${filter === f.id ? " active" : ""}`}
-            type="button"
-            onClick={() => setFilter(f.id)}
-          >
-            {f.label}
-          </button>
-        ))}
+      <div className="screen-filters">
+        <div className="filter-pills" role="group" aria-label="Filter movements">
+          {TYPE_FILTERS.map((f) => (
+            <button
+              key={f.id}
+              className={`filter-pill${typeFilter === f.id ? " active" : ""}`}
+              type="button"
+              onClick={() => setTypeFilter(f.id)}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <div className="filter-search-row">
+          <Search size={15} className="filter-search-icon" />
+          <input
+            className="filter-search-input"
+            type="search"
+            placeholder="Search recipient or amount…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            aria-label="Search movements"
+          />
+        </div>
       </div>
 
       {visible.length > 0 ? (
@@ -153,8 +146,8 @@ export function HistoryScreen({ transactions, onSelectTransaction, onHome, onPla
       ) : (
         <div className="empty-plans">
           <ReceiptText size={30} />
-          <h2>{filter === "all" ? "No receipts yet" : `No ${filter} movements`}</h2>
-          <p>{filter === "all" ? "Completed wallet-signed sends and scheduled actions will appear here." : "Try a different filter."}</p>
+          <h2>{query ? "No matches" : typeFilter === "all" ? "No receipts yet" : `No ${typeFilter} movements`}</h2>
+          <p>{query ? "Try a different search term." : typeFilter === "all" ? "Completed wallet-signed sends and scheduled actions will appear here." : "Try a different filter."}</p>
         </div>
       )}
 
