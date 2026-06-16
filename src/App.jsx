@@ -69,8 +69,9 @@ export default function App() {
 
   // --- Platform hooks ---
   const wallet = useMiniPayWallet();
+  const walletCanSign = wallet.canSign;
   const { plans, transactions, refresh: refreshLedger } = useChocoLedger(wallet.address);
-  const visibleScreen = resolveVisibleScreen(screen, wallet.isReady);
+  const visibleScreen = resolveVisibleScreen(screen, walletCanSign);
 
   // --- Helpers (defined before feature hooks; closures capture hook values at call time) ---
   async function refreshBalances(address = wallet.address) {
@@ -79,7 +80,7 @@ export default function App() {
   }
 
   function goTo(nextScreen) {
-    setScreen(resolveVisibleScreen(nextScreen, wallet.isReady));
+    setScreen(resolveVisibleScreen(nextScreen, walletCanSign));
   }
 
   // --- Derived plan values (must be computed before feature hooks that consume them) ---
@@ -143,13 +144,13 @@ export default function App() {
     [transfer.lastReceipt, selectedTransactionId, transactions],
   );
   const actionReady = Boolean(
-    wallet.address &&
+    walletCanSign &&
     contacts.recipientAddress &&
     reviewPlan.intent?.isReady &&
     (reviewPlan.deliveryMode === "now" || (registryReady && settlementReady)),
   );
   const setupNotice =
-    wallet.isReady && reviewPlan.deliveryMode === "schedule" && (!registryReady || !settlementReady)
+    walletCanSign && reviewPlan.deliveryMode === "schedule" && (!registryReady || !settlementReady)
       ? "Scheduling needs the on-chain ledger and keeper set (VITE_LEDGER_ADDRESS, VITE_SETTLEMENT_SPENDER_ADDRESS)."
       : "";
   const txUrl = getTransactionExplorerUrl(transfer.txHash);
@@ -320,10 +321,10 @@ export default function App() {
           {visibleScreen === "plan" && (
             <PlanScreen
               plans={plans}
-              isWalletVerified={wallet.isReady}
+              isWalletVerified={walletCanSign}
               wallet={wallet}
               balances={balances}
-              walletStatusLabel={getWalletStatusLabel(wallet.isReady)}
+              walletStatusLabel={getWalletStatusLabel(walletCanSign)}
               onVerifyWallet={() => setScreen("walletGate")}
               onPlans={() => goTo("plans")}
               onHistory={() => goTo("history")}
@@ -332,7 +333,7 @@ export default function App() {
                 setSelectedPlanId(planId);
                 goTo("planDetail");
               }}
-              showDemoPrompt={showDemoPrompt && !wallet.isReady}
+              showDemoPrompt={showDemoPrompt && !walletCanSign}
               liveDemoUrl={APP_CONFIG.ui.liveDemoUrl}
               onDismissDemo={() => setShowDemoPrompt(false)}
               onRunDemo={runDemo}
@@ -440,7 +441,7 @@ export default function App() {
           {visibleScreen === "review" && (
             <ReviewScreen
               plan={reviewPlan}
-              walletReady={wallet.isReady}
+              walletReady={walletCanSign}
               status={appStatus.status}
               message={appStatus.message}
               setupNotice={setupNotice}

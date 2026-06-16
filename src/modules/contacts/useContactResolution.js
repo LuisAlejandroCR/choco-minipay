@@ -49,6 +49,7 @@ export function useContactResolution({
       !contactResolutionRequired ||
       !contactKey ||
       !wallet.address ||
+      !wallet.canSign ||
       !SUPABASE_READY
     ) {
       setContactLookup({ key: contactKey, status: "idle", message: "" });
@@ -86,7 +87,7 @@ export function useContactResolution({
     })();
 
     return () => { active = false; };
-  }, [visibleScreen, contactResolutionRequired, contactKey, receiptLabel, wallet.address, resolvedContact?.address, onError]);
+  }, [visibleScreen, contactResolutionRequired, contactKey, receiptLabel, wallet.address, wallet.canSign, resolvedContact?.address, onError]);
 
   // Reset picker when a contact is resolved (e.g., picker was open, user selected)
   useEffect(() => {
@@ -180,6 +181,13 @@ export function useContactResolution({
 
   async function pickContact() {
     if (!contactKey) return;
+
+    if (SUPABASE_READY && wallet.address && !wallet.canSign) {
+      const errorMessage = "Open Choco in MiniPay or a wallet browser to read saved contacts.";
+      setContactLookup({ key: contactKey, status: "error", message: errorMessage });
+      onError?.(errorMessage);
+      return;
+    }
 
     if (SUPABASE_READY && wallet.address) {
       try {
