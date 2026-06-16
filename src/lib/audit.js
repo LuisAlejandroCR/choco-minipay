@@ -1,3 +1,6 @@
+// DEPRECATED — logAuditAttempt was removed from all callers when ChocoGateway took over
+// on-chain logging via logAttemptFor(). This file is kept for the ABI and labelHash utility
+// only. Do not add new callers to logAuditAttempt.
 import { createWalletClient, custom, isAddress, keccak256, stringToHex, zeroAddress } from "viem";
 import { celo } from "viem/chains";
 import { APP_CONFIG } from "./app-config.js";

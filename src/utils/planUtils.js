@@ -1,4 +1,5 @@
 import { parseTransferIntent } from "../lib/intent.js";
+import { APP_CONFIG } from "../lib/app-config.js";
 import { KES_PER_USDC } from "../config/runtime.js";
 import {
   CHOCO_SCENARIO,
@@ -129,6 +130,31 @@ export function buildPlanFromIntent(intent, basePlan = defaultPlan, selectedDeli
     deliveryMode,
     intent,
   };
+}
+
+export function buildSafePreviewPlan(commandText, basePlan = defaultPlan, deliveryMode = "schedule") {
+  try {
+    return buildPlanFromCommand(commandText, basePlan, deliveryMode);
+  } catch (error) {
+    return {
+      ...basePlan,
+      amount: "",
+      amountMinor: 0,
+      recipient: "",
+      asset: CHOCO_SCENARIO.destinationAsset || "cKES",
+      payAsset: CHOCO_SCENARIO.sourceAsset || "USDC",
+      status: "Draft",
+      deliveryMode,
+      intent: {
+        rawCommand: String(commandText || ""),
+        isReady: false,
+        missing: ["recipient", "amount", "currency"],
+        confidence: 0,
+        agent: { isReady: false, confidence: 0, missing: ["recipient", "amount", "currency"] },
+        error: error.message,
+      },
+    };
+  }
 }
 
 export function buildPlanFromCommand(commandText, basePlan = defaultPlan, selectedDeliveryMode = "") {

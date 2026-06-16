@@ -197,30 +197,6 @@ export const CKES_SWAP_ABI = [
 ];
 
 
-// Live quote from ChocoGateway — returns the real cKES the recipient will receive plus the
-// protocol fee, using the current Mento oracle price. Call this before showing the review screen
-// so the user sees the exact delivery amount, not the hardcoded-rate estimate.
-export async function quoteLiveSend(usdcAmountHuman) {
-  if (!ADDRESSES.ckesSwap || !usdcAmountHuman) return null;
-  try {
-    const publicClient = makePublicClient();
-    const usdcAmount   = parseUnits(String(Number(usdcAmountHuman).toFixed(6)), 6);
-    const [ckesAmountOut, feeUsdc] = await publicClient.readContract({
-      address:      ADDRESSES.ckesSwap,
-      abi:          CKES_SWAP_ABI,
-      functionName: "quoteWithFee",
-      args:         [usdcAmount],
-    });
-    return {
-      ckesOut:  ckesAmountOut,           // BigInt, 18 decimals
-      feeUsdc,                           // BigInt, 6 decimals
-      usdcIn:   usdcAmount,              // BigInt, 6 decimals
-    };
-  } catch {
-    return null;
-  }
-}
-
 export function isMiniPay() {
   return typeof window !== "undefined" && window.ethereum?.isMiniPay === true;
 }
