@@ -1,0 +1,149 @@
+import { isAddress, parseUnits } from "viem";
+import { APP_CONFIG } from "../lib/app-config.js";
+import { ADDRESSES, assertAddress, makePublicClient, makeWalletClient } from "./client.js";
+import { CKES_SWAP_ABI, ERC20_ABI, MENTO_BROKER_ABI } from "./abis.js";
+import { approveTokenIfNeeded, usdcAmountForIntent, sourceAmountForIntent } from "./tokens.js";
+
+function readErc20Balance(publicClient, token, account) {
+  return publicClient.readContract({ address: token, abi: ERC20_ABI, functionName: "balanceOf", args: [account] });
+}
+
+// Send now. cKES transfers go wallet → recipient directly. USDC routes USDC → USDm → cKES through
+// the Mento Broker (each hop signed by the wallet), then the received cKES is delivered to the recipient.
+export async function sendNow({ account, recipient, intent }) {
+  assertAddress(account, "Wallet");
+  assertAddress(recipient, "Recipient");
+  assertAddress(ADDRESSES.feeCurrency, "VITE_FEE_CURRENCY_ADDRESS");
+
+  const publicClient = makePublicClient();
+  const walletClient = makeWalletClient(account);
+
+  // Direct cKES send — no swap needed.
+  if (intent.sourceAsset === APP_CONFIG.assets.destination) {
+    const hash = await walletClient.writeContract({
+      address: ADDRESSES.kesm,
+      abi: ERC20_ABI,
+      functionName: "transfer",
+      args: [recipient, sourceAmountForIntent(intent)],
+      feeCurrency: ADDRESSES.feeCurrency,
+    });
+    await publicClient.waitForTransactionReceipt({ hash });
+    return { approveHash: null, hash };
+  }
+
+  const usdcAmount = usdcAmountForIntent(intent);
+  const MENTO = APP_CONFIG.mento;
+
+  // 2-confirmation fast path via ChocoGateway (approve + swapAndSend[Exact]).
+  // Falls back to the 5-step direct Mento path when ckesSwap is not configured.
+  if (isAddress(ADDRESSES.ckesSwap || "")) {
+    // Exact-output path: user typed a cKES amount — deliver it precisely, return surplus.
+    if (intent.amountKes) {
+      const ckesExact = parseUnits(String(Number(intent.amountKes)), 18);
+      const usdcNeeded = await publicClient.readContract({
+        address: ADDRESSES.ckesSwap,
+        abi: CKES_SWAP_ABI,
+        functionName: "quoteExactOut",
+        args: [ckesExact],
+      });
+      const approveHash = await approveTokenIfNeeded({
+        account,
+        tokenAddress: ADDRESSES.usdc,
+        spender: ADDRESSES.ckesSwap,
+        amount: usdcNeeded,
+      });
+      const hash = await walletClient.writeContract({
+        address: ADDRESSES.ckesSwap,
+        abi: CKES_SWAP_ABI,
+        functionName: "swapAndSendExact",
+        args: [recipient, usdcNeeded, ckesExact],
+        feeCurrency: ADDRESSES.feeCurrency,
+      });
+      await publicClient.waitForTransactionReceipt({ hash });
+      return { approveHash, swap1Hash: null, swap2Hash: null, hash, ckesReceived: ckesExact };
+    }
+
+    // Fixed-input fallback: used when only a USDC amount is specified (no cKES target).
+    const ckesQuoted = await publicClient.readContract({
+      address: ADDRESSES.ckesSwap,
+      abi: CKES_SWAP_ABI,
+      functionName: "quote",
+      args: [usdcAmount],
+    });
+    const ckesMinOut = (ckesQuoted * 985n) / 1000n;
+
+    const ckesBefore = await readErc20Balance(publicClient, ADDRESSES.kesm, recipient);
+    const approveHash = await approveTokenIfNeeded({
+      account,
+      tokenAddress: ADDRESSES.usdc,
+      spender: ADDRESSES.ckesSwap,
+      amount: usdcAmount,
+    });
+    const hash = await walletClient.writeContract({
+      address: ADDRESSES.ckesSwap,
+      abi: CKES_SWAP_ABI,
+      functionName: "swapAndSend",
+      args: [recipient, usdcAmount, ckesMinOut],
+      feeCurrency: ADDRESSES.feeCurrency,
+    });
+    await publicClient.waitForTransactionReceipt({ hash });
+    const ckesAfter = await readErc20Balance(publicClient, ADDRESSES.kesm, recipient);
+    const ckesReceived = ckesAfter > ckesBefore ? ckesAfter - ckesBefore : ckesMinOut;
+    return { approveHash, swap1Hash: null, swap2Hash: null, hash, ckesReceived };
+  }
+
+  // Direct Mento path (5-step): USDC → USDm → cKES → transfer to recipient.
+  assertAddress(ADDRESSES.mentoBroker, "VITE_MENTO_BROKER_ADDRESS");
+  assertAddress(ADDRESSES.mentoProvider, "VITE_MENTO_BIPOOL_ADDRESS");
+
+  // Hop 1: USDC -> USDm
+  const usdmQuote = await publicClient.readContract({
+    address: ADDRESSES.mentoBroker,
+    abi: MENTO_BROKER_ABI,
+    functionName: "getAmountOut",
+    args: [ADDRESSES.mentoProvider, MENTO.usdcToUsdm, ADDRESSES.usdc, ADDRESSES.usdm, usdcAmount],
+  });
+  const approveHash = await approveTokenIfNeeded({ account, tokenAddress: ADDRESSES.usdc, spender: ADDRESSES.mentoBroker, amount: usdcAmount });
+  const usdmBefore = await readErc20Balance(publicClient, ADDRESSES.usdm, account);
+  const swap1Hash = await walletClient.writeContract({
+    address: ADDRESSES.mentoBroker,
+    abi: MENTO_BROKER_ABI,
+    functionName: "swapIn",
+    args: [ADDRESSES.mentoProvider, MENTO.usdcToUsdm, ADDRESSES.usdc, ADDRESSES.usdm, usdcAmount, (usdmQuote * 985n) / 1000n],
+    feeCurrency: ADDRESSES.feeCurrency,
+  });
+  await publicClient.waitForTransactionReceipt({ hash: swap1Hash });
+  const usdmAfter = await readErc20Balance(publicClient, ADDRESSES.usdm, account);
+  const usdmReceived = usdmAfter > usdmBefore ? usdmAfter - usdmBefore : usdmQuote;
+
+  // Hop 2: USDm -> cKES
+  const ckesQuote = await publicClient.readContract({
+    address: ADDRESSES.mentoBroker,
+    abi: MENTO_BROKER_ABI,
+    functionName: "getAmountOut",
+    args: [ADDRESSES.mentoProvider, MENTO.usdmToCkes, ADDRESSES.usdm, ADDRESSES.kesm, usdmReceived],
+  });
+  await approveTokenIfNeeded({ account, tokenAddress: ADDRESSES.usdm, spender: ADDRESSES.mentoBroker, amount: usdmReceived });
+  const ckesBefore = await readErc20Balance(publicClient, ADDRESSES.kesm, account);
+  const swap2Hash = await walletClient.writeContract({
+    address: ADDRESSES.mentoBroker,
+    abi: MENTO_BROKER_ABI,
+    functionName: "swapIn",
+    args: [ADDRESSES.mentoProvider, MENTO.usdmToCkes, ADDRESSES.usdm, ADDRESSES.kesm, usdmReceived, (ckesQuote * 985n) / 1000n],
+    feeCurrency: ADDRESSES.feeCurrency,
+  });
+  await publicClient.waitForTransactionReceipt({ hash: swap2Hash });
+  const ckesAfter = await readErc20Balance(publicClient, ADDRESSES.kesm, account);
+  const ckesReceived = ckesAfter > ckesBefore ? ckesAfter - ckesBefore : ckesQuote;
+
+  // Deliver received cKES to recipient.
+  const hash = await walletClient.writeContract({
+    address: ADDRESSES.kesm,
+    abi: ERC20_ABI,
+    functionName: "transfer",
+    args: [recipient, ckesReceived],
+    feeCurrency: ADDRESSES.feeCurrency,
+  });
+  await publicClient.waitForTransactionReceipt({ hash });
+  return { approveHash, swap1Hash, swap2Hash, hash, ckesReceived };
+}
