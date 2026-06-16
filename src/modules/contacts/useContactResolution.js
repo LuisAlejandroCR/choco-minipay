@@ -68,7 +68,7 @@ export function useContactResolution({
         // Best-effort auth — stored JWT from a prior MiniPay session is enough.
         // If no wallet is present (browser context) we still attempt the query;
         // the Supabase client auto-restores the JWT from localStorage.
-        try { await ensureSupabaseAuth(wallet.address); } catch { /* fall through */ }
+        await ensureSupabaseAuth(wallet.address);
         const contact = await findContactByLabel({ ownerWallet: wallet.address, label: receiptLabel });
         if (!active) return;
         if (contact?.wallet_address) {
@@ -79,13 +79,14 @@ export function useContactResolution({
         }
       } catch (error) {
         if (!active) return;
-        // Auth / network errors degrade silently — the inline contact list handles selection.
-        setContactLookup({ key: contactKey, status: "missing", message: "" });
+        const errorMessage = error.message || "Could not check saved contacts.";
+        setContactLookup({ key: contactKey, status: "error", message: errorMessage });
+        onError?.(errorMessage);
       }
     })();
 
     return () => { active = false; };
-  }, [visibleScreen, contactResolutionRequired, contactKey, receiptLabel, wallet.address, resolvedContact?.address]);
+  }, [visibleScreen, contactResolutionRequired, contactKey, receiptLabel, wallet.address, resolvedContact?.address, onError]);
 
   // Reset picker when a contact is resolved (e.g., picker was open, user selected)
   useEffect(() => {
@@ -181,7 +182,14 @@ export function useContactResolution({
     if (!contactKey) return;
 
     if (SUPABASE_READY && wallet.address) {
-      setShowContactPicker(true);
+      try {
+        await ensureSupabaseAuth(wallet.address);
+        setShowContactPicker(true);
+      } catch (error) {
+        const errorMessage = error.message || "Could not load saved contacts.";
+        setContactLookup({ key: contactKey, status: "error", message: errorMessage });
+        onError?.(errorMessage);
+      }
       return;
     }
 

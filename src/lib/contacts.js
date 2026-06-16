@@ -16,6 +16,12 @@ function searchKey(value) {
   return normaliseLabel(value).toLowerCase().replace(/^\s*(my|the|el|la|los|las|mi|mis)\s+/u, "");
 }
 
+export function contactLabelMatches(a, b) {
+  const left = searchKey(a);
+  const right = searchKey(b);
+  return Boolean(left && right && left === right);
+}
+
 export async function findContactByLabel({ ownerWallet, label }) {
   if (!supabase || !ownerWallet || !label) return null;
   const owner = normaliseWallet(ownerWallet);
@@ -26,7 +32,7 @@ export async function findContactByLabel({ ownerWallet, label }) {
     .select("*")
     .ilike("owner_wallet", owner);
   if (error) throw new Error(`Could not look up contact: ${error.message}`);
-  return (data || []).find((contact) => searchKey(contact.label) === key) || null;
+  return (data || []).find((contact) => contactLabelMatches(contact.label, label)) || null;
 }
 
 export async function findContactByAddress({ ownerWallet, walletAddress }) {

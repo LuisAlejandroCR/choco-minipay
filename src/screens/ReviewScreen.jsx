@@ -87,6 +87,7 @@ export function ReviewScreen({
       : isSendNow
         ? "Confirm send"
         : "Confirm schedule";
+  const canCaptureContact = !supabaseReady || contactLookupStatus === "missing";
   return (
     <div className="screen review-screen">
       <div className="screen-hero">
@@ -173,6 +174,17 @@ export function ReviewScreen({
               <span>Contact</span>
               <b>Looking up {receiptLabel}…</b>
             </div>
+          ) : contactLookupStatus === "error" ? (
+            <>
+              <div>
+                <span>Contact</span>
+                <b>Could not check saved contacts</b>
+                <small>{contactLookupMessage || "Try loading saved contacts again before entering a new address."}</small>
+              </div>
+              <button type="button" onClick={onPickContact}>
+                Retry saved contacts
+              </button>
+            </>
           ) : (
             /* ── Not resolved: inline list + address fallback ── */
             <>
@@ -186,12 +198,16 @@ export function ReviewScreen({
                 onSelect={(c) => onResolveContact(c.address, { label: c.label, source: "contacts", contactId: c.contactId, saveContact: false })}
                 onClose={() => {}}
               />
-              <div className="contact-or-divider"><span>or enter address</span></div>
-              <ContactCapture
-                alias={receiptLabel}
-                supabaseReady={supabaseReady}
-                onSubmit={(address, opts) => onResolveContact(address, { label: receiptLabel, phone: "", saveContact: opts?.saveContact })}
-              />
+              {canCaptureContact && (
+                <>
+                  <div className="contact-or-divider"><span>or enter address</span></div>
+                  <ContactCapture
+                    alias={receiptLabel}
+                    supabaseReady={supabaseReady}
+                    onSubmit={(address, opts) => onResolveContact(address, { label: receiptLabel, phone: "", saveContact: opts?.saveContact })}
+                  />
+                </>
+              )}
             </>
           )}
         </section>
