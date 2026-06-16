@@ -7,8 +7,8 @@ Smart contracts powering Choco remittances on Celo. No contract holds user funds
 ```
 User wallet
     │
-    │  approve(ChocoGateway, usdcAmount)
-    │  swapAndSend(recipient, usdcAmount, ckesMinOut)
+    │  approve(ChocoGateway, quoteExactOut(ckesExact))   ← exact-output path (default)
+    │  swapAndSendExact(recipient, usdcAmount, ckesExact)
     ▼
 ┌─────────────────────────────────────────────────────┐
 │  ChocoGateway                                       │
@@ -136,8 +136,17 @@ function quote(uint256 usdcAmountIn) external view returns (uint256 ckesAmountOu
 function quoteWithFee(uint256 usdcAmountIn) external view
     returns (uint256 ckesAmountOut, uint256 feeUsdc, uint256 swapUsdc);
 
-// Main entry point — caller must approve usdcAmountIn to this contract first
+// Reverse quote: USDC the caller must approve to guarantee recipient gets exactly ckesExactOut
+// Includes the protocol fee and 1% slippage buffer; pair with swapAndSendExact
+function quoteExactOut(uint256 ckesExactOut) external view returns (uint256 usdcAmountIn);
+
+// Fixed-input entry point (legacy) — delivers whatever cKES the swap produces
 function swapAndSend(address recipient, uint256 usdcAmountIn, uint256 ckesMinOut)
+    external returns (uint256 ckesAmountOut);
+
+// Fixed-output entry point — recipient receives exactly ckesExactOut; surplus returned to sender
+// Call quoteExactOut first to get usdcAmountIn, then approve that amount before calling
+function swapAndSendExact(address recipient, uint256 usdcAmountIn, uint256 ckesExactOut)
     external returns (uint256 ckesAmountOut);
 
 // Query a single transaction by its sequential ID

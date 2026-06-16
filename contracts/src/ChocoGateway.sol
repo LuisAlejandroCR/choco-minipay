@@ -184,6 +184,22 @@ contract ChocoGateway {
         ckesAmountOut   = broker.getAmountOut(exchangeProvider, usdmToCkesId, address(usdm), address(ckes), usdmOut);
     }
 
+    /// @notice USDC the caller must approve to guarantee recipient receives exactly ckesExactOut.
+    ///         Uses a 1-USDC reference swap to derive the current rate, then adds a 1% buffer so
+    ///         the actual swap never falls short due to minor price movement between quote and send.
+    function quoteExactOut(uint256 ckesExactOut) external view returns (uint256 usdcAmountIn) {
+        if (ckesExactOut == 0) return 0;
+        uint256 refUsdc = 1_000_000; // 1 USDC (6 decimals)
+        uint256 feeRef  = (refUsdc * feeBps) / 10000;
+        uint256 swapRef = refUsdc - feeRef;
+        uint256 usdmRef = broker.getAmountOut(exchangeProvider, usdcToUsdmId, address(usdc), address(usdm), swapRef);
+        uint256 ckesRef = broker.getAmountOut(exchangeProvider, usdmToCkesId, address(usdm), address(ckes), usdmRef);
+        if (ckesRef == 0) return 0;
+        // ckesExactOut (18 dec) * refUsdc (6 dec) / ckesRef (18 dec) → result in 6 dec; +1% buffer
+        usdcAmountIn = (ckesExactOut * refUsdc * 101) / (ckesRef * 100);
+        if (usdcAmountIn == 0) usdcAmountIn = 1;
+    }
+
     // ─── Core: swap, collect fee, deliver, store, log ──────────────────────
 
     /// @notice Pull usdcAmountIn from msg.sender, deduct the protocol fee, swap the rest to cKES,
@@ -246,6 +262,72 @@ contract ChocoGateway {
         // 8. Log to ChocoLedger — never blocks the send on failure
         if (address(ledger) != address(0)) {
             try ledger.logAttemptFor(msg.sender, 0, recipient, usdcAmountIn, ckesAmountOut, "send-now") {} catch {}
+        }
+    }
+
+    /// @notice Exact-output swap: recipient receives precisely ckesExactOut cKES; any surplus
+    ///         from the 1% buffer is returned to msg.sender as cKES.
+    ///         Caller must approve usdcAmountIn (from quoteExactOut) to this contract first.
+    function swapAndSendExact(
+        address recipient,
+        uint256 usdcAmountIn,
+        uint256 ckesExactOut
+    ) external returns (uint256 ckesAmountOut) {
+        if (usdcAmountIn == 0 || ckesExactOut == 0) revert ZeroAmount();
+        require(recipient != address(0), "bad recipient");
+
+        // 1. Pull full USDC from payer
+        require(usdc.transferFrom(msg.sender, address(this), usdcAmountIn), "usdc pull");
+
+        // 2. Protocol fee → feeRecipient
+        uint256 feeUsdc  = (usdcAmountIn * feeBps) / 10000;
+        uint256 swapUsdc = usdcAmountIn - feeUsdc;
+        if (feeUsdc > 0) require(usdc.transfer(feeRecipient, feeUsdc), "fee send");
+
+        // 3. Hop 1: USDC → USDm
+        require(usdc.approve(address(broker), swapUsdc), "usdc approve");
+        uint256 usdmQuote    = broker.getAmountOut(exchangeProvider, usdcToUsdmId, address(usdc), address(usdm), swapUsdc);
+        uint256 usdmReceived = broker.swapIn(
+            exchangeProvider, usdcToUsdmId,
+            address(usdc), address(usdm),
+            swapUsdc, (usdmQuote * 985) / 1000
+        );
+
+        // 4. Hop 2: USDm → cKES; ckesExactOut is the floor so tx reverts if market moved too far
+        require(usdm.approve(address(broker), usdmReceived), "usdm approve");
+        ckesAmountOut = broker.swapIn(
+            exchangeProvider, usdmToCkesId,
+            address(usdm), address(ckes),
+            usdmReceived, ckesExactOut
+        );
+        require(ckesAmountOut >= ckesExactOut, "swap below exact");
+
+        // 5. Deliver exactly ckesExactOut to recipient
+        require(ckes.transfer(recipient, ckesExactOut), "ckes deliver");
+
+        // 6. Return buffer surplus to sender
+        uint256 surplus = ckesAmountOut - ckesExactOut;
+        if (surplus > 0) require(ckes.transfer(msg.sender, surplus), "ckes surplus");
+
+        // 7. Backwards-compatible event (ckesOut = what recipient received)
+        emit UsdcToCkesSwap(msg.sender, usdcAmountIn, usdmReceived, ckesExactOut, ckesExactOut);
+
+        // 8. Store on-chain record
+        uint256 txId = ++txCount;
+        txs[txId] = TxRecord({
+            payer:     msg.sender,
+            recipient: recipient,
+            usdcIn:    usdcAmountIn,
+            feeUsdc:   feeUsdc,
+            ckesOut:   ckesExactOut,
+            timestamp: uint64(block.timestamp)
+        });
+        txsByPayer[msg.sender].push(txId);
+        emit SwapRecorded(txId, msg.sender, recipient, usdcAmountIn, feeUsdc, ckesExactOut);
+
+        // 9. Log to ChocoLedger
+        if (address(ledger) != address(0)) {
+            try ledger.logAttemptFor(msg.sender, 0, recipient, usdcAmountIn, ckesExactOut, "send-now-exact") {} catch {}
         }
     }
 
