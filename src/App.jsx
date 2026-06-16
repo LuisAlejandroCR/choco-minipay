@@ -320,7 +320,6 @@ export default function App() {
           {visibleScreen === "plan" && (
             <PlanScreen
               plans={plans}
-              transactions={transactions}
               isWalletVerified={wallet.isReady}
               wallet={wallet}
               balances={balances}
@@ -329,14 +328,9 @@ export default function App() {
               onPlans={() => goTo("plans")}
               onHistory={() => goTo("history")}
               onSendNow={openImmediateSend}
-              onNewSchedule={openNewPlan}
               onSelectPlan={(planId) => {
                 setSelectedPlanId(planId);
                 goTo("planDetail");
-              }}
-              onSelectTransaction={(txId) => {
-                setSelectedTransactionId(txId);
-                goTo("receiptDetail");
               }}
               showDemoPrompt={showDemoPrompt && !wallet.isReady}
               liveDemoUrl={APP_CONFIG.ui.liveDemoUrl}
