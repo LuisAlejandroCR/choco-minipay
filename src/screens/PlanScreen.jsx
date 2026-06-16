@@ -71,7 +71,7 @@ export function PlanScreen({
         : "Verify wallet";
 
   const connectHelp = wallet.needsMobileWallet
-    ? "Choose MetaMask Mobile or MiniPay"
+    ? "Open in MiniPay or wallet browser"
     : !wallet.hasProvider
       ? "Install or enable MetaMask"
       : walletStatusLabel;
@@ -130,7 +130,7 @@ export function PlanScreen({
         </span>
         <span>
           <b>{isWalletVerified ? "New transfer" : connectLabel}</b>
-          <small>{isWalletVerified ? "Send now or schedule with voice" : connectHelp}</small>
+          <small>{isWalletVerified ? "Text or voice, then wallet confirms" : connectHelp}</small>
         </span>
         <ArrowRight size={21} />
       </button>

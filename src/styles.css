@@ -4940,3 +4940,95 @@ a {
   color: var(--latte-300);
   opacity: 0.72;
 }
+
+/* MiniPay UX polish: warmer cocoa depth with vanilla action clarity. */
+:root {
+  --vanilla-strong: #fff6e8;
+  --vanilla-soft: rgba(255, 246, 232, 0.16);
+  --cocoa-glass: rgba(30, 17, 11, 0.82);
+  --cocoa-glass-strong: rgba(18, 9, 6, 0.88);
+}
+
+.stage {
+  background:
+    radial-gradient(circle at 18% 14%, rgba(201, 144, 96, 0.14), transparent 30%),
+    radial-gradient(circle at 82% 80%, rgba(255, 241, 220, 0.08), transparent 28%),
+    var(--black);
+}
+
+.app-panel {
+  background:
+    linear-gradient(135deg, rgba(255, 241, 220, 0.06) 25%, transparent 25%) 0 0 / 44px 44px,
+    linear-gradient(225deg, rgba(201, 144, 96, 0.055) 25%, transparent 25%) 0 0 / 44px 44px,
+    linear-gradient(180deg, #2c1a11 0%, #1d100a 58%, #100806 100%);
+}
+
+.home-hero,
+.editor-card,
+.agent-phone-card {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 246, 232, 0.06),
+    0 18px 38px rgba(0, 0, 0, 0.16);
+}
+
+.home-start-action,
+.composer,
+.timing-toggle,
+.bottom-nav,
+.plan-row,
+.transaction-row,
+.contact-resolution-card,
+.review-screen .summary-card,
+.review-screen .reference-card,
+.notice.compact {
+  border-color: var(--vanilla-soft);
+  background: var(--cocoa-glass);
+}
+
+.home-start-action,
+.primary-cta {
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.2);
+}
+
+.primary-cta,
+.demo-actions button:first-child {
+  background: linear-gradient(180deg, var(--vanilla-strong), #f4dfc4);
+  color: var(--cocoa-950);
+}
+
+.secondary-dark,
+.demo-actions button:last-child {
+  border-color: rgba(255, 246, 232, 0.2);
+  background: rgba(255, 246, 232, 0.035);
+  color: var(--cream);
+}
+
+.home-network-pill.ready,
+.sheet-chip,
+.filter-pill.active {
+  border-color: rgba(119, 181, 126, 0.42);
+  background: rgba(68, 112, 71, 0.3);
+}
+
+.agent-intent-card.ready,
+.agent-line.show {
+  border-color: rgba(119, 181, 126, 0.34);
+}
+
+.agent-phone-head span,
+.screen-hero-label,
+.balance-hero-label,
+.section-heading span,
+.reference-card span {
+  color: var(--latte-300);
+}
+
+.agent-plan {
+  border-color: var(--vanilla-soft);
+  background: rgba(255, 246, 232, 0.085);
+}
+
+.agent-next {
+  color: var(--vanilla-strong);
+  opacity: 0.82;
+}

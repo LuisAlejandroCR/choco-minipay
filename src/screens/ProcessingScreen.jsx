@@ -30,18 +30,18 @@ export function ProcessingScreen({ plan, command, duplicateAttempt, onComplete }
   const feed = [
     {
       icon: <Check size={15} />,
-      title: "Intent parsed",
+      title: "Intent detected",
       copy: isSendNow ? "Recipient, amount, and asset are ready." : "Recipient, amount, asset, and date are ready.",
     },
     {
       icon: <RefreshCw size={15} />,
-      title: "Route estimated",
-      copy: "USDC is prepared for the Kenya cKES route.",
+      title: "Route previewed",
+      copy: "USDC stays in your wallet until you approve.",
     },
     {
       icon: <ReceiptText size={15} />,
-      title: "Safety checked",
-      copy: duplicateAttempt ? "A similar movement needs one more look." : "Ready for wallet confirmation.",
+      title: "Ready for signature",
+      copy: duplicateAttempt ? "A similar movement needs one more look." : "Confirmation is ready for your wallet.",
     },
   ];
 
@@ -51,8 +51,8 @@ export function ProcessingScreen({ plan, command, duplicateAttempt, onComplete }
         <div className="agent-phone-head">
           <ChocoMark size="small" />
           <div>
-            <span>Choco agent</span>
-            <b>Preparing review</b>
+            <span>Agent Choco</span>
+            <b>Checking details</b>
           </div>
         </div>
 
