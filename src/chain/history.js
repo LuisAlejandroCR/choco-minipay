@@ -1,6 +1,6 @@
 import { formatUnits, isAddress } from "viem";
 import { APP_CONFIG } from "../lib/app-config.js";
-import { ADDRESSES, makePublicClient, shortAddress } from "./client.js";
+import { ADDRESSES, makePublicClient } from "./client.js";
 import { REGISTRY_EVENTS_ABI, SWAP_EVENT_ABI, TRANSFER_EVENT_ABI } from "./abis.js";
 
 // --- Private formatting helpers ---
@@ -88,7 +88,7 @@ function mapScheduleToMovement(log, timestamp) {
     type: "Plan confirmed",
     deliveryMode: "schedule",
     from: a.owner,
-    to: `${shortAddress(a.recipient)} - Celo`,
+    to: tailAddress(a.recipient),
     toAddress: a.recipient,
     routeEstimate: "",
     sortKey: timestamp || 0,
@@ -112,7 +112,7 @@ function mapSettlementToMovement(log, schedule, timestamp) {
     type: a.success ? "Settlement sent" : "Settlement failed",
     deliveryMode: "schedule",
     from: schedule ? schedule.owner : "",
-    to: schedule ? `${shortAddress(schedule.recipient)} - Celo` : "Recipient",
+    to: schedule ? tailAddress(schedule.recipient) : "Recipient",
     toAddress: schedule ? schedule.recipient : "",
     routeEstimate: "",
     sortKey: timestamp || 0,
@@ -212,7 +212,7 @@ async function readSendNowHistory(publicClient, owner, fromBlock) {
         type: swapLog ? "USDC swap + cKES send" : "cKES send",
         deliveryMode: "now",
         from: swapLog ? swapLog.args.payer : transferLog.args.from,
-        to: `${shortAddress(transferLog.args.to)} - Celo`,
+        to: tailAddress(transferLog.args.to),
         toAddress: transferLog.args.to,
         routeEstimate: swapLog ? `${usdcIn} USDC -> ${amountKes} cKES via Mento` : "",
         sortKey: timestamp || 0,

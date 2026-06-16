@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { AlertCircle, ArrowDownLeft, CalendarDays, Clock, ReceiptText } from "lucide-react";
 import { BottomNav } from "../components/BottomNav.jsx";
 
@@ -84,8 +85,22 @@ function TxAmount({ tx }) {
   );
 }
 
+const HISTORY_FILTERS = [
+  { id: "all", label: "All" },
+  { id: "sent", label: "Sent" },
+  { id: "schedules", label: "Schedules" },
+];
+
+function applyHistoryFilter(transactions, filter) {
+  if (filter === "sent") return transactions.filter((tx) => !isScheduleEvent(tx) && tx.status !== "Failed");
+  if (filter === "schedules") return transactions.filter((tx) => isScheduleEvent(tx));
+  return transactions;
+}
+
 export function HistoryScreen({ transactions, onSelectTransaction, onHome, onPlans }) {
-  const groups = groupByDay(transactions);
+  const [filter, setFilter] = useState("all");
+  const visible = applyHistoryFilter(transactions, filter);
+  const groups = groupByDay(visible);
 
   return (
     <div className="screen history-screen">
@@ -96,7 +111,20 @@ export function HistoryScreen({ transactions, onSelectTransaction, onHome, onPla
         </div>
       </div>
 
-      {transactions.length > 0 ? (
+      <div className="filter-pills" role="group" aria-label="Filter movements">
+        {HISTORY_FILTERS.map((f) => (
+          <button
+            key={f.id}
+            className={`filter-pill${filter === f.id ? " active" : ""}`}
+            type="button"
+            onClick={() => setFilter(f.id)}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {visible.length > 0 ? (
         <div className="history-list" aria-label="Transaction history">
           {groups.map(({ label, items }) => (
             <div key={label} className="tx-day-group">
@@ -125,8 +153,8 @@ export function HistoryScreen({ transactions, onSelectTransaction, onHome, onPla
       ) : (
         <div className="empty-plans">
           <ReceiptText size={30} />
-          <h2>No receipts yet</h2>
-          <p>Completed wallet-signed sends and scheduled actions will appear here.</p>
+          <h2>{filter === "all" ? "No receipts yet" : `No ${filter} movements`}</h2>
+          <p>{filter === "all" ? "Completed wallet-signed sends and scheduled actions will appear here." : "Try a different filter."}</p>
         </div>
       )}
 

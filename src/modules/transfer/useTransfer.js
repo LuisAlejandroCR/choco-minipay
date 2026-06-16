@@ -5,6 +5,26 @@ import { sendNow, createScheduleViaRegistry } from "../../lib/celo.js";
 import { verifyReadiness } from "../../lib/cepolia.js";
 import { buildSafePreviewPlan, buildTransactionFromPlan } from "../../utils/planUtils.js";
 
+function humaniseTransferError(error) {
+  const msg = String(error?.message || error || "");
+  if (/user rejected|user denied|rejected the request/i.test(msg)) {
+    return "Transfer cancelled — you declined the wallet request.";
+  }
+  if (/invalid signature|eip.?2612/i.test(msg)) {
+    return "The permit signature was rejected or expired. Please try again.";
+  }
+  if (/insufficient.*funds|insufficient.*balance/i.test(msg)) {
+    return "Insufficient balance for this transfer.";
+  }
+  if (/reverted|execution reverted/i.test(msg)) {
+    return "Transfer failed — the transaction was reverted. Check your balance and try again.";
+  }
+  if (/network|fetch|timeout/i.test(msg)) {
+    return "Network error. Check your connection and try again.";
+  }
+  return "Transfer failed. Please try again or contact support.";
+}
+
 // Owns the full transfer lifecycle: plan building, pre-flight checks, on-chain execution,
 // and receipt creation. App.jsx wires it to the rest of the UI via callbacks.
 export function useTransfer({
@@ -48,7 +68,7 @@ export function useTransfer({
     // Pre-resolve contact label against Supabase so the review screen skips the picker
     // when the user has already saved this recipient. Uses cached session only — never
     // triggers personal_sign here; that happens explicitly in pickContact.
-    const labelForAudit = plan.intent?.receiptLabel || plan.recipient || "";
+    const labelForAudit = plan?.receiptLabel || plan?.recipient || plan?.intent?.receiptLabel || "";
     if (SUPABASE_READY && wallet.address && labelForAudit) {
       try {
         const session = await getCachedSession();
@@ -87,7 +107,7 @@ export function useTransfer({
     const transaction = buildTransactionFromPlan(committedPlan, type, wallet.address, recipientAddress);
     setLastReceipt(transaction);
     onTransactionCreated(transaction.id);
-    onNavigate("history");
+    onNavigate("receiptDetail");
     setShowSuccessModal(true);
   }
 
@@ -124,7 +144,7 @@ export function useTransfer({
       onRefreshLedger().catch(() => {});
     } catch (error) {
       setStatus("error");
-      setMessage(error.message);
+      setMessage(humaniseTransferError(error));
     }
   }
 

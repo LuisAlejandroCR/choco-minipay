@@ -390,7 +390,7 @@ export default function App() {
           {transfer.showSuccessModal && transfer.lastReceipt && (
             <TransactionSuccessScreen
               transaction={transfer.lastReceipt}
-              onViewDetails={() => { transfer.setShowSuccessModal(false); goTo("receiptDetail"); }}
+              onViewDetails={() => transfer.setShowSuccessModal(false)}
               onDismiss={() => transfer.setShowSuccessModal(false)}
             />
           )}
