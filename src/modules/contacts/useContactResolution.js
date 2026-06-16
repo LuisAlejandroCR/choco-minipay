@@ -65,22 +65,22 @@ export function useContactResolution({
 
     (async () => {
       try {
-        await ensureSupabaseAuth(wallet.address);
+        // Best-effort auth — stored JWT from a prior MiniPay session is enough.
+        // If no wallet is present (browser context) we still attempt the query;
+        // the Supabase client auto-restores the JWT from localStorage.
+        try { await ensureSupabaseAuth(wallet.address); } catch { /* fall through */ }
         const contact = await findContactByLabel({ ownerWallet: wallet.address, label: receiptLabel });
         if (!active) return;
         if (contact?.wallet_address) {
           cacheContact(contact, contactKey);
           setContactLookup({ key: contactKey, status: "resolved", message: "" });
         } else {
-          setContactLookup({ key: contactKey, status: "missing", message: "No saved contact found." });
+          setContactLookup({ key: contactKey, status: "missing", message: "" });
         }
       } catch (error) {
         if (!active) return;
-        setContactLookup({
-          key: contactKey,
-          status: "error",
-          message: error.message || "Could not check saved contacts.",
-        });
+        // Auth / network errors degrade silently — the inline contact list handles selection.
+        setContactLookup({ key: contactKey, status: "missing", message: "" });
       }
     })();
 
@@ -181,21 +181,6 @@ export function useContactResolution({
     if (!contactKey) return;
 
     if (SUPABASE_READY && wallet.address) {
-      try {
-        await ensureSupabaseAuth(wallet.address);
-        const found = await findContactByLabel({ ownerWallet: wallet.address, label: contactKey });
-        if (found?.wallet_address) {
-          await resolveContact(found.wallet_address, {
-            label: found.label,
-            source: "contacts",
-            contactId: found.id,
-          });
-          return;
-        }
-      } catch (authError) {
-        onError?.(authError.message || "Sign-in cancelled. Please try again.");
-        return;
-      }
       setShowContactPicker(true);
       return;
     }

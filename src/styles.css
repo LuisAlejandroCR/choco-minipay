@@ -4530,49 +4530,6 @@ a {
   gap: 12px;
 }
 
-.review-screen .summary-card {
-  border-color: var(--line-soft);
-  background: rgba(16, 9, 6, 0.58);
-}
-
-.review-screen .summary-card span {
-  color: var(--muted);
-}
-
-.review-screen .summary-card b {
-  color: var(--cream);
-}
-
-.review-screen .confirmation-grid .summary-card b {
-  font-size: 17px;
-  line-height: 1.15;
-  overflow-wrap: anywhere;
-}
-
-.review-screen .contact-resolution-card {
-  border-color: var(--line-soft);
-  background: rgba(16, 9, 6, 0.58);
-  color: var(--cream);
-}
-
-.review-screen .contact-resolution-card span {
-  color: var(--muted);
-}
-
-.review-screen .contact-resolution-card b {
-  color: var(--cream);
-}
-
-.review-screen .contact-resolution-card small {
-  color: var(--muted);
-}
-
-.review-screen .contact-resolution-card > button {
-  border: 1px solid var(--line-soft);
-  background: rgba(16, 9, 6, 0.4);
-  color: var(--cream);
-}
-
 .review-screen .contact-capture {
   border-color: var(--line-soft);
   background: rgba(16, 9, 6, 0.4);
@@ -4698,4 +4655,183 @@ a {
 
 .receipt-detail-screen .secondary-dark {
   margin-top: 10px;
+}
+
+/* ── Inline contact picker (dark, embedded in ReviewScreen) ─────────── */
+.contact-picker-inline {
+  display: grid;
+  gap: 8px;
+}
+
+.contact-picker-inline-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.contact-picker-inline .contact-picker-status {
+  color: var(--muted);
+  font-size: 13px;
+  text-align: left;
+  margin: 0;
+}
+
+.contact-picker-inline .contact-picker-list {
+  display: grid;
+  gap: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.contact-picker-inline .contact-picker-row {
+  background: rgba(58, 36, 21, 0.22);
+  border-color: rgba(217, 166, 121, 0.15);
+}
+
+.contact-picker-inline .contact-picker-row:hover {
+  border-color: rgba(217, 166, 121, 0.35);
+}
+
+.contact-picker-inline .contact-picker-name {
+  color: var(--cream);
+}
+
+.contact-picker-inline .contact-picker-addr {
+  color: var(--muted);
+}
+
+.contact-picker-inline .contact-picker-reason {
+  color: var(--muted);
+}
+
+.contact-picker-inline .cp-icon {
+  background: rgba(217, 166, 121, 0.1);
+  color: var(--latte-300);
+}
+
+.contact-picker-inline .cp-icon-danger {
+  background: rgba(220, 60, 60, 0.15);
+  color: #f8a0a0;
+}
+
+.contact-picker-inline .contact-picker-input {
+  border-color: var(--line-soft);
+  background: rgba(16, 9, 6, 0.4);
+  color: var(--cream);
+}
+
+.contact-picker-inline .cp-btn-cancel {
+  border-color: var(--line-soft);
+  color: var(--muted);
+}
+
+/* ── "or enter address" divider ─────────────────────────────────────── */
+.contact-or-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0;
+}
+
+.contact-or-divider::before,
+.contact-or-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line-soft);
+}
+
+.contact-or-divider span {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* ── Palette warmup — swap near-black card bg for warm cocoa ─────────── */
+/* Summary tiles, asset cards, detail lines get a slight warm undertone   */
+.review-screen .summary-card {
+  border-color: rgba(217, 166, 121, 0.14);
+  background: rgba(40, 24, 15, 0.65);
+}
+
+.review-screen .summary-card span {
+  color: var(--latte-300);
+  opacity: 0.7;
+}
+
+.review-screen .summary-card b {
+  color: var(--cream);
+}
+
+.review-screen .confirmation-grid .summary-card b {
+  font-size: 17px;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+/* Hero label (eyebrow) — warm latte tint instead of pure muted grey */
+.screen-hero-label {
+  color: var(--latte-500);
+  opacity: 0.75;
+}
+
+/* Active filter pill: latte amber fill */
+.filter-pill.active {
+  background: rgba(217, 166, 121, 0.18);
+  border-color: rgba(217, 166, 121, 0.4);
+  color: var(--latte-300);
+}
+
+/* Plan rows / history rows: warm border on hover */
+.plan-row:hover,
+.transaction-row:hover {
+  border-color: rgba(217, 166, 121, 0.2);
+  background: rgba(40, 24, 15, 0.55);
+}
+
+/* Warm up the home hero card slightly */
+.home-hero {
+  background: rgba(28, 16, 8, 0.75);
+  border-color: rgba(217, 166, 121, 0.12);
+}
+
+/* home-list section heading */
+.section-heading span {
+  color: var(--latte-300);
+  opacity: 0.65;
+}
+
+/* reference card in review — warm accent line on left */
+.review-screen .reference-card {
+  border-left: 3px solid rgba(217, 166, 121, 0.4);
+}
+
+/* ── Resolved contact card in review — dark warm ─────────────────────── */
+.review-screen .contact-resolution-card {
+  border-color: rgba(217, 166, 121, 0.15);
+  background: rgba(40, 24, 15, 0.55);
+}
+
+.review-screen .contact-resolution-card span {
+  color: var(--muted);
+}
+
+.review-screen .contact-resolution-card b {
+  color: var(--cream);
+}
+
+.review-screen .contact-resolution-card small {
+  color: var(--muted);
+}
+
+.review-screen .contact-resolution-card > button {
+  border-color: rgba(217, 166, 121, 0.2);
+  background: rgba(40, 24, 15, 0.4);
+  color: var(--latte-300);
 }

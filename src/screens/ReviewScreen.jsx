@@ -2,6 +2,7 @@ import { CalendarDays, Check, CircleDollarSign, Pencil, Trash2, Wallet } from "l
 import { isAddress } from "viem";
 import { useEffect, useState } from "react";
 import { ContactCapture } from "../components/ContactCapture.jsx";
+import { ContactPicker } from "../components/ContactPicker.jsx";
 import { SummaryCard } from "../components/SheetPrimitives.jsx";
 import { APP_CONFIG } from "../lib/app-config.js";
 import { summariseTransfer } from "../lib/cepolia.js";
@@ -108,6 +109,7 @@ export function ReviewScreen({
       {contactResolutionRequired && (
         <section className="contact-resolution-card" aria-label="One-time recipient contact">
           {resolvedContact?.address ? (
+            /* ── Resolved: show label + address with edit / change / delete ── */
             <>
               {showEdit ? (
                 <div>
@@ -166,25 +168,25 @@ export function ReviewScreen({
               </button>
             </>
           ) : contactLookupStatus === "checking" ? (
+            /* ── Checking: brief loading state ── */
             <div>
               <span>Contact</span>
-              <b>Checking saved contacts</b>
-              <small>{contactLookupMessage || "Choco checks Supabase before asking to create a contact."}</small>
+              <b>Looking up {receiptLabel}…</b>
             </div>
           ) : (
+            /* ── Not resolved: inline list + address fallback ── */
             <>
               <div>
                 <span>Contact</span>
-                <b>{`Select ${receiptLabel}`}</b>
-                <small>
-                  {contactLookupStatus === "missing"
-                    ? "No saved contact found. Add a one-time address or save it for next time."
-                    : contactLookupStatus === "error"
-                      ? contactLookupMessage || "Could not check saved contacts. Add a one-time address to continue."
-                      : "Pick a saved contact or paste an address below."}
-                </small>
+                <b>Select {receiptLabel}</b>
               </div>
-              <button type="button" onClick={onPickContact}>Select contact</button>
+              <ContactPicker
+                inline
+                ownerWallet={walletAccount}
+                onSelect={(c) => onResolveContact(c.address, { label: c.label, source: "contacts", contactId: c.contactId, saveContact: false })}
+                onClose={() => {}}
+              />
+              <div className="contact-or-divider"><span>or enter address</span></div>
               <ContactCapture
                 alias={receiptLabel}
                 supabaseReady={supabaseReady}
