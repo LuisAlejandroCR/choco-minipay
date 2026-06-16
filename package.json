@@ -8,7 +8,7 @@
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
-    "test": "node --test src/lib/*.test.js",
+    "test": "node --test src/lib/*.test.js src/chain/*.test.js",
     "check": "npm run test && npm run build",
     "contracts:test": "npm --prefix contracts test",
     "demo:contract-example": "node scripts/contract-example-demo.mjs",
