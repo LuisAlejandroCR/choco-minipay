@@ -1116,10 +1116,10 @@ a {
   line-height: 1.4;
 }
 
-/* ── Quick action grid ──────────────────────────────────────────────── */
+/* ── Quick action grid — 2 primary actions, no nav duplicates ────────── */
 .home-quick-actions {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
   margin-bottom: 16px;
 }
@@ -1128,32 +1128,42 @@ a {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 7px;
-  padding: 14px 6px 12px;
+  gap: 9px;
+  padding: 18px 10px 16px;
   border: 1px solid var(--line-soft);
-  border-radius: 18px;
+  border-radius: 20px;
   background: rgba(16, 9, 6, 0.58);
   color: var(--cream);
   cursor: pointer;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 800;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   transition: transform 0.1s ease, border-color 0.1s ease;
+}
+
+.quick-action.primary {
+  border-color: rgba(246, 232, 212, 0.2);
+  background: rgba(246, 232, 212, 0.07);
 }
 
 .quick-action:active {
   transform: scale(0.95);
-  border-color: rgba(246, 232, 212, 0.22);
+  border-color: rgba(246, 232, 212, 0.28);
 }
 
 .quick-action-icon {
-  width: 40px;
-  height: 40px;
+  width: 46px;
+  height: 46px;
   display: grid;
   place-items: center;
-  border-radius: 13px;
+  border-radius: 14px;
   background: rgba(246, 232, 212, 0.09);
   color: var(--cream);
+}
+
+.quick-action.primary .quick-action-icon {
+  background: var(--cream);
+  color: var(--cocoa-900);
 }
 
 /* ── Compact balance chips ──────────────────────────────────────────── */
@@ -2831,6 +2841,102 @@ a {
   cursor: pointer;
   border-top: 1px solid var(--line-soft);
   margin-top: 4px;
+}
+
+/* Section heading link (e.g. "See all" next to Recent activity) */
+.section-link {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--cream);
+  opacity: 0.6;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.section-link:hover {
+  opacity: 1;
+}
+
+/* Recent activity compact rows on home */
+.recent-row {
+  width: 100%;
+  min-height: 58px;
+  padding: 11px 13px;
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--line-soft);
+  border-radius: 16px;
+  background: rgba(16, 9, 6, 0.38);
+  cursor: pointer;
+  text-align: left;
+}
+
+.recent-dot {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.recent-dot.sent {
+  background: rgba(246, 232, 212, 0.09);
+  color: var(--cream);
+}
+
+.recent-dot.plan {
+  background: rgba(246, 232, 212, 0.05);
+  color: var(--muted);
+}
+
+.recent-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.recent-info b {
+  font-size: 14px;
+  color: var(--cream);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recent-info small {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.recent-amount {
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.recent-amount small {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.recent-amount.sent {
+  color: var(--cream);
+}
+
+.recent-amount.plan {
+  color: var(--muted);
 }
 
 .history-list {
