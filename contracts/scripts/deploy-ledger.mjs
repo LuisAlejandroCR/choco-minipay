@@ -12,11 +12,11 @@ const root = path.resolve(__dirname, "..");
 require("./compile.cjs");
 
 const privateKey = process.env.DEPLOYER_PRIVATE_KEY || process.env.PRIVATE_KEY;
-const keeper = process.env.KEEPER_ADDRESS;
 if (!privateKey) throw new Error("Set DEPLOYER_PRIVATE_KEY or PRIVATE_KEY before deploying.");
-if (!keeper) throw new Error("Set KEEPER_ADDRESS before deploying.");
 
-const rpcUrl = process.env.CELO_RPC_URL || process.env.VITE_CELO_RPC_URL || "https://forno.celo.org";
+// Keeper defaults to deployer — change later via setKeeper() once you have a dedicated keeper wallet.
+const keeper = process.env.KEEPER_ADDRESS || new ethers.Wallet(privateKey).address;
+const rpcUrl = process.env.CELO_RPC_URL || "https://rpc.ankr.com/celo";
 const provider = new ethers.JsonRpcProvider(rpcUrl, { chainId: 42220, name: "celo" });
 const wallet = new ethers.Wallet(privateKey, provider);
 

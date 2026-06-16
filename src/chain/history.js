@@ -234,6 +234,7 @@ async function readSendNowHistory(publicClient, owner, fromBlock) {
   // Fallback: capture cKES Transfers FROM the swap contract that didn't correlate with a
   // UsdcToCkesSwap event (ABI mismatch or event not emitted). Appear as "cKES send" in history
   // rather than "USDC swap + cKES send" since the swap log is unavailable.
+  // We verify tx.from === owner so other users of the same contract don't pollute history.
   const capturedTxHashes = new Set([
     ...directMovements.map((e) => e.transferLog.transactionHash),
     ...swapDeliveryMovements.map((e) => e.transferLog.transactionHash),
@@ -251,10 +252,17 @@ async function readSendNowHistory(publicClient, owner, fromBlock) {
         toBlock: "latest",
       }));
     }
-    orphanSwapDeliveries = allSwapDeliveries
+    const orphanCandidates = allSwapDeliveries
       .filter((log) => !capturedTxHashes.has(log.transactionHash))
-      .filter((log) => String(log.args.to).toLowerCase() !== String(owner).toLowerCase())
-      .map((log) => ({ transferLog: log, swapLog: null }));
+      .filter((log) => String(log.args.to).toLowerCase() !== String(owner).toLowerCase());
+    if (orphanCandidates.length > 0) {
+      const txs = await Promise.all(
+        orphanCandidates.map((log) => publicClient.getTransaction({ hash: log.transactionHash })),
+      );
+      orphanSwapDeliveries = orphanCandidates
+        .filter((_, i) => String(txs[i].from).toLowerCase() === String(owner).toLowerCase())
+        .map((log) => ({ transferLog: log, swapLog: null }));
+    }
   }
 
   const movements = [...directMovements, ...swapDeliveryMovements, ...orphanSwapDeliveries];

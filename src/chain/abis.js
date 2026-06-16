@@ -171,17 +171,21 @@ export const TRANSFER_EVENT_ABI = [
   },
 ];
 
-// ChocoCkesSwap swap events correlated with Transfer events to identify swap-routed sends.
+// New ChocoCkesSwap (to be deployed) emits a 7-param event with recipient indexed and feePaid.
+// Old contracts (0xB555CC…, 0x9375F1…) emit different signatures; those events don't decode with
+// this ABI and are captured instead by the orphan-delivery fallback in history.js.
 export const SWAP_EVENT_ABI = [
   {
     type: "event",
     name: "UsdcToCkesSwap",
     inputs: [
-      { name: "payer", type: "address", indexed: true },
-      { name: "usdcIn", type: "uint256", indexed: false },
-      { name: "usdmMid", type: "uint256", indexed: false },
-      { name: "ckesOut", type: "uint256", indexed: false },
+      { name: "payer",      type: "address", indexed: true },
+      { name: "recipient",  type: "address", indexed: true },
+      { name: "usdcIn",     type: "uint256", indexed: false },
+      { name: "usdmMid",    type: "uint256", indexed: false },
+      { name: "ckesOut",    type: "uint256", indexed: false },
       { name: "ckesMinOut", type: "uint256", indexed: false },
+      { name: "feePaid",    type: "uint256", indexed: false },
     ],
   },
 ];

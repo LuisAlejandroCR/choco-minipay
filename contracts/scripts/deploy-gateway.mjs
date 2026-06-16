@@ -40,7 +40,7 @@ console.log(`Protocol fee:     ${feeBps} bps (${(feeBps / 100).toFixed(2)}%)`);
 console.log("=".repeat(60) + "\n");
 
 const artifact = JSON.parse(fs.readFileSync(path.join(root, "artifacts", "ChocoGateway.json"), "utf8"));
-const rpcUrl   = process.env.CELO_RPC_URL || "https://forno.celo.org";
+const rpcUrl   = process.env.CELO_RPC_URL || "https://rpc.ankr.com/celo";
 const rpc      = new ethers.JsonRpcProvider(rpcUrl, { chainId: 42220, name: "celo" });
 const wallet   = new ethers.Wallet(privateKey, rpc);
 
