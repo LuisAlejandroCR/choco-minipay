@@ -13,6 +13,7 @@ function shortAddr(addr) {
 export function ContactPicker({ ownerWallet, onSelect, onClose, inline = false }) {
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [editId, setEditId] = useState(null);
   const [editAddress, setEditAddress] = useState("");
   const [pendingDeleteId, setPendingDeleteId] = useState(null);
@@ -20,14 +21,21 @@ export function ContactPicker({ ownerWallet, onSelect, onClose, inline = false }
   useEffect(() => {
     if (!ownerWallet) { setLoading(false); return; }
     let active = true;
+    setLoading(true);
+    setError("");
     (async () => {
-      try { await ensureSupabaseAuth(ownerWallet); } catch {}
-      if (!active) return;
       try {
+        await ensureSupabaseAuth(ownerWallet);
         const data = await listContacts(ownerWallet);
         if (active) setContacts(data);
-      } catch {}
-      if (active) setLoading(false);
+      } catch (loadError) {
+        if (active) {
+          setContacts([]);
+          setError(loadError.message || "Could not load saved contacts.");
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
     })();
     return () => { active = false; };
   }, [ownerWallet]);
@@ -55,11 +63,15 @@ export function ContactPicker({ ownerWallet, onSelect, onClose, inline = false }
     <>
       {loading && <p className="contact-picker-status">Loading…</p>}
 
-      {!loading && contacts.length === 0 && (
+      {!loading && error && (
+        <p className="contact-picker-status">{error}</p>
+      )}
+
+      {!loading && !error && contacts.length === 0 && (
         <p className="contact-picker-status">No saved contacts yet.</p>
       )}
 
-      {!loading && contacts.length > 0 && (
+      {!loading && !error && contacts.length > 0 && (
         <ul className="contact-picker-list">
           {contacts.map(c => (
             <li
