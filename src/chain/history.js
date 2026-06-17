@@ -4,9 +4,6 @@ import { ADDRESSES, makePublicClient } from "./client.js";
 import { REGISTRY_EVENTS_ABI, SWAP_EVENT_ABI, TRANSFER_EVENT_ABI } from "./abis.js";
 
 const LOG_CHUNK_SIZE = 45_000n;
-// Max parallel eth_getLogs per query. 4 concurrent chunks × up to 4 parallel queries = 16 max
-// simultaneous requests — well within forno's rate limit.
-const CHUNK_CONCURRENCY = 4;
 
 // --- Private formatting helpers ---
 
@@ -30,32 +27,23 @@ function getSwapAddresses() {
   ]);
 }
 
-// Fetches events across a large block range by splitting into LOG_CHUNK_SIZE chunks.
-// latestBlock is passed in so callers can share a single getBlockNumber() call.
-// Chunks are fetched in parallel batches of CHUNK_CONCURRENCY to avoid sequential slowness
-// while staying within forno's rate limits.
+// Fetches events across a large block range by splitting into sequential LOG_CHUNK_SIZE chunks.
+// latestBlock is passed in so callers share a single getBlockNumber() call — the main speedup
+// comes from running multiple getContractEventsChunked calls in parallel (via the outer
+// Promise.all in readSendNowHistory / readScheduleData), not from parallelising chunks here.
+// Parallel chunks within a single call overwhelm forno's rate limit when several event-type
+// queries run concurrently, so chunks stay sequential.
 async function getContractEventsChunked(publicClient, params, latestBlock) {
   const latest = latestBlock ?? await publicClient.getBlockNumber();
   const first = params.fromBlock ? BigInt(params.fromBlock) : 0n;
   if (first > latest) return [];
 
-  const ranges = [];
+  const logs = [];
   for (let from = first; from <= latest; from += LOG_CHUNK_SIZE + 1n) {
     const to = from + LOG_CHUNK_SIZE > latest ? latest : from + LOG_CHUNK_SIZE;
-    ranges.push({ from, to });
+    logs.push(...await publicClient.getContractEvents({ ...params, fromBlock: from, toBlock: to }));
   }
-
-  const allLogs = [];
-  for (let i = 0; i < ranges.length; i += CHUNK_CONCURRENCY) {
-    const batch = ranges.slice(i, i + CHUNK_CONCURRENCY);
-    const results = await Promise.all(
-      batch.map(({ from, to }) =>
-        publicClient.getContractEvents({ ...params, fromBlock: from, toBlock: to })
-      )
-    );
-    allLogs.push(...results.flat());
-  }
-  return allLogs;
+  return logs;
 }
 
 function formatDay(day) {
