@@ -78,7 +78,7 @@ export async function approveTokenIfNeeded({ account, tokenAddress, spender, amo
     abi: ERC20_ABI,
     functionName: "approve",
     args: [spender, amount],
-    feeCurrency: ADDRESSES.feeCurrency,
+    feeCurrency: ADDRESSES.usdm, // pay gas in USDm so USDC balance stays unchanged
   });
   await publicClient.waitForTransactionReceipt({ hash });
   return hash;
