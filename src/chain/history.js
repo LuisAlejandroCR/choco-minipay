@@ -1,9 +1,10 @@
-import { formatUnits, isAddress } from "viem";
+import { decodeEventLog, formatUnits, isAddress, keccak256, toHex } from "viem";
 import { APP_CONFIG } from "../lib/app-config.js";
 import { ADDRESSES, makePublicClient } from "./client.js";
 import { REGISTRY_EVENTS_ABI, SWAP_EVENT_ABI, TRANSFER_EVENT_ABI } from "./abis.js";
 
 const LOG_CHUNK_SIZE = 45_000n;
+const BLOCKSCOUT_V2 = "https://explorer.celo.org/mainnet/api/v2";
 
 // ── Module-level result cache ─────────────────────────────────────────────────
 // Navigating Plans → Home → Plans returns cached data instantly.
@@ -54,6 +55,83 @@ async function getContractEventsChunked(publicClient, params) {
     }));
   }
   return logs;
+}
+
+// ── Blockscout event selectors (keccak256 of ABI-canonical event signatures) ──
+const TOPIC0 = {
+  UsdcToCkesSwap:         keccak256(toHex("UsdcToCkesSwap(address,uint256,uint256,uint256,uint256)")),
+  MonthlyScheduleCreated: keccak256(toHex("MonthlyScheduleCreated(uint256,address,address,address,address,uint256,uint256,uint8,uint64,uint8,bytes32)")),
+  ScheduleCancelled:      keccak256(toHex("ScheduleCancelled(uint256,address)")),
+  SchedulePaused:         keccak256(toHex("SchedulePaused(uint256,address)")),
+  ScheduleResumed:        keccak256(toHex("ScheduleResumed(uint256,address)")),
+  SettlementReceipt:      keccak256(toHex("SettlementReceipt(uint256,bool,address,uint256,uint256,bytes32,string)")),
+};
+
+// Pad a 20-byte Ethereum address to a 32-byte EVM topic (left-zero-padded).
+function addressAsTopic(address) {
+  return `0x${"0".repeat(24)}${address.slice(2).toLowerCase()}`;
+}
+
+// Fetch all pages of Blockscout ERC-20 token transfers and normalize to viem log shape.
+// Timestamps are included so callers can skip separate getBlock() calls.
+async function fetchBlockscoutTransfers(address, tokenAddress, filter) {
+  const items = [];
+  let cursor = null;
+  for (let page = 0; page < 200; page++) {
+    const qs = new URLSearchParams({ token: tokenAddress, filter });
+    if (cursor) for (const [k, v] of Object.entries(cursor)) qs.set(k, String(v));
+    const res = await fetch(`${BLOCKSCOUT_V2}/addresses/${address}/token-transfers?${qs}`,
+      { signal: AbortSignal.timeout(10000) });
+    if (!res.ok) throw new Error(`Blockscout transfers ${res.status}`);
+    const d = await res.json();
+    for (const item of d.items || []) {
+      items.push({
+        transactionHash: item.tx_hash,
+        blockNumber: BigInt(item.block_number),
+        logIndex: Number(item.log_index || 0),
+        _timestamp: item.timestamp ? Math.floor(Date.parse(item.timestamp) / 1000) : 0,
+        args: {
+          from: item.from?.hash || "",
+          to: item.to?.hash || "",
+          value: BigInt(item.total?.value || "0"),
+        },
+      });
+    }
+    cursor = d.next_page_params ?? null;
+    if (!cursor) break;
+  }
+  return items;
+}
+
+// Fetch all pages of Blockscout contract logs with optional topic filters and decode
+// using viem's decodeEventLog. Returns logs with _timestamp so callers skip getBlock.
+async function fetchBlockscoutLogs(contractAddress, abi, eventName, topic0, topicFilter = {}) {
+  const items = [];
+  let cursor = null;
+  const baseParams = { topic0, ...topicFilter };
+  for (let page = 0; page < 200; page++) {
+    const qs = new URLSearchParams(baseParams);
+    if (cursor) for (const [k, v] of Object.entries(cursor)) qs.set(k, String(v));
+    const res = await fetch(`${BLOCKSCOUT_V2}/addresses/${contractAddress}/logs?${qs}`,
+      { signal: AbortSignal.timeout(10000) });
+    if (!res.ok) throw new Error(`Blockscout logs ${res.status}`);
+    const d = await res.json();
+    for (const log of d.items || []) {
+      try {
+        const decoded = decodeEventLog({ abi, eventName, topics: log.topics, data: log.data, strict: false });
+        items.push({
+          transactionHash: log.tx_hash,
+          blockNumber: BigInt(log.block_number),
+          logIndex: Number(log.index || 0),
+          _timestamp: log.timestamp ? Math.floor(Date.parse(log.timestamp) / 1000) : 0,
+          args: decoded.args,
+        });
+      } catch { /* skip logs that can't be decoded with this ABI */ }
+    }
+    cursor = d.next_page_params ?? null;
+    if (!cursor) break;
+  }
+  return items;
 }
 
 function formatDay(day) {
@@ -167,67 +245,84 @@ export function composeMovementHistory({
 
 // --- Private: send-now history reader ---
 
-// Transfer + all UsdcToCkesSwap streams start simultaneously (each sequential inside).
-// Single combined swap-delivery fetch covers both swapDelivery and orphan paths.
-// Peak: 2–3 concurrent forno requests.
+// Blockscout-first: 1–4 REST API calls with timestamps included (~300 ms).
+// Falls back automatically to chunked eth_getLogs (~3 s) if Blockscout is unreachable.
 async function readSendNowHistory(publicClient, owner, fromBlock) {
   const ckesAddress = ADDRESSES.kesm;
   const swapAddresses = getSwapAddresses();
   const swapAddressSet = new Set(swapAddresses.map((address) => String(address).toLowerCase()));
+  const ownerTopic = addressAsTopic(owner);
 
-  const [transfers, ...swapGroups] = await Promise.all([
-    getContractEventsChunked(publicClient, {
-      address: ckesAddress,
-      abi: TRANSFER_EVENT_ABI,
-      eventName: "Transfer",
-      args: { from: owner },
-      fromBlock,
-      toBlock: "latest",
-    }),
-    ...swapAddresses.map((swapAddress) =>
+  // ── Phase 1: cKES transfers from owner + UsdcToCkesSwap events (parallel) ──
+  let transfers, swaps;
+  let sourceIsBlockscout = false;
+
+  try {
+    const [xfers, ...swapGroups] = await Promise.all([
+      fetchBlockscoutTransfers(owner, ckesAddress, "from"),
+      ...swapAddresses.map((addr) =>
+        fetchBlockscoutLogs(addr, SWAP_EVENT_ABI, "UsdcToCkesSwap",
+          TOPIC0.UsdcToCkesSwap, { topic1: ownerTopic }),
+      ),
+    ]);
+    transfers = xfers;
+    swaps = swapGroups.flat();
+    sourceIsBlockscout = true;
+  } catch {
+    const [xfers, ...swapGroups] = await Promise.all([
       getContractEventsChunked(publicClient, {
-        address: swapAddress,
-        abi: SWAP_EVENT_ABI,
-        eventName: "UsdcToCkesSwap",
-        args: { payer: owner },
-        fromBlock,
-        toBlock: "latest",
+        address: ckesAddress, abi: TRANSFER_EVENT_ABI, eventName: "Transfer",
+        args: { from: owner }, fromBlock, toBlock: "latest",
       }),
-    ),
-  ]);
-  const swaps = swapGroups.flat();
+      ...swapAddresses.map((addr) =>
+        getContractEventsChunked(publicClient, {
+          address: addr, abi: SWAP_EVENT_ABI, eventName: "UsdcToCkesSwap",
+          args: { payer: owner }, fromBlock, toBlock: "latest",
+        }),
+      ),
+    ]);
+    transfers = xfers;
+    swaps = swapGroups.flat();
+  }
 
   const swapByTx = new Map(swaps.map((log) => [log.transactionHash, log]));
-
   const directTxHashes = new Set(
     transfers
       .filter((log) => String(log.args.to).toLowerCase() !== String(owner).toLowerCase())
       .map((log) => log.transactionHash),
   );
-
   const directMovements = transfers
     .filter((log) => String(log.args.to).toLowerCase() !== String(owner).toLowerCase())
     .filter((log) => !swapAddressSet.has(String(log.args.from).toLowerCase()))
     .map((log) => ({ transferLog: log, swapLog: swapByTx.get(log.transactionHash) || null }));
-
   const swapOnlySwaps = swaps.filter((s) => !directTxHashes.has(s.transactionHash));
 
-  // Single combined fetch for all swap-contract deliveries — avoids the previous double query.
+  // ── Phase 2: transfers from swap contracts → recipients (swap delivery events) ──
   let allSwapDeliveries = [];
   if (swapAddresses.length > 0) {
-    const deliveryGroups = await Promise.all(
-      swapAddresses.map((swapAddress) =>
-        getContractEventsChunked(publicClient, {
-          address: ckesAddress,
-          abi: TRANSFER_EVENT_ABI,
-          eventName: "Transfer",
-          args: { from: swapAddress },
-          fromBlock,
-          toBlock: "latest",
-        }),
-      ),
-    );
-    allSwapDeliveries = deliveryGroups.flat();
+    try {
+      const groups = await Promise.all(
+        swapAddresses.map((addr) =>
+          sourceIsBlockscout
+            ? fetchBlockscoutTransfers(addr, ckesAddress, "from")
+            : getContractEventsChunked(publicClient, {
+                address: ckesAddress, abi: TRANSFER_EVENT_ABI, eventName: "Transfer",
+                args: { from: addr }, fromBlock, toBlock: "latest",
+              }),
+        ),
+      );
+      allSwapDeliveries = groups.flat();
+    } catch {
+      const groups = await Promise.all(
+        swapAddresses.map((addr) =>
+          getContractEventsChunked(publicClient, {
+            address: ckesAddress, abi: TRANSFER_EVENT_ABI, eventName: "Transfer",
+            args: { from: addr }, fromBlock, toBlock: "latest",
+          }),
+        ),
+      );
+      allSwapDeliveries = groups.flat();
+    }
   }
 
   const swapOnlySet = new Set(swapOnlySwaps.map((s) => s.transactionHash));
@@ -256,15 +351,22 @@ async function readSendNowHistory(publicClient, owner, fromBlock) {
 
   const movements = [...directMovements, ...swapDeliveryMovements, ...orphanSwapDeliveries];
 
-  const blockNumbers = [...new Set(movements.map((entry) => entry.transferLog.blockNumber))];
-  const blocks = await Promise.all(blockNumbers.map((blockNumber) => publicClient.getBlock({ blockNumber })));
-  const timeByBlock = new Map(blocks.map((block) => [block.number, Number(block.timestamp)]));
+  // ── Timestamps: use Blockscout-supplied _timestamp (avoids getBlock calls) ──
+  let timeByBlock;
+  if (sourceIsBlockscout && movements.every(({ transferLog }) => transferLog._timestamp > 0)) {
+    timeByBlock = new Map(movements.map(({ transferLog }) =>
+      [transferLog.blockNumber, transferLog._timestamp]));
+  } else {
+    const blockNumbers = [...new Set(movements.map(({ transferLog }) => transferLog.blockNumber))];
+    const blocks = await Promise.all(blockNumbers.map((blockNumber) => publicClient.getBlock({ blockNumber })));
+    timeByBlock = new Map(blocks.map((block) => [block.number, Number(block.timestamp)]));
+  }
 
   return movements
     .map(({ transferLog, swapLog }) => {
       const amountKes = Math.round(Number(formatUnits(transferLog.args.value, 18)));
       const usdcIn = swapLog ? Number(formatUnits(swapLog.args.usdcIn, 6)) : 0;
-      const timestamp = timeByBlock.get(transferLog.blockNumber);
+      const timestamp = transferLog._timestamp || timeByBlock.get(transferLog.blockNumber);
       return {
         id: `send-${transferLog.transactionHash}-${transferLog.logIndex}`,
         planId: "send-now",
@@ -293,54 +395,61 @@ async function readSendNowHistory(publicClient, owner, fromBlock) {
 
 // --- Private: schedule data reader ---
 
-// Four schedule event types run in parallel (each sequential inside — 1 chunk at a time).
-// Peak: 4 concurrent forno requests. Settlement is sequential after owner IDs are known.
+// Blockscout-first: 5 parallel REST API calls including timestamps (~300 ms).
+// Falls back to chunked eth_getLogs (~3 s) on any Blockscout failure.
 async function readScheduleData(publicClient, owner, fromBlock, contractAddress) {
-  const [created, cancelled, paused, resumed] = await Promise.all([
-    getContractEventsChunked(publicClient, {
-      address: contractAddress,
-      abi: REGISTRY_EVENTS_ABI,
-      eventName: "MonthlyScheduleCreated",
-      args: { owner },
-      fromBlock,
-      toBlock: "latest",
-    }),
-    getContractEventsChunked(publicClient, {
-      address: contractAddress,
-      abi: REGISTRY_EVENTS_ABI,
-      eventName: "ScheduleCancelled",
-      fromBlock,
-      toBlock: "latest",
-    }),
-    getContractEventsChunked(publicClient, {
-      address: contractAddress,
-      abi: REGISTRY_EVENTS_ABI,
-      eventName: "SchedulePaused",
-      fromBlock,
-      toBlock: "latest",
-    }),
-    getContractEventsChunked(publicClient, {
-      address: contractAddress,
-      abi: REGISTRY_EVENTS_ABI,
-      eventName: "ScheduleResumed",
-      fromBlock,
-      toBlock: "latest",
-    }),
-  ]);
+  const ownerTopic = addressAsTopic(owner);
 
-  const ids = created.map((log) => log.args.id);
-  const settlements = ids.length
-    ? await getContractEventsChunked(publicClient, {
-      address: contractAddress,
-      abi: REGISTRY_EVENTS_ABI,
-      eventName: "SettlementReceipt",
-      args: { id: ids },
-      fromBlock,
-      toBlock: "latest",
-    })
-    : [];
+  try {
+    const [created, cancelled, paused, resumed, allSettlements] = await Promise.all([
+      // MonthlyScheduleCreated: owner is the 2nd indexed param → topic2
+      fetchBlockscoutLogs(contractAddress, REGISTRY_EVENTS_ABI, "MonthlyScheduleCreated",
+        TOPIC0.MonthlyScheduleCreated, { topic2: ownerTopic }),
+      // Cancelled/Paused/Resumed: fetch all, filter client-side by plan ID (same as eth_getLogs path)
+      fetchBlockscoutLogs(contractAddress, REGISTRY_EVENTS_ABI, "ScheduleCancelled",
+        TOPIC0.ScheduleCancelled),
+      fetchBlockscoutLogs(contractAddress, REGISTRY_EVENTS_ABI, "SchedulePaused",
+        TOPIC0.SchedulePaused),
+      fetchBlockscoutLogs(contractAddress, REGISTRY_EVENTS_ABI, "ScheduleResumed",
+        TOPIC0.ScheduleResumed),
+      fetchBlockscoutLogs(contractAddress, REGISTRY_EVENTS_ABI, "SettlementReceipt",
+        TOPIC0.SettlementReceipt),
+    ]);
+    // Only keep settlements for this owner's plans
+    const ownerPlanIds = new Set(created.map((log) => String(log.args.id)));
+    const settlements = allSettlements.filter((log) => ownerPlanIds.has(String(log.args.id)));
+    return { created, cancelled, paused, resumed, settlements };
+  } catch {
+    // Blockscout unavailable — fall back to chunked eth_getLogs
+    const [created, cancelled, paused, resumed] = await Promise.all([
+      getContractEventsChunked(publicClient, {
+        address: contractAddress, abi: REGISTRY_EVENTS_ABI, eventName: "MonthlyScheduleCreated",
+        args: { owner }, fromBlock, toBlock: "latest",
+      }),
+      getContractEventsChunked(publicClient, {
+        address: contractAddress, abi: REGISTRY_EVENTS_ABI, eventName: "ScheduleCancelled",
+        fromBlock, toBlock: "latest",
+      }),
+      getContractEventsChunked(publicClient, {
+        address: contractAddress, abi: REGISTRY_EVENTS_ABI, eventName: "SchedulePaused",
+        fromBlock, toBlock: "latest",
+      }),
+      getContractEventsChunked(publicClient, {
+        address: contractAddress, abi: REGISTRY_EVENTS_ABI, eventName: "ScheduleResumed",
+        fromBlock, toBlock: "latest",
+      }),
+    ]);
 
-  return { created, cancelled, paused, resumed, settlements };
+    const ids = created.map((log) => log.args.id);
+    const settlements = ids.length
+      ? await getContractEventsChunked(publicClient, {
+        address: contractAddress, abi: REGISTRY_EVENTS_ABI, eventName: "SettlementReceipt",
+        args: { id: ids }, fromBlock, toBlock: "latest",
+      })
+      : [];
+
+    return { created, cancelled, paused, resumed, settlements };
+  }
 }
 
 // --- Public: full ledger read ---
@@ -362,10 +471,6 @@ export async function readOwnerLedger(owner) {
   const ledgerOrRegistry = ADDRESSES.ledger || ADDRESSES.registry;
   const hasLedger = Boolean(ledgerOrRegistry && isAddress(ledgerOrRegistry));
 
-  // sendNow and schedule run in parallel:
-  // - sendNow: Transfer + Swaps simultaneously (2–3 sequential streams)
-  // - schedule: Created + Cancelled + Paused + Resumed simultaneously (4 sequential streams)
-  // Peak: ~6 concurrent forno requests — well within forno's limit.
   const [sendNowHistory, scheduleData] = await Promise.all([
     readSendNowHistory(publicClient, owner, sendNowFromBlock).catch(() => []),
     hasLedger
@@ -381,9 +486,15 @@ export async function readOwnerLedger(owner) {
 
   const { created, cancelled, paused, resumed, settlements } = scheduleData;
 
-  const blockNumbers = [...new Set(settlements.map((log) => log.blockNumber))];
-  const blocks = await Promise.all(blockNumbers.map((blockNumber) => publicClient.getBlock({ blockNumber })));
-  const timeByBlock = new Map(blocks.map((block) => [block.number, Number(block.timestamp)]));
+  // Use _timestamp from Blockscout data when available — avoids getBlock() calls for settlements.
+  let timeByBlock;
+  if (settlements.length === 0 || settlements.every((log) => log._timestamp > 0)) {
+    timeByBlock = new Map(settlements.map((log) => [log.blockNumber, log._timestamp]));
+  } else {
+    const blockNumbers = [...new Set(settlements.map((log) => log.blockNumber))];
+    const blocks = await Promise.all(blockNumbers.map((blockNumber) => publicClient.getBlock({ blockNumber })));
+    timeByBlock = new Map(blocks.map((block) => [block.number, Number(block.timestamp)]));
+  }
 
   const cancelledIds = new Set(cancelled.map((log) => String(log.args.id)));
   const scheduleById = new Map(created.map((log) => [String(log.args.id), log.args]));
@@ -396,7 +507,7 @@ export async function readOwnerLedger(owner) {
   const settlementTimestampById = new Map();
   settlements.forEach((log) => {
     const id = String(log.args.id);
-    const timestamp = timeByBlock.get(log.blockNumber) || 0;
+    const timestamp = timeByBlock.get(log.blockNumber) || log._timestamp || 0;
     settlementTimestampById.set(id, Math.max(settlementTimestampById.get(id) || 0, timestamp));
   });
 
