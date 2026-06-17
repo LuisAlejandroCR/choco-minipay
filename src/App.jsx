@@ -99,7 +99,7 @@ export default function App() {
   // --- Platform hooks ---
   const wallet = useMiniPayWallet();
   const walletCanSign = wallet.canSign;
-  const { plans, transactions, refresh: refreshLedger } = useChocoLedger(wallet.address);
+  const { plans, transactions, loading: ledgerLoading, refresh: refreshLedger } = useChocoLedger(wallet.address);
   const visibleScreen = resolveVisibleScreen(screen, walletCanSign);
 
   // --- Helpers (defined before feature hooks; closures capture hook values at call time) ---
@@ -419,6 +419,7 @@ export default function App() {
           {visibleScreen === "plans" && (
             <PlansScreen
               plans={plans}
+              loading={ledgerLoading}
               onHome={() => setScreen("plan")}
               onHistory={() => goTo("history")}
               onNewPlan={openNewPlan}
@@ -444,6 +445,7 @@ export default function App() {
           {visibleScreen === "history" && (
             <HistoryScreen
               transactions={transactions}
+              loading={ledgerLoading}
               onHome={() => setScreen("plan")}
               onPlans={() => goTo("plans")}
               onSelectTransaction={(transactionId) => {

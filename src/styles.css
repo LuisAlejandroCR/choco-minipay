@@ -3332,6 +3332,15 @@ a {
   min-width: 150px;
 }
 
+@keyframes chocoSpin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-sync {
+  animation: chocoSpin 1.8s linear infinite;
+  opacity: 0.72;
+}
+
 .plan-actions {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

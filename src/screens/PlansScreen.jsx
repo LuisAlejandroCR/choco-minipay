@@ -30,7 +30,7 @@ function applyFilters(plans, statusFilter, query) {
   return result;
 }
 
-export function PlansScreen({ plans, onSelectPlan, onNewPlan, onHome, onHistory }) {
+export function PlansScreen({ plans, loading = false, onSelectPlan, onNewPlan, onHome, onHistory }) {
   const [statusFilter, setStatusFilter] = useState("all");
   const [query, setQuery] = useState("");
 
@@ -75,7 +75,13 @@ export function PlansScreen({ plans, onSelectPlan, onNewPlan, onHome, onHistory 
         </div>
       </div>
 
-      {visible.length > 0 ? (
+      {loading && plans.length === 0 ? (
+        <div className="empty-plans">
+          <div className="loading-sync"><ChocoMark size="small" /></div>
+          <h2>Loading plans…</h2>
+          <p>Syncing with Celo Mainnet.</p>
+        </div>
+      ) : visible.length > 0 ? (
         <>
           {similarPlanIds.size > 0 && (
             <div className="plan-alert">

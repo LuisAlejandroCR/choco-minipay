@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AlertCircle, ArrowDownLeft, CalendarDays, Clock, ReceiptText, Search } from "lucide-react";
 import { BottomNav } from "../components/BottomNav.jsx";
+import { ChocoMark } from "../components/ChocoMark.jsx";
 
 function dayKey(sortKey) {
   if (!sortKey) return "Pending";
@@ -77,7 +78,7 @@ function applyFilters(transactions, typeFilter, query) {
   return result;
 }
 
-export function HistoryScreen({ transactions, onSelectTransaction, onHome, onPlans }) {
+export function HistoryScreen({ transactions, loading = false, onSelectTransaction, onHome, onPlans }) {
   const [typeFilter, setTypeFilter] = useState("all");
   const [query, setQuery] = useState("");
 
@@ -124,7 +125,13 @@ export function HistoryScreen({ transactions, onSelectTransaction, onHome, onPla
         </div>
       </div>
 
-      {visible.length > 0 ? (
+      {loading && transactions.length === 0 ? (
+        <div className="empty-plans">
+          <div className="loading-sync"><ChocoMark size="small" /></div>
+          <h2>Loading movements…</h2>
+          <p>Syncing with Celo Mainnet.</p>
+        </div>
+      ) : visible.length > 0 ? (
         <div className="history-list" aria-label="Transaction history">
           {groups.map(({ label, items }) => (
             <div key={label} className="tx-day-group">
