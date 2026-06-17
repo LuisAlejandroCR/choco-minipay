@@ -3,7 +3,7 @@ import { APP_CONFIG } from "../lib/app-config.js";
 import { ADDRESSES, makePublicClient, shortAddress } from "./client.js";
 import { ATTEMPT_EVENT_ABI, REGISTRY_EVENTS_ABI, SWAP_EVENT_ABI, TRANSFER_EVENT_ABI } from "./abis.js";
 
-const LOG_CHUNK_SIZE = 45_000n;
+const LOG_CHUNK_SIZE = 900n; // forno rejects ranges >~1000 blocks
 const EXPLORER_TX_OFFSET = 10000;
 const OPTIONAL_RPC_TIMEOUT_MS = 4500;
 const SELECTORS = {
