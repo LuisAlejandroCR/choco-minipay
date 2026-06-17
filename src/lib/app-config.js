@@ -24,7 +24,8 @@ export const APP_CONFIG = {
     rpcUrl: env.VITE_CELO_RPC_URL || "https://forno.celo.org",
     explorerUrl: env.VITE_BLOCK_EXPLORER_URL || "https://celoscan.io",
     explorerTxUrl: env.VITE_BLOCK_EXPLORER_TX_URL || "https://celoscan.io/tx",
-    explorerApiUrl: env.VITE_BLOCK_EXPLORER_API_URL || "https://explorer.celo.org/api",
+    explorerApiUrl: env.VITE_BLOCK_EXPLORER_API_URL || "https://api.celoscan.io/api",
+    explorerApiKey: env.VITE_CELOSCAN_API_KEY || "",
   },
   assets: {
     source: env.VITE_SOURCE_ASSET || "USDC",
