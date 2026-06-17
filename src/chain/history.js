@@ -1,7 +1,7 @@
 import { formatUnits, isAddress } from "viem";
 import { APP_CONFIG } from "../lib/app-config.js";
 import { ADDRESSES, makePublicClient } from "./client.js";
-import { REGISTRY_EVENTS_ABI, SWAP_EVENT_ABI, TRANSFER_EVENT_ABI } from "./abis.js";
+import { ATTEMPT_EVENT_ABI, REGISTRY_EVENTS_ABI, SWAP_EVENT_ABI, TRANSFER_EVENT_ABI } from "./abis.js";
 
 const LOG_CHUNK_SIZE = 45_000n;
 
@@ -95,6 +95,10 @@ function tailAddress(address) {
   return isAddress(address) ? `...${address.slice(-4)}` : "Unknown";
 }
 
+function unitsToNumber(value, decimals) {
+  return Number(formatUnits(value ?? 0n, decimals));
+}
+
 // --- Private log → model mappers ---
 
 function logOrder(log) {
@@ -130,33 +134,9 @@ function mapScheduleToPlan(log, lastSettlementAt = 0, active = true) {
   };
 }
 
-function mapScheduleToMovement(log, timestamp) {
-  const a = log.args;
-  const amountKes = Math.round(Number(formatUnits(a.destinationAmount, 18)));
-  return {
-    id: `tx-${log.transactionHash}-${log.logIndex}`,
-    planId: `schedule-${a.id}`,
-    recipient: tailAddress(a.recipient),
-    amount: amountKes.toLocaleString("en-US"),
-    asset: APP_CONFIG.assets.destination,
-    payAsset: isCkesAsset(a.sourceAsset) ? APP_CONFIG.assets.destination : APP_CONFIG.assets.source,
-    schedule: `Every ${formatDay(a.dayOfMonth)} - ${scheduleTimeLabel()}`,
-    date: formatChainDate(timestamp),
-    status: "Scheduled",
-    hash: log.transactionHash,
-    type: "Plan confirmed",
-    deliveryMode: "schedule",
-    from: a.owner,
-    to: tailAddress(a.recipient),
-    toAddress: a.recipient,
-    routeEstimate: "",
-    sortKey: timestamp || 0,
-  };
-}
-
 function mapSettlementToMovement(log, schedule, timestamp) {
   const a = log.args;
-  const amountKes = Math.round(Number(formatUnits(a.destinationAmount, 18)));
+  const amountKes = Math.round(unitsToNumber(a.destinationAmount, 18));
   return {
     id: `settle-${log.transactionHash}-${log.logIndex}`,
     planId: `schedule-${a.id}`,
@@ -178,14 +158,63 @@ function mapSettlementToMovement(log, schedule, timestamp) {
   };
 }
 
+function mapAttemptToMovement(log, timestamp) {
+  const a = log.args;
+  const kind = Number(a.kind ?? 0);
+  const isSuccess = kind === 0;
+  const amountKes = Math.round(unitsToNumber(a.ckesAmount, 18));
+  const usdcIn = unitsToNumber(a.usdcAmount, 6);
+
+  return {
+    id: `attempt-${String(a.attemptId ?? log.transactionHash)}-${log.logIndex}`,
+    planId: "send-now",
+    recipient: tailAddress(a.recipientWallet),
+    recipientAddress: a.recipientWallet,
+    amount: amountKes.toLocaleString("en-US"),
+    amountMinor: amountKes,
+    asset: APP_CONFIG.assets.destination,
+    payAsset: APP_CONFIG.assets.source,
+    payAmount: usdcIn,
+    schedule: "Send once now",
+    date: formatChainDate(timestamp),
+    status: isSuccess ? "Sent" : "Failed",
+    hash: log.transactionHash,
+    type: isSuccess ? "USDC swap + cKES send" : "Send failed",
+    deliveryMode: "now",
+    from: a.senderWallet,
+    to: tailAddress(a.recipientWallet),
+    toAddress: a.recipientWallet,
+    routeEstimate: `${usdcIn} ${APP_CONFIG.assets.source} -> ${amountKes} ${APP_CONFIG.assets.destination} via ChocoGateway`,
+    sortKey: timestamp || 0,
+  };
+}
+
+function isSendNowAttempt(log) {
+  const note = String(log.args?.note || "").toLowerCase();
+  return note.includes("send-now");
+}
+
+function mergeSendNowHistory(primary = [], fallback = []) {
+  const seen = new Set();
+  return [...primary, ...fallback]
+    .filter((tx) => {
+      const key = tx.hash ? String(tx.hash).toLowerCase() : tx.id;
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => b.sortKey - a.sortKey);
+}
+
 export function composeMovementHistory({
   sendNowHistory = [],
+  sendNowAttempts = [],
   settlements = [],
   scheduleById = new Map(),
   timeByBlock = new Map(),
 } = {}) {
   return [
-    ...sendNowHistory,
+    ...mergeSendNowHistory(sendNowAttempts, sendNowHistory),
     ...settlements.map((log) =>
       mapSettlementToMovement(log, scheduleById.get(String(log.args.id)), timeByBlock.get(log.blockNumber))),
   ].sort((a, b) => b.sortKey - a.sortKey);
@@ -317,6 +346,26 @@ async function readSendNowHistory(publicClient, owner, fromBlock) {
     .sort((a, b) => b.sortKey - a.sortKey);
 }
 
+async function readAttemptHistory(publicClient, owner, fromBlock, contractAddress) {
+  const attempts = await getContractEventsChunked(publicClient, {
+    address: contractAddress,
+    abi: ATTEMPT_EVENT_ABI,
+    eventName: "AttemptLogged",
+    args: { senderWallet: owner },
+    fromBlock,
+    toBlock: "latest",
+  });
+
+  const sendNowAttempts = attempts.filter(isSendNowAttempt);
+  const blockNumbers = [...new Set(sendNowAttempts.map((log) => log.blockNumber))];
+  const blocks = await Promise.all(blockNumbers.map((blockNumber) => publicClient.getBlock({ blockNumber })));
+  const timeByBlock = new Map(blocks.map((block) => [block.number, Number(block.timestamp)]));
+
+  return sendNowAttempts
+    .map((log) => mapAttemptToMovement(log, timeByBlock.get(log.blockNumber)))
+    .sort((a, b) => b.sortKey - a.sortKey);
+}
+
 // --- Private: schedule data reader ---
 
 // Four schedule event types run in parallel (each sequential inside — 1 chunk at a time).
@@ -392,12 +441,16 @@ export async function readOwnerLedger(owner) {
   // - sendNow: Transfer + Swaps simultaneously (2–3 sequential streams, ~1 forno req each at a time)
   // - schedule: Created + Cancelled + Paused + Resumed simultaneously (4 sequential streams)
   // Peak: ~6 concurrent forno requests — well within forno's limit.
-  const [sendNowHistory, scheduleData] = await Promise.all([
+  const [sendNowFallback, scheduleData, ledgerAttempts] = await Promise.all([
     readSendNowHistory(publicClient, owner, sendNowFromBlock).catch(() => []),
     hasLedger
       ? readScheduleData(publicClient, owner, fromBlock, ledgerOrRegistry).catch(() => null)
       : Promise.resolve(null),
+    hasLedger
+      ? readAttemptHistory(publicClient, owner, fromBlock, ledgerOrRegistry).catch(() => [])
+      : Promise.resolve([]),
   ]);
+  const sendNowHistory = mergeSendNowHistory(ledgerAttempts, sendNowFallback);
 
   if (!scheduleData) {
     return { plans: [], history: sendNowHistory.sort((a, b) => b.sortKey - a.sortKey) };
@@ -431,10 +484,7 @@ export async function readOwnerLedger(owner) {
       return mapScheduleToPlan(log, settlementTimestampById.get(id) || 0, !pausedById.get(id));
     });
 
-  const history = [
-    ...composeMovementHistory({ sendNowHistory, settlements, scheduleById, timeByBlock }),
-    ...created.map((log) => mapScheduleToMovement(log, timeByBlock.get(log.blockNumber))),
-  ].sort((a, b) => b.sortKey - a.sortKey);
+  const history = composeMovementHistory({ sendNowHistory, settlements, scheduleById, timeByBlock });
 
   const result = { plans, history };
   _cache = { owner: ownerLower, result, ts: Date.now() };
