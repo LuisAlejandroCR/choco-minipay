@@ -376,9 +376,7 @@ export async function readOwnerLedger(owner) {
   ]);
 
   if (!scheduleData) {
-    const result = { plans: [], history: sendNowHistory.sort((a, b) => b.sortKey - a.sortKey) };
-    _cache = { owner: ownerLower, result, ts: Date.now() };
-    return result;
+    return { plans: [], history: sendNowHistory.sort((a, b) => b.sortKey - a.sortKey) };
   }
 
   const { created, cancelled, paused, resumed, settlements } = scheduleData;
