@@ -19,10 +19,10 @@ export function ProcessingScreen({ plan, command, duplicateAttempt, onComplete }
   // Run the step sequence once on mount; clean up if the screen unmounts early.
   useEffect(() => {
     const timers = [
-      window.setTimeout(() => setStep(1), 180),
-      window.setTimeout(() => setStep(2), 520),
-      window.setTimeout(() => setStep(3), 860),
-      window.setTimeout(() => onCompleteRef.current(), 1280),
+      window.setTimeout(() => setStep(1), 220),
+      window.setTimeout(() => setStep(2), 720),
+      window.setTimeout(() => setStep(3), 1220),
+      window.setTimeout(() => onCompleteRef.current(), 1900),
     ];
     return () => timers.forEach((timer) => window.clearTimeout(timer));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- intentional: run once on mount

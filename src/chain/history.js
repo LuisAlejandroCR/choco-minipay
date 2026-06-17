@@ -112,30 +112,6 @@ function mapScheduleToPlan(log) {
   };
 }
 
-function mapScheduleToMovement(log, timestamp) {
-  const a = log.args;
-  const amountKes = Math.round(Number(formatUnits(a.destinationAmount, 18)));
-  return {
-    id: `tx-${log.transactionHash}-${log.logIndex}`,
-    planId: `schedule-${a.id}`,
-    recipient: tailAddress(a.recipient),
-    amount: amountKes.toLocaleString("en-US"),
-    asset: APP_CONFIG.assets.destination,
-    payAsset: isCkesAsset(a.sourceAsset) ? APP_CONFIG.assets.destination : APP_CONFIG.assets.source,
-    schedule: `Every ${formatDay(a.dayOfMonth)} - ${scheduleTimeLabel()}`,
-    date: formatChainDate(timestamp),
-    status: "Scheduled",
-    hash: log.transactionHash,
-    type: "Plan confirmed",
-    deliveryMode: "schedule",
-    from: a.owner,
-    to: tailAddress(a.recipient),
-    toAddress: a.recipient,
-    routeEstimate: "",
-    sortKey: timestamp || 0,
-  };
-}
-
 function mapSettlementToMovement(log, schedule, timestamp) {
   const a = log.args;
   const amountKes = Math.round(Number(formatUnits(a.destinationAmount, 18)));
@@ -158,6 +134,19 @@ function mapSettlementToMovement(log, schedule, timestamp) {
     routeEstimate: "",
     sortKey: timestamp || 0,
   };
+}
+
+export function composeMovementHistory({
+  sendNowHistory = [],
+  settlements = [],
+  scheduleById = new Map(),
+  timeByBlock = new Map(),
+} = {}) {
+  return [
+    ...sendNowHistory,
+    ...settlements.map((log) =>
+      mapSettlementToMovement(log, scheduleById.get(String(log.args.id)), timeByBlock.get(log.blockNumber))),
+  ].sort((a, b) => b.sortKey - a.sortKey);
 }
 
 // --- Private: send-now history reader ---
@@ -357,7 +346,7 @@ export async function readOwnerLedger(owner) {
       })
       : [];
 
-    const blockNumbers = [...new Set([...created, ...settlements].map((log) => log.blockNumber))];
+    const blockNumbers = [...new Set(settlements.map((log) => log.blockNumber))];
     const blocks = await Promise.all(blockNumbers.map((blockNumber) => publicClient.getBlock({ blockNumber })));
     const timeByBlock = new Map(blocks.map((block) => [block.number, Number(block.timestamp)]));
 
@@ -368,11 +357,12 @@ export async function readOwnerLedger(owner) {
       .filter((log) => !cancelledIds.has(String(log.args.id)))
       .map(mapScheduleToPlan);
 
-    const history = [
-      ...sendNowHistory,
-      ...created.map((log) => mapScheduleToMovement(log, timeByBlock.get(log.blockNumber))),
-      ...settlements.map((log) => mapSettlementToMovement(log, scheduleById.get(String(log.args.id)), timeByBlock.get(log.blockNumber))),
-    ].sort((a, b) => b.sortKey - a.sortKey);
+    const history = composeMovementHistory({
+      sendNowHistory,
+      settlements,
+      scheduleById,
+      timeByBlock,
+    });
 
     return { plans, history };
   } catch (error) {

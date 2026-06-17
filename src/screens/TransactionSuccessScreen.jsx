@@ -93,14 +93,14 @@ export function TransactionSuccessScreen({ transaction, onViewDetails, onDismiss
 
   async function share() {
     const lines = [
-      isSendNow ? `Choco sent ${amountLabel} to ${toLabel}` : `Choco scheduled monthly ${amountLabel} to ${toLabel}`,
+      isSendNow ? `Choco sent ${amountLabel} to ${toLabel}` : `Choco saved a monthly ${amountLabel} plan to ${toLabel}`,
       `Status: ${transaction.status}`,
       `Date: ${transaction.date}`,
-      hasHash ? `Receipt: ${receiptUrl}` : "",
+      hasHash ? `${isSendNow ? "Receipt" : "Plan transaction"}: ${receiptUrl}` : "",
     ].filter(Boolean);
     try {
       if (navigator.share) {
-        await navigator.share({ title: "Choco receipt", text: lines.join("\n") });
+        await navigator.share({ title: isSendNow ? "Choco receipt" : "Choco plan", text: lines.join("\n") });
       } else {
         await navigator.clipboard?.writeText(lines.join("\n"));
       }
@@ -143,18 +143,18 @@ export function TransactionSuccessScreen({ transaction, onViewDetails, onDismiss
         <div className="success-badge">
           <Check size={40} strokeWidth={2.5} />
         </div>
-        <h2 className="success-title">{isSendNow ? "Money sent" : "Money lined up"}</h2>
+        <h2 className="success-title">{isSendNow ? "Money sent" : "Plan saved"}</h2>
         <p className="success-amount">{isSendNow ? amountLabel : `Monthly ${amountLabel}`}</p>
         <p className="success-recipient">to {toLabel}</p>
 
         <div className="success-actions">
           <button className="primary-cta" type="button" onClick={onViewDetails}>
             <Check size={18} />
-            View movement details
+            {isSendNow ? "View movement details" : "Back to plans"}
           </button>
           <button className="secondary-dark" type="button" onClick={share}>
             <Share2 size={18} />
-            {shareState ? `${shareState} receipt` : "Share receipt"}
+            {shareState ? `${shareState} ${isSendNow ? "receipt" : "plan"}` : isSendNow ? "Share receipt" : "Share plan"}
           </button>
           <button className="secondary-cta" type="button" onClick={onDismiss}>
             Close

@@ -28,14 +28,15 @@ off-chain except contacts the user explicitly saves.
 5. `verifyReadiness` (cepolia.js) gates on wallet + USDC balance before reaching Review.
 6. **Send now** — `swapAndSendExact` on ChocoGateway: caller approves `quoteExactOut(ckesExact)` USDC, gateway deducts fee, swaps USDC → USDm → cKES via Mento, delivers exactly `ckesExact` to recipient, returns surplus to sender.
 7. **Schedule** — wallet approves the keeper settlement spender and `createMonthlySchedule` writes the plan to ChocoLedger.
-8. Plans and history are re-read from ChocoLedger events — never cached off-chain.
+8. Plans and movement history are re-read from ChocoLedger events — never cached off-chain.
+   Future schedules stay in Plans; History shows send-now movements and executed schedule runs.
 
 ## On-chain contracts
 
 | Contract | Purpose |
 |---|---|
 | **ChocoGateway** | Fee (0.25%), USDC→cKES swap, on-chain TxRecord storage, ChocoLedger.logAttemptFor |
-| **ChocoLedger** | Unified history: schedules + settlements + send-now audit |
+| **ChocoLedger** | Schedule source of truth plus settlement/send-now audit events |
 
 Env var `VITE_CKES_SWAP_CONTRACT_ADDRESS` points to the active ChocoGateway for new sends.
 If multiple gateways were deployed during testing, set `VITE_CKES_SWAP_CONTRACT_ADDRESSES`

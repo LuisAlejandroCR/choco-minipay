@@ -23,7 +23,7 @@ Opens `http://127.0.0.1:5173` with demo config (points to `choco-azure.vercel.ap
 ### 1. Deploy contracts (mainnet)
 
 ```powershell
-# Step 1a — ChocoLedger (unified history: schedules + settlements + send-now audit)
+# Step 1a — ChocoLedger (plans + settlements + send-now audit)
 $env:DEPLOYER_PRIVATE_KEY = "0x..."
 $env:KEEPER_ADDRESS       = "0x..."
 npm --prefix contracts run deploy:ledger
@@ -151,7 +151,8 @@ For content-addressed `agentURI`:
 3. Test send-now: type `send <address> 5 cKES now` → Build → Review → Confirm
    - Verify recipient receives **exactly 5 cKES** (exact-output path)
 4. Test schedule: `send <address> 1000 cKES monthly` → Build → Confirm
-5. Check History tab shows both movements
+   - Verify the future plan stays in Plans and does not appear in History yet
+5. After a keeper/settlement run emits `SettlementReceipt`, check History shows that executed plan run
 6. Check Celoscan for `AttemptLogged` on ChocoLedger (logged by ChocoGateway)
 
 If History is missing send-now movements after a redeploy, confirm the active and legacy

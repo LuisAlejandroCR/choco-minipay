@@ -65,7 +65,8 @@ Decisions taken for this pass:
 
 - **Choco does not store any user data.** All plans and transaction history are derived from blockchain events.
 - `src/lib/celo.js` `readOwnerLedger(owner)` reads `MonthlyScheduleCreated`, `ScheduleCancelled`, and
-  `SettlementReceipt` events and rebuilds plans + movements. New hook `useChocoLedger` feeds the UI.
+  `SettlementReceipt` events. Created schedules rebuild Plans; only settled runs rebuild movements.
+  New hook `useChocoLedger` feeds the UI.
 - `App.jsx` no longer keeps `plans`/`transactions` in React state. Deleting a plan now calls
   `cancelSchedule` on-chain and re-reads. The only transient is the receipt for the just-signed action.
 - Chain-derived plans show the recipient **address** (aliases like "Mum" are off-chain UI sugar; the chain

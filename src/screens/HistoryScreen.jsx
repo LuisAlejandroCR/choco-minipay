@@ -34,7 +34,7 @@ function timeLabel(sortKey) {
 }
 
 function isScheduleEvent(tx) {
-  return tx.type === "Plan confirmed" || tx.type === "Plan updated" || tx.status === "Scheduled";
+  return tx.deliveryMode === "schedule";
 }
 
 function TxDot({ tx }) {
@@ -57,8 +57,8 @@ function TxAmount({ tx }) {
 
 const TYPE_FILTERS = [
   { id: "all", label: "All" },
-  { id: "sent", label: "Sent" },
-  { id: "schedules", label: "Schedules" },
+  { id: "sent", label: "Send now" },
+  { id: "schedules", label: "Plan runs" },
 ];
 
 function applyFilters(transactions, typeFilter, query) {
@@ -83,6 +83,13 @@ export function HistoryScreen({ transactions, onSelectTransaction, onHome, onPla
 
   const visible = applyFilters(transactions, typeFilter, query);
   const groups = groupByDay(visible);
+  const emptyTitle = query
+    ? "No matches"
+    : typeFilter === "all"
+      ? "No receipts yet"
+      : typeFilter === "schedules"
+        ? "No plan runs"
+        : "No send-now movements";
 
   return (
     <div className="screen history-screen">
@@ -146,8 +153,8 @@ export function HistoryScreen({ transactions, onSelectTransaction, onHome, onPla
       ) : (
         <div className="empty-plans">
           <ReceiptText size={30} />
-          <h2>{query ? "No matches" : typeFilter === "all" ? "No receipts yet" : `No ${typeFilter} movements`}</h2>
-          <p>{query ? "Try a different search term." : typeFilter === "all" ? "Completed wallet-signed sends and scheduled actions will appear here." : "Try a different filter."}</p>
+          <h2>{emptyTitle}</h2>
+          <p>{query ? "Try a different search term." : typeFilter === "all" ? "Completed sends and executed plan runs will appear here." : "Try a different filter."}</p>
         </div>
       )}
 
