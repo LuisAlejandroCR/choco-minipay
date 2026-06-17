@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertCircle, ArrowDownLeft, CalendarDays, Clock, ReceiptText, Search } from "lucide-react";
+import { AlertCircle, ArrowDownLeft, CalendarDays, Clock, ReceiptText, RefreshCw, Search } from "lucide-react";
 import { BottomNav } from "../components/BottomNav.jsx";
 import { ChocoMark } from "../components/ChocoMark.jsx";
 
@@ -78,7 +78,20 @@ function applyFilters(transactions, typeFilter, query) {
   return result;
 }
 
-export function HistoryScreen({ transactions, loading = false, onSelectTransaction, onHome, onPlans }) {
+function shortWallet(address) {
+  return address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "";
+}
+
+export function HistoryScreen({
+  transactions,
+  loading = false,
+  walletAddress = "",
+  ledgerError = "",
+  onRefresh,
+  onSelectTransaction,
+  onHome,
+  onPlans,
+}) {
   const [typeFilter, setTypeFilter] = useState("all");
   const [query, setQuery] = useState("");
 
@@ -161,7 +174,20 @@ export function HistoryScreen({ transactions, loading = false, onSelectTransacti
         <div className="empty-plans">
           <ReceiptText size={30} />
           <h2>{emptyTitle}</h2>
-          <p>{query ? "Try a different search term." : typeFilter === "all" ? "Completed sends and executed plan runs will appear here." : "Try a different filter."}</p>
+          <p>
+            {query
+              ? "Try a different search term."
+              : typeFilter === "all"
+                ? "Completed sends and executed plan runs will appear here."
+                : "Try a different filter."}
+          </p>
+          {walletAddress ? <span className="empty-chain-hint">Checked wallet {shortWallet(walletAddress)}</span> : null}
+          {ledgerError ? <span className="empty-chain-error">{ledgerError}</span> : null}
+          {onRefresh ? (
+            <button type="button" onClick={onRefresh} disabled={loading}>
+              <RefreshCw size={16} />Refresh from chain
+            </button>
+          ) : null}
         </div>
       )}
 

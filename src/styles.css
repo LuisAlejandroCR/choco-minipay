@@ -3328,6 +3328,21 @@ a {
   line-height: 1.45;
 }
 
+.empty-chain-hint,
+.empty-chain-error {
+  max-width: 280px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.empty-chain-hint {
+  color: rgba(255, 241, 220, 0.72);
+}
+
+.empty-chain-error {
+  color: #f1b8a8;
+}
+
 .empty-plans button {
   min-width: 150px;
 }
