@@ -39,6 +39,7 @@ import { PlanEditorScreen } from "./screens/PlanEditorScreen.jsx";
 import { DeletePlanScreen } from "./screens/DeletePlanScreen.jsx";
 import { ProcessingScreen } from "./screens/ProcessingScreen.jsx";
 import { DuplicateGuardScreen } from "./screens/DuplicateGuardScreen.jsx";
+import { CheckpointScreen } from "./screens/CheckpointScreen.jsx";
 import { ReviewScreen } from "./screens/ReviewScreen.jsx";
 import { TransactionSuccessScreen } from "./screens/TransactionSuccessScreen.jsx";
 
@@ -54,6 +55,7 @@ const SCREEN_TITLES = {
   deletePlan: "Delete",
   demoTour: "Demo",
   processing: "Planning",
+  checkpoint: "Choco",
   duplicateGuard: "Choco",
   review: "Confirm",
   walletGate: "Wallet",
@@ -514,7 +516,14 @@ export default function App() {
               plan={reviewPlan}
               command={command}
               duplicateAttempt={duplicateAttempt}
-              onComplete={() => goTo(duplicateAttempt ? "duplicateGuard" : "review")}
+              onComplete={() => goTo(duplicateAttempt ? "duplicateGuard" : "checkpoint")}
+            />
+          )}
+          {visibleScreen === "checkpoint" && (
+            <CheckpointScreen
+              plan={reviewPlan}
+              onApprove={() => goTo("review")}
+              onEdit={() => goTo("planEditor")}
             />
           )}
           {visibleScreen === "duplicateGuard" && duplicateAttempt && (
