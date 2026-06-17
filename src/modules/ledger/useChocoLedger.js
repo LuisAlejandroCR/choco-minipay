@@ -36,6 +36,10 @@ export function useChocoLedger(address) {
     }
     setLoading(true);
     setError("");
+    // Safety valve: if forno hangs with no response (not an error, just silence),
+    // readOwnerLedger never settles and loading stays true forever. This timer stops
+    // the spinner after 20 s so the user sees the empty state rather than an infinite load.
+    const safetyTimer = window.setTimeout(() => setLoading(false), 20000);
     try {
       const ledger = await readOwnerLedger(address);
       const contacts = SUPABASE_READY ? await listContacts(address).catch(() => []) : [];
@@ -48,6 +52,7 @@ export function useChocoLedger(address) {
       setTransactions([]);
       setError(readError.message);
     } finally {
+      window.clearTimeout(safetyTimer);
       setLoading(false);
     }
   }, [address]);
