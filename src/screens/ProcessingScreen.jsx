@@ -31,17 +31,17 @@ export function ProcessingScreen({ plan, command, duplicateAttempt, onComplete }
     {
       icon: <Check size={15} />,
       title: "Intent detected",
-      copy: isSendNow ? "Recipient, amount, and asset are ready." : "Recipient, amount, asset, and date are ready.",
+      copy: isSendNow ? "Text or voice becomes a one-time transfer." : "Recipient, amount, asset, and date are ready.",
     },
     {
       icon: <RefreshCw size={15} />,
-      title: "Route previewed",
-      copy: "USDC stays in your wallet until you approve.",
+      title: "Route prepared",
+      copy: "USDC is quoted into cKES on Celo.",
     },
     {
       icon: <ReceiptText size={15} />,
-      title: "Ready for signature",
-      copy: duplicateAttempt ? "A similar movement needs one more look." : "Confirmation is ready for your wallet.",
+      title: "Guardrails checked",
+      copy: duplicateAttempt ? "A similar movement needs one more look." : "No similar movement was found.",
     },
   ];
 
@@ -51,8 +51,8 @@ export function ProcessingScreen({ plan, command, duplicateAttempt, onComplete }
         <div className="agent-phone-head">
           <ChocoMark size="small" />
           <div>
-            <span>Agent Choco</span>
-            <b>Checking details</b>
+            <span>Choco Agent AI Run</span>
+            <b>Mini App</b>
           </div>
         </div>
 
@@ -60,7 +60,7 @@ export function ProcessingScreen({ plan, command, duplicateAttempt, onComplete }
 
         <div className={`agent-toast ${step >= 1 ? "show" : ""}`}>
           <ChocoMark size="tiny" />
-          <span>{isSendNow ? "Send now" : "Schedule"}</span>
+          <span>{isSendNow ? "Send-now intent" : "Schedule intent"}</span>
         </div>
 
         <div className={`agent-plan ${step >= 1 ? "lift" : ""}`}>
@@ -81,7 +81,7 @@ export function ProcessingScreen({ plan, command, duplicateAttempt, onComplete }
           ))}
         </div>
 
-        <div className="agent-next">{duplicateAttempt ? "Opening safety review" : "Opening confirmation"}</div>
+        <div className="agent-next">{duplicateAttempt ? "Opening safety review" : "Opening quote review"}</div>
       </div>
     </div>
   );

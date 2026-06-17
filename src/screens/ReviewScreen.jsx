@@ -3,7 +3,7 @@ import { isAddress } from "viem";
 import { useEffect, useState } from "react";
 import { ContactCapture } from "../components/ContactCapture.jsx";
 import { ContactPicker } from "../components/ContactPicker.jsx";
-import { SummaryCard } from "../components/SheetPrimitives.jsx";
+import { DetailLine } from "../components/SheetPrimitives.jsx";
 import { APP_CONFIG } from "../lib/app-config.js";
 import { summariseTransfer } from "../lib/cepolia.js";
 
@@ -96,18 +96,20 @@ export function ReviewScreen({
       <div className="screen-hero">
         <span className="screen-hero-label">{isSendNow ? "Send now" : "Schedule"}</span>
         <div className="screen-hero-row">
-          <h2 className="screen-hero-title">{isSendNow ? "Confirm send" : "Authorize plan"}</h2>
+          <div>
+            <h2 className="screen-hero-title">{isSendNow ? "Confirm send" : "Authorize plan"}</h2>
+            <p className="screen-hero-detail">{receiptLabel}</p>
+          </div>
           <span className="sheet-chip">{APP_CONFIG.network.badge}</span>
         </div>
       </div>
 
-      <div className="summary-grid confirmation-grid">
-        <SummaryCard label="Receipt label" value={receiptLabel} />
-        <SummaryCard label="Recipient gets" value={recipientGets} />
-        <SummaryCard label="Wallet pays" value={walletPays} />
-        <SummaryCard label="Timing" value={timingLabel} />
-        <SummaryCard label="Fees" value={feeLabel} />
-        {totalCostLabel && <SummaryCard label="Total cost" value={totalCostLabel} />}
+      <div className="detail-list">
+        <DetailLine label="Recipient gets" value={recipientGets} />
+        <DetailLine label="Wallet pays" value={walletPays} />
+        <DetailLine label="Timing" value={timingLabel} />
+        <DetailLine label="Fees" value={feeLabel} />
+        {totalCostLabel && <DetailLine label="Total cost" value={totalCostLabel} />}
       </div>
 
       {contactResolutionRequired && (
