@@ -1,14 +1,42 @@
+import { useEffect, useState } from "react";
 import { CalendarDays, Pause, Pencil, Play, Trash2 } from "lucide-react";
 import { BottomNav } from "../components/BottomNav.jsx";
 import { DetailLine } from "../components/SheetPrimitives.jsx";
 import { getPlanExecutionState, getTimingLabel } from "../utils/planUtils.js";
 
-export function PlanDetailScreen({ plan, onHome, onHistory, onBack, onEdit, onTogglePause, onDelete, operationStatus = "", operationMessage = "" }) {
+export function PlanDetailScreen({ plan, onHome, onHistory, onBack, onEdit, onTogglePause, onDelete, operationStatus = "", operationMessage = "", onClearError }) {
   const execution = getPlanExecutionState(plan);
   const isPaused = execution.status === "Paused";
   const isPending = operationStatus === "pending";
+
+  const [toastVisible, setToastVisible] = useState(false);
+
+  useEffect(() => {
+    if (operationStatus === "error" && operationMessage) {
+      setToastVisible(true);
+      const timer = window.setTimeout(() => {
+        setToastVisible(false);
+        onClearError?.();
+      }, 5000);
+      return () => window.clearTimeout(timer);
+    }
+    setToastVisible(false);
+    return undefined;
+  }, [operationStatus, operationMessage]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function dismissToast() {
+    setToastVisible(false);
+    onClearError?.();
+  }
+
   return (
     <div className="screen details-screen">
+      {toastVisible && (
+        <div className="plan-error-toast" role="alert" onClick={dismissToast}>
+          {operationMessage}
+        </div>
+      )}
+
       <div className="screen-hero">
         <span className="screen-hero-label">Plan</span>
         <div className="screen-hero-row">
@@ -40,15 +68,11 @@ export function PlanDetailScreen({ plan, onHome, onHistory, onBack, onEdit, onTo
         <DetailLine label="Retries" value="3 attempts if a transfer fails" />
       </div>
 
-      <div className="notice compact">
+      <div className="notice compact notice-hint">
         {isPaused
           ? "This plan stays on-chain but Choco will not run it while paused."
           : "Your wallet authorized this plan once. Funds stay in your wallet until Choco runs the scheduled transfer."}
       </div>
-
-      {operationStatus === "error" && operationMessage && (
-        <div className="notice danger compact">{operationMessage}</div>
-      )}
 
       <div className="plan-actions">
         <button type="button" disabled={isPending} onClick={onEdit}><Pencil size={18} />Edit</button>
