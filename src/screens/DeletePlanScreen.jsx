@@ -1,7 +1,7 @@
 import { Trash2 } from "lucide-react";
 import { LightSheet } from "../components/LightSheet.jsx";
 
-export function DeletePlanScreen({ plan, onCancel, onDelete }) {
+export function DeletePlanScreen({ plan, onCancel, onDelete, isPending = false }) {
   return (
     <LightSheet>
       <div className="sheet-top">
@@ -13,8 +13,10 @@ export function DeletePlanScreen({ plan, onCancel, onDelete }) {
         {plan.recipient} will no longer have the {plan.amount} {plan.asset} scheduled transfer in this Mini App demo.
       </div>
 
-      <button className="danger-cta" type="button" onClick={onDelete}>Delete plan</button>
-      <button className="secondary-cta" type="button" onClick={onCancel}>Keep plan</button>
+      <button className="danger-cta" type="button" onClick={onDelete} disabled={isPending}>
+        {isPending ? "Deleting…" : "Delete plan"}
+      </button>
+      <button className="secondary-cta" type="button" onClick={onCancel} disabled={isPending}>Keep plan</button>
     </LightSheet>
   );
 }
