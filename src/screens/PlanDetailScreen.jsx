@@ -17,7 +17,7 @@ export function PlanDetailScreen({ plan, onHome, onHistory, onBack, onEdit, onTo
       const timer = window.setTimeout(() => {
         setToastVisible(false);
         onClearError?.();
-      }, 5000);
+      }, 8000);
       return () => window.clearTimeout(timer);
     }
     setToastVisible(false);

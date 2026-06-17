@@ -27,7 +27,7 @@ export function DuplicateGuardScreen({ plan, match, onEdit, onProceed }) {
           <small>{getTimingLabel(match)}</small>
         </div>
 
-        <button className="primary-cta" type="button" onClick={onProceed}>
+        <button className="primary-cta" type="button" onClick={() => onProceed(isSendNow ? null : match.id)}>
           {isSendNow ? "Send again" : "Open existing plan"}
         </button>
         <button className="secondary-dark" type="button" onClick={onEdit}>Edit instruction</button>

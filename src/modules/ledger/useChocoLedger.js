@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { readOwnerLedger } from "../../lib/celo.js";
+import { clearLedgerCache, readOwnerLedger } from "../../lib/celo.js";
 import { SUPABASE_READY, listContacts } from "../../lib/contacts.js";
 
 // Plans and history are derived from on-chain events (registry + swap + cKES transfers).
@@ -61,5 +61,24 @@ export function useChocoLedger(address) {
     void refresh();
   }, [refresh]);
 
-  return { plans, transactions, loading, error, refresh };
+  // Optimistically patch a plan in local state — call after a successful on-chain mutation
+  // so the UI updates instantly without waiting for the full ledger re-read.
+  const patchPlan = useCallback((onchainId, updates) => {
+    setPlans((prev) => prev.map((plan) =>
+      plan.onchainId === onchainId ? { ...plan, ...updates } : plan,
+    ));
+  }, []);
+
+  // Remove a plan from local state immediately after a successful cancel.
+  const removePlan = useCallback((onchainId) => {
+    setPlans((prev) => prev.filter((plan) => plan.onchainId !== onchainId));
+  }, []);
+
+  // Invalidate the module-level cache then refresh so the next read goes to the chain.
+  const refreshFresh = useCallback(() => {
+    clearLedgerCache();
+    void refresh();
+  }, [refresh]);
+
+  return { plans, transactions, loading, error, refresh, refreshFresh, patchPlan, removePlan };
 }

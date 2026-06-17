@@ -61,7 +61,8 @@ const SCREEN_TITLES = {
 };
 
 function humanisePlanError(error) {
-  // Collect text from the full viem error chain: top-level message + nested cause + decoded reason
+  // Log full viem error chain for debugging — check browser console when a plan action fails.
+  console.error("[Choco] plan operation error:", error);
   const reason = String(error?.cause?.reason || "");
   const msg = [
     error?.message,
@@ -108,7 +109,7 @@ export default function App() {
   // --- Platform hooks ---
   const wallet = useMiniPayWallet();
   const walletCanSign = wallet.canSign;
-  const { plans, transactions, loading: ledgerLoading, refresh: refreshLedger } = useChocoLedger(wallet.address);
+  const { plans, transactions, loading: ledgerLoading, refresh: refreshLedger, refreshFresh: refreshLedgerFresh, patchPlan, removePlan } = useChocoLedger(wallet.address);
   const visibleScreen = resolveVisibleScreen(screen, walletCanSign);
 
   // --- Helpers (defined before feature hooks; closures capture hook values at call time) ---
@@ -157,7 +158,7 @@ export default function App() {
       contacts.setResolvedContacts((prev) => ({ ...prev, [key]: contact })),
     onTransactionCreated: setSelectedTransactionId,
     onNavigate: goTo,
-    onRefreshLedger: refreshLedger,
+    onRefreshLedger: refreshLedgerFresh,
     onRefreshBalances: refreshBalances,
   });
 
@@ -290,13 +291,16 @@ export default function App() {
     });
   }
 
-  function continueDuplicateAttempt() {
+  // existingPlanId is passed directly from DuplicateGuardScreen (captured at render time)
+  // to avoid depending on similarPlan which may go stale if plans reload mid-flow.
+  function continueDuplicateAttempt(existingPlanId = null) {
     if (previewPlan.deliveryMode === "now") {
       goTo("review");
       return;
     }
-    if (similarPlan) {
-      setSelectedPlanId(similarPlan.id);
+    const targetId = existingPlanId || similarPlan?.id;
+    if (targetId) {
+      setSelectedPlanId(targetId);
       goTo("planDetail");
       return;
     }
@@ -308,15 +312,17 @@ export default function App() {
       goTo("plans");
       return;
     }
+    const planToDelete = activePlan;
     try {
       appStatus.setStatus("pending");
       appStatus.setMessage("Cancelling schedule on-chain...");
-      await cancelScheduleViaRegistry({ account: wallet.address, id: activePlan.onchainId });
+      await cancelScheduleViaRegistry({ account: wallet.address, id: planToDelete.onchainId });
       appStatus.setStatus("idle");
+      // Optimistic remove: plan disappears immediately, background refresh confirms on-chain state.
+      removePlan(planToDelete.onchainId);
       setSelectedPlanId("");
       goTo("plans");
-      // Refresh after a short delay — gives the RPC time to index the ScheduleCancelled event
-      window.setTimeout(() => { void refreshLedger(); }, 1500);
+      window.setTimeout(() => { void refreshLedgerFresh(); }, 2000);
     } catch (error) {
       appStatus.setStatus("error");
       appStatus.setMessage(humanisePlanError(error));
@@ -328,19 +334,24 @@ export default function App() {
       goTo("plans");
       return;
     }
-    const isPaused = activePlan.status === "Paused" || activePlan.active === false;
+    const planToToggle = activePlan;
+    const isPaused = planToToggle.status === "Paused" || planToToggle.active === false;
     try {
       appStatus.setStatus("pending");
       appStatus.setMessage(isPaused ? "Resuming plan on-chain..." : "Pausing plan on-chain...");
       if (isPaused) {
-        await resumeScheduleViaRegistry({ account: wallet.address, id: activePlan.onchainId });
+        await resumeScheduleViaRegistry({ account: wallet.address, id: planToToggle.onchainId });
       } else {
-        await pauseScheduleViaRegistry({ account: wallet.address, id: activePlan.onchainId });
+        await pauseScheduleViaRegistry({ account: wallet.address, id: planToToggle.onchainId });
       }
       appStatus.setStatus("idle");
+      // Optimistic patch: status flips instantly without waiting for the full 11s refresh.
+      patchPlan(planToToggle.onchainId, isPaused
+        ? { status: "Active", active: true }
+        : { status: "Paused", active: false });
       goTo("plans");
-      // Refresh after a short delay — gives the RPC time to index the Paused/Resumed event
-      window.setTimeout(() => { void refreshLedger(); }, 1500);
+      // Background refresh to sync any other changes; cache cleared so it reads fresh.
+      window.setTimeout(() => { void refreshLedgerFresh(); }, 2000);
     } catch (error) {
       appStatus.setStatus("error");
       appStatus.setMessage(humanisePlanError(error));
