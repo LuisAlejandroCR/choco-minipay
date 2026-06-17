@@ -165,7 +165,15 @@ export default function App() {
   // --- Effects ---
   useEffect(() => {
     if (screen !== "splash") return undefined;
-    const timer = window.setTimeout(() => setScreen("pitch"), SPLASH_DURATION_MS);
+    const timer = window.setTimeout(() => {
+      const seen = localStorage.getItem("choco_intro");
+      if (!seen) {
+        localStorage.setItem("choco_intro", "1");
+        setScreen("pitch");
+      } else {
+        setScreen("plan");
+      }
+    }, SPLASH_DURATION_MS);
     return () => window.clearTimeout(timer);
   }, [screen]);
 
