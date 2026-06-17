@@ -106,8 +106,13 @@ export function useTransfer({
       : reviewMode === "update" ? "Plan updated" : "Plan confirmed";
     const transaction = buildTransactionFromPlan(committedPlan, type, wallet.address, recipientAddress);
     setLastReceipt(transaction);
-    onTransactionCreated(transaction.id);
-    onNavigate("receiptDetail");
+    if (plan.deliveryMode === "schedule") {
+      onTransactionCreated("");
+      onNavigate("plans");
+    } else {
+      onTransactionCreated(transaction.id);
+      onNavigate("receiptDetail");
+    }
     setShowSuccessModal(true);
   }
 
@@ -137,7 +142,7 @@ export function useTransfer({
       setStatus("success");
       setMessage(reviewPlan.deliveryMode === "now"
         ? "Money sent from your wallet. Receipt filed."
-        : "Monthly action created. Receipt filed.");
+        : "Monthly plan saved. It moves to History only after execution.");
 
       commitReceipt(reviewPlan, result.hash, result.approveHash || "", recipientAddress, reviewMode);
       onRefreshBalances(address).catch(() => {});

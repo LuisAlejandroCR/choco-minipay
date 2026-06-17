@@ -5032,3 +5032,41 @@ a {
   color: var(--vanilla-strong);
   opacity: 0.82;
 }
+
+/* Visible palette pass: make active states read clearly in screenshots. */
+.home-hero,
+.screen-hero,
+.editor-card {
+  background:
+    linear-gradient(135deg, rgba(255, 246, 232, 0.075) 25%, transparent 25%) 0 0 / 36px 36px,
+    linear-gradient(180deg, rgba(58, 35, 23, 0.88), rgba(28, 15, 9, 0.9));
+  border-color: rgba(255, 246, 232, 0.18);
+}
+
+.bottom-nav button.active,
+.filter-pill.active,
+.timing-toggle button.active {
+  background: linear-gradient(180deg, #f5e5ce, #dcc4a7);
+  color: var(--cocoa-950);
+  border-color: rgba(255, 246, 232, 0.58);
+}
+
+.bottom-nav button.active svg,
+.filter-pill.active svg,
+.timing-toggle button.active svg {
+  color: var(--cocoa-950);
+}
+
+.home-start-icon,
+.plan-row-icon,
+.tx-dot,
+.agent-line-icon {
+  background: rgba(255, 246, 232, 0.14);
+  color: var(--vanilla-strong);
+}
+
+.home-start-action b,
+.plan-row b,
+.transaction-row b {
+  color: var(--vanilla-strong);
+}

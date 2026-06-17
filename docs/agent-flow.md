@@ -35,8 +35,8 @@ explicitly saves. All transaction history is derived from blockchain events.
 7. **On-chain audit** — ChocoGateway calls `ChocoLedger.logAttemptFor(payer, ...)` after every
    completed send. This writes an `AttemptLogged` event with `kind = SUCCESS`.
 8. **History** — `useChocoLedger` calls `readOwnerLedger`, which reads `UsdcToCkesSwap` +
-   cKES `Transfer` events (send-now) and `MonthlyScheduleCreated` + `SettlementReceipt`
-   events (schedules), sorted by block timestamp.
+   cKES `Transfer` events for send-now movements and `SettlementReceipt` events for executed
+   schedule runs. `MonthlyScheduleCreated` builds Plans only; it is not a movement receipt.
 
 ## Component responsibilities
 
@@ -46,7 +46,7 @@ explicitly saves. All transaction history is derived from blockchain events.
 | **Cepolia Skill** (`cepolia.js`) | Readiness gate, live quote display on Review screen |
 | **useTransfer** (`modules/transfer/`) | Plan build, on-chain execution, receipt commit |
 | **useContactResolution** (`modules/contacts/`) | Supabase lookup, contact picker, save flow |
-| **useChocoLedger** (`modules/ledger/`) | Reads history + plans from chain on every wallet change |
+| **useChocoLedger** (`modules/ledger/`) | Reads plans + executed movement history from chain on every wallet change |
 | **Supabase** (`lib/contacts.js`) | Contact label → address cache (user-authorized only) |
 | **ChocoGateway** | Fee deduction, USDC→USDm→cKES swap, TxRecord storage, `logAttemptFor` |
 | **ChocoLedger** | `MonthlyScheduleCreated`, `SettlementReceipt`, `AttemptLogged` events |
@@ -102,6 +102,7 @@ to avoid asking the user to sign just to record a non-event.
 | Contact labels (`dad` → `0x…`) | Supabase `contacts` (user-authorized only) |
 | Plans (scheduled transfers) | ChocoLedger: `MonthlyScheduleCreated` events |
 | Send-now movements | Active + legacy ChocoGateway contracts: `UsdcToCkesSwap` + cKES `Transfer` events |
+| Executed plan runs | ChocoLedger: `SettlementReceipt` events |
 | Audit trail | ChocoLedger: `AttemptLogged` events |
 | User session / receipts | Nowhere — all state derived from wallet + chain |
 
