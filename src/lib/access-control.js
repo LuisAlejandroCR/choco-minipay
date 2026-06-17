@@ -5,6 +5,7 @@ export const VERIFIED_WALLET_SCREENS = new Set([
   "planEditor",
   "deletePlan",
   "processing",
+  "checkpoint",
   "duplicateGuard",
   "review",
 ]);
