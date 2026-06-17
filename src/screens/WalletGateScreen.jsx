@@ -2,6 +2,7 @@ import { useState } from "react";
 import { isAddress } from "viem";
 import { ShieldCheck, X } from "lucide-react";
 import { BottomNav } from "../components/BottomNav.jsx";
+import { shortAddress } from "../lib/celo.js";
 
 export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
   const [manualAddr, setManualAddr] = useState("");
@@ -82,13 +83,13 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
               </div>
               {isValidAddr && (
                 <>
-                  <small className="wallet-addr-preview">Read-only · ...{trimmedAddr.slice(-4)}</small>
+                  <small className="wallet-addr-preview">Read-only · {shortAddress(trimmedAddr)}</small>
                   <button
                     className="primary-cta"
                     type="button"
                     onClick={handleConnect}
                   >
-                    Connect ...{trimmedAddr.slice(-4)}
+                    Connect {shortAddress(trimmedAddr)}
                   </button>
                 </>
               )}

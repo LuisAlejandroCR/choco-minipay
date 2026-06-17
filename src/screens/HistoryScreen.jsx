@@ -2,6 +2,7 @@ import { useState } from "react";
 import { AlertCircle, ArrowDownLeft, CalendarDays, Clock, ReceiptText, RefreshCw, Search } from "lucide-react";
 import { BottomNav } from "../components/BottomNav.jsx";
 import { ChocoMark } from "../components/ChocoMark.jsx";
+import { shortAddress } from "../lib/celo.js";
 
 function dayKey(sortKey) {
   if (!sortKey) return "Pending";
@@ -79,7 +80,7 @@ function applyFilters(transactions, typeFilter, query) {
 }
 
 function shortWallet(address) {
-  return address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "";
+  return address ? shortAddress(address) : "";
 }
 
 export function HistoryScreen({

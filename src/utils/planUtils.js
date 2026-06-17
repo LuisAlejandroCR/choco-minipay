@@ -1,5 +1,6 @@
 import { parseTransferIntent } from "../lib/intent.js";
 import { APP_CONFIG } from "../lib/app-config.js";
+import { labelWithAddress, shortAddress } from "../lib/celo.js";
 import { KES_PER_USDC } from "../config/runtime.js";
 import {
   CHOCO_SCENARIO,
@@ -217,8 +218,8 @@ export function buildTransactionFromPlan(plan, type = "Plan confirmed", fromAddr
     from: fromAddress || CHOCO_SCENARIO.senderAddress,
     to: toAddress
       ? (plan.recipient && !/^\.\.\./.test(plan.recipient)
-          ? `${getRecipientContactLabel(plan)} · ...${toAddress.slice(-4)}`
-          : `...${toAddress.slice(-4)}`)
+          ? labelWithAddress(getRecipientContactLabel(plan), toAddress)
+          : shortAddress(toAddress))
       : plan.recipient || "Recipient",
     toAddress,
   };
