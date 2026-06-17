@@ -38,7 +38,14 @@ export function isMiniPay() {
 
 export function shortAddress(address) {
   if (!address || !isAddress(address)) return "Not connected";
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  return `x${address.slice(-4)}`;
+}
+
+export function labelWithAddress(label, address) {
+  const suffix = shortAddress(address);
+  const name = String(label || "").trim();
+  if (!name) return suffix;
+  return suffix === "Not connected" ? name : `${name} ${suffix}`;
 }
 
 export function getApprovalTarget({ deliveryMode = "now", intent = null } = {}) {

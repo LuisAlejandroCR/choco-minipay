@@ -91,6 +91,6 @@ test("composeMovementHistory adds executed schedule receipts to movements", () =
 
   assert.equal(history.length, 1);
   assert.equal(history[0].type, "Settlement sent");
-  assert.equal(history[0].recipient, "...2222");
+  assert.equal(history[0].recipient, "x2222");
   assert.equal(history[0].amount, "7");
 });

@@ -1,10 +1,11 @@
 import { decodeEventLog, formatUnits, isAddress } from "viem";
 import { APP_CONFIG } from "../lib/app-config.js";
-import { ADDRESSES, makePublicClient } from "./client.js";
+import { ADDRESSES, makePublicClient, shortAddress } from "./client.js";
 import { ATTEMPT_EVENT_ABI, REGISTRY_EVENTS_ABI, SWAP_EVENT_ABI, TRANSFER_EVENT_ABI } from "./abis.js";
 
 const LOG_CHUNK_SIZE = 45_000n;
 const EXPLORER_TX_OFFSET = 10000;
+const OPTIONAL_RPC_TIMEOUT_MS = 4500;
 const SELECTORS = {
   createSchedule: "0x09b549a3",
   cancelSchedule: "0x237fc2a6",
@@ -101,7 +102,7 @@ function isCkesAsset(address) {
 }
 
 function tailAddress(address) {
-  return isAddress(address) ? `...${address.slice(-4)}` : "Unknown";
+  return isAddress(address) ? shortAddress(address) : "Unknown";
 }
 
 function unitsToNumber(value, decimals) {
@@ -146,6 +147,20 @@ async function readReceipts(publicClient, txs) {
   return Promise.all(
     txs.map((tx) => publicClient.getTransactionReceipt({ hash: tx.hash })),
   );
+}
+
+async function withTimeout(promise, fallback, ms = OPTIONAL_RPC_TIMEOUT_MS) {
+  let timer;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise((resolve) => {
+        timer = setTimeout(() => resolve(fallback), ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 
 function decodeReceiptEvents(receipt, contractAddress, abi, eventName) {
@@ -592,7 +607,10 @@ async function readScheduleDataFromReceipts(publicClient, owner, fromBlock, cont
 
 async function readScheduleDataWithFallback(publicClient, owner, fromBlock, contractAddress) {
   try {
-    const scheduleData = await readScheduleData(publicClient, owner, fromBlock, contractAddress);
+    const scheduleData = await withTimeout(
+      readScheduleData(publicClient, owner, fromBlock, contractAddress),
+      { created: [], cancelled: [], paused: [], resumed: [], settlements: [] },
+    );
     if (scheduleData.created.length || scheduleData.settlements.length) {
       return scheduleData;
     }
@@ -627,13 +645,13 @@ export async function readOwnerLedger(owner) {
   // - schedule: Created + Cancelled + Paused + Resumed simultaneously (4 sequential streams)
   // Peak: ~6 concurrent forno requests — well within forno's limit.
   const [sendNowFallback, sendNowReceiptFallback, scheduleData, ledgerAttempts] = await Promise.all([
-    readSendNowHistory(publicClient, owner, sendNowFromBlock).catch(() => []),
+    withTimeout(readSendNowHistory(publicClient, owner, sendNowFromBlock), []).catch(() => []),
     readSendNowHistoryFromReceipts(publicClient, owner, sendNowFromBlock).catch(() => []),
     hasLedger
       ? readScheduleDataWithFallback(publicClient, owner, fromBlock, ledgerOrRegistry).catch(() => null)
       : Promise.resolve(null),
     hasLedger
-      ? readAttemptHistory(publicClient, owner, fromBlock, ledgerOrRegistry).catch(() => [])
+      ? withTimeout(readAttemptHistory(publicClient, owner, fromBlock, ledgerOrRegistry), []).catch(() => [])
       : Promise.resolve([]),
   ]);
   const sendNowHistory = mergeSendNowHistory(

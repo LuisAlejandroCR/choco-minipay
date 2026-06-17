@@ -5,6 +5,7 @@ import { ContactCapture } from "../components/ContactCapture.jsx";
 import { ContactPicker } from "../components/ContactPicker.jsx";
 import { DetailLine } from "../components/SheetPrimitives.jsx";
 import { APP_CONFIG } from "../lib/app-config.js";
+import { shortAddress } from "../lib/celo.js";
 import { summariseTransfer } from "../lib/cepolia.js";
 
 export function ReviewScreen({
@@ -57,8 +58,7 @@ export function ReviewScreen({
   }, [resolvedContact?.address]);
 
   function shortAddr(a) {
-    const s = String(a || "");
-    return s.length > 4 ? `...${s.slice(-4)}` : s;
+    return shortAddress(a);
   }
 
   function handleSaveEdit() {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { clearLedgerCache, readOwnerLedger } from "../../lib/celo.js";
+import { clearLedgerCache, labelWithAddress, readOwnerLedger } from "../../lib/celo.js";
 import { SUPABASE_READY, listContacts } from "../../lib/contacts.js";
 
 // Plans and history are derived from on-chain events (registry + swap + cKES transfers).
@@ -16,7 +16,7 @@ function attachContactLabels(items, contactsByAddress) {
       ...item,
       recipientLabel: contact.label,
       recipient: contact.label,
-      to: `${contact.label} - ${address.slice(0, 6)}...${address.slice(-4)}`,
+      to: labelWithAddress(contact.label, address),
     };
   });
 }
