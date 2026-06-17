@@ -1,9 +1,18 @@
-import { formatUnits, isAddress } from "viem";
+import { decodeEventLog, formatUnits, isAddress } from "viem";
 import { APP_CONFIG } from "../lib/app-config.js";
 import { ADDRESSES, makePublicClient } from "./client.js";
 import { ATTEMPT_EVENT_ABI, REGISTRY_EVENTS_ABI, SWAP_EVENT_ABI, TRANSFER_EVENT_ABI } from "./abis.js";
 
 const LOG_CHUNK_SIZE = 45_000n;
+const EXPLORER_TX_OFFSET = 10000;
+const SELECTORS = {
+  createSchedule: "0x09b549a3",
+  cancelSchedule: "0x237fc2a6",
+  pauseSchedule: "0xd2c9f4a0",
+  resumeSchedule: "0x635c1c6c",
+  swapAndSend: "0x28b16ca8",
+  swapAndSendExact: "0x47f703ee",
+};
 
 // ── Module-level result cache ─────────────────────────────────────────────────
 // Navigating Plans → Home → Plans returns cached data instantly.
@@ -97,6 +106,66 @@ function tailAddress(address) {
 
 function unitsToNumber(value, decimals) {
   return Number(formatUnits(value ?? 0n, decimals));
+}
+
+function sameAddress(a, b) {
+  return String(a || "").toLowerCase() === String(b || "").toLowerCase();
+}
+
+function txSelector(tx) {
+  return String(tx?.input || "").slice(0, 10).toLowerCase();
+}
+
+function isSuccessfulTx(tx) {
+  return String(tx?.isError || "0") !== "1";
+}
+
+async function fetchExplorerTransactions(address, fromBlock) {
+  if (!APP_CONFIG.network.explorerApiUrl || typeof fetch !== "function") return [];
+
+  const url = new URL(APP_CONFIG.network.explorerApiUrl);
+  url.searchParams.set("module", "account");
+  url.searchParams.set("action", "txlist");
+  url.searchParams.set("address", address);
+  url.searchParams.set("startblock", String(fromBlock || 0n));
+  url.searchParams.set("endblock", "latest");
+  url.searchParams.set("sort", "asc");
+  url.searchParams.set("page", "1");
+  url.searchParams.set("offset", String(EXPLORER_TX_OFFSET));
+
+  const response = await fetch(url.toString());
+  if (!response.ok) throw new Error(`Explorer API ${response.status}`);
+
+  const json = await response.json();
+  if (json.status === "0" && /no transactions/i.test(String(json.message || json.result || ""))) return [];
+  if (!Array.isArray(json.result)) throw new Error("Explorer API returned no transaction list");
+  return json.result;
+}
+
+async function readReceipts(publicClient, txs) {
+  return Promise.all(
+    txs.map((tx) => publicClient.getTransactionReceipt({ hash: tx.hash })),
+  );
+}
+
+function decodeReceiptEvents(receipt, contractAddress, abi, eventName) {
+  return receipt.logs
+    .filter((log) => sameAddress(log.address, contractAddress))
+    .map((log) => {
+      try {
+        const decoded = decodeEventLog({
+          abi,
+          data: log.data,
+          topics: log.topics,
+          strict: false,
+        });
+        if (decoded.eventName !== eventName) return null;
+        return { ...log, eventName: decoded.eventName, args: decoded.args };
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean);
 }
 
 // --- Private log → model mappers ---
@@ -346,6 +415,71 @@ async function readSendNowHistory(publicClient, owner, fromBlock) {
     .sort((a, b) => b.sortKey - a.sortKey);
 }
 
+async function readSendNowHistoryFromReceipts(publicClient, owner, fromBlock) {
+  const swapAddresses = getSwapAddresses();
+  if (!swapAddresses.length) return [];
+
+  const txGroups = await Promise.all(
+    swapAddresses.map((swapAddress) => fetchExplorerTransactions(swapAddress, fromBlock)
+      .then((txs) => txs
+        .filter(isSuccessfulTx)
+        .filter((tx) => sameAddress(tx.from, owner))
+        .filter((tx) => sameAddress(tx.to, swapAddress))
+        .filter((tx) => [SELECTORS.swapAndSend, SELECTORS.swapAndSendExact].includes(txSelector(tx)))
+        .map((tx) => ({ ...tx, swapAddress })))),
+  );
+  const txs = txGroups.flat();
+  if (!txs.length) return [];
+
+  const receipts = await readReceipts(publicClient, txs);
+  const movements = [];
+
+  for (let i = 0; i < receipts.length; i += 1) {
+    const receipt = receipts[i];
+    const swapAddress = txs[i].swapAddress;
+    const swapLog = decodeReceiptEvents(receipt, swapAddress, SWAP_EVENT_ABI, "UsdcToCkesSwap")[0] || null;
+    const transferLog = decodeReceiptEvents(receipt, ADDRESSES.kesm, TRANSFER_EVENT_ABI, "Transfer")
+      .find((log) => sameAddress(log.args.from, swapAddress) && !sameAddress(log.args.to, owner));
+    if (!transferLog) continue;
+
+    movements.push({ transferLog, swapLog });
+  }
+
+  const blockNumbers = [...new Set(movements.map((entry) => entry.transferLog.blockNumber))];
+  const blocks = await Promise.all(blockNumbers.map((blockNumber) => publicClient.getBlock({ blockNumber })));
+  const timeByBlock = new Map(blocks.map((block) => [block.number, Number(block.timestamp)]));
+
+  return movements
+    .map(({ transferLog, swapLog }) => {
+      const amountKes = Math.round(unitsToNumber(transferLog.args.value, 18));
+      const usdcIn = swapLog ? unitsToNumber(swapLog.args.usdcIn, 6) : 0;
+      const timestamp = timeByBlock.get(transferLog.blockNumber);
+      return {
+        id: `send-${transferLog.transactionHash}-${transferLog.logIndex}`,
+        planId: "send-now",
+        recipient: tailAddress(transferLog.args.to),
+        recipientAddress: transferLog.args.to,
+        amount: amountKes.toLocaleString("en-US"),
+        amountMinor: amountKes,
+        asset: APP_CONFIG.assets.destination,
+        payAsset: swapLog ? APP_CONFIG.assets.source : APP_CONFIG.assets.destination,
+        payAmount: swapLog ? usdcIn : amountKes,
+        schedule: "Send once now",
+        date: formatChainDate(timestamp),
+        status: "Sent",
+        hash: transferLog.transactionHash,
+        type: swapLog ? "USDC swap + cKES send" : "cKES send",
+        deliveryMode: "now",
+        from: swapLog ? swapLog.args.payer : transferLog.args.from,
+        to: tailAddress(transferLog.args.to),
+        toAddress: transferLog.args.to,
+        routeEstimate: swapLog ? `${usdcIn} USDC -> ${amountKes} cKES via Mento` : "",
+        sortKey: timestamp || 0,
+      };
+    })
+    .sort((a, b) => b.sortKey - a.sortKey);
+}
+
 async function readAttemptHistory(publicClient, owner, fromBlock, contractAddress) {
   const attempts = await getContractEventsChunked(publicClient, {
     address: contractAddress,
@@ -418,6 +552,57 @@ async function readScheduleData(publicClient, owner, fromBlock, contractAddress)
   return { created, cancelled, paused, resumed, settlements };
 }
 
+async function readScheduleDataFromReceipts(publicClient, owner, fromBlock, contractAddress) {
+  const txs = await fetchExplorerTransactions(contractAddress, fromBlock);
+  const scheduleSelectors = [
+    SELECTORS.createSchedule,
+    SELECTORS.cancelSchedule,
+    SELECTORS.pauseSchedule,
+    SELECTORS.resumeSchedule,
+  ];
+  const relevantTxs = txs
+    .filter(isSuccessfulTx)
+    .filter((tx) => sameAddress(tx.to, contractAddress))
+    .filter((tx) => scheduleSelectors.includes(txSelector(tx)));
+
+  if (!relevantTxs.length) {
+    return { created: [], cancelled: [], paused: [], resumed: [], settlements: [] };
+  }
+
+  const receipts = await readReceipts(publicClient, relevantTxs);
+  const created = receipts.flatMap((receipt) =>
+    decodeReceiptEvents(receipt, contractAddress, REGISTRY_EVENTS_ABI, "MonthlyScheduleCreated"))
+    .filter((log) => sameAddress(log.args.owner, owner));
+  const ownerIds = new Set(created.map((log) => String(log.args.id)));
+  const cancelled = receipts.flatMap((receipt) =>
+    decodeReceiptEvents(receipt, contractAddress, REGISTRY_EVENTS_ABI, "ScheduleCancelled"))
+    .filter((log) => ownerIds.has(String(log.args.id)) || sameAddress(log.args.by, owner));
+  const paused = receipts.flatMap((receipt) =>
+    decodeReceiptEvents(receipt, contractAddress, REGISTRY_EVENTS_ABI, "SchedulePaused"))
+    .filter((log) => ownerIds.has(String(log.args.id)) || sameAddress(log.args.by, owner));
+  const resumed = receipts.flatMap((receipt) =>
+    decodeReceiptEvents(receipt, contractAddress, REGISTRY_EVENTS_ABI, "ScheduleResumed"))
+    .filter((log) => ownerIds.has(String(log.args.id)) || sameAddress(log.args.by, owner));
+  const settlements = receipts.flatMap((receipt) =>
+    decodeReceiptEvents(receipt, contractAddress, REGISTRY_EVENTS_ABI, "SettlementReceipt"))
+    .filter((log) => ownerIds.has(String(log.args.id)));
+
+  return { created, cancelled, paused, resumed, settlements };
+}
+
+async function readScheduleDataWithFallback(publicClient, owner, fromBlock, contractAddress) {
+  try {
+    const scheduleData = await readScheduleData(publicClient, owner, fromBlock, contractAddress);
+    if (scheduleData.created.length || scheduleData.settlements.length) {
+      return scheduleData;
+    }
+  } catch {
+    // Celo RPC can reject wide eth_getLogs ranges; receipt fallback keeps the UI hydrated.
+  }
+
+  return readScheduleDataFromReceipts(publicClient, owner, fromBlock, contractAddress);
+}
+
 // --- Public: full ledger read ---
 
 export async function readOwnerLedger(owner) {
@@ -441,16 +626,20 @@ export async function readOwnerLedger(owner) {
   // - sendNow: Transfer + Swaps simultaneously (2–3 sequential streams, ~1 forno req each at a time)
   // - schedule: Created + Cancelled + Paused + Resumed simultaneously (4 sequential streams)
   // Peak: ~6 concurrent forno requests — well within forno's limit.
-  const [sendNowFallback, scheduleData, ledgerAttempts] = await Promise.all([
+  const [sendNowFallback, sendNowReceiptFallback, scheduleData, ledgerAttempts] = await Promise.all([
     readSendNowHistory(publicClient, owner, sendNowFromBlock).catch(() => []),
+    readSendNowHistoryFromReceipts(publicClient, owner, sendNowFromBlock).catch(() => []),
     hasLedger
-      ? readScheduleData(publicClient, owner, fromBlock, ledgerOrRegistry).catch(() => null)
+      ? readScheduleDataWithFallback(publicClient, owner, fromBlock, ledgerOrRegistry).catch(() => null)
       : Promise.resolve(null),
     hasLedger
       ? readAttemptHistory(publicClient, owner, fromBlock, ledgerOrRegistry).catch(() => [])
       : Promise.resolve([]),
   ]);
-  const sendNowHistory = mergeSendNowHistory(ledgerAttempts, sendNowFallback);
+  const sendNowHistory = mergeSendNowHistory(
+    ledgerAttempts,
+    mergeSendNowHistory(sendNowReceiptFallback, sendNowFallback),
+  );
 
   if (!scheduleData) {
     return { plans: [], history: sendNowHistory.sort((a, b) => b.sortKey - a.sortKey) };
