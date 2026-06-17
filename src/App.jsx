@@ -53,7 +53,7 @@ const SCREEN_TITLES = {
   receiptDetail: "Receipt",
   deletePlan: "Delete",
   demoTour: "Demo",
-  processing: "Preparing",
+  processing: "Planning",
   duplicateGuard: "Choco",
   review: "Confirm",
   walletGate: "Wallet",
@@ -406,6 +406,8 @@ export default function App() {
               onEdit={openEditPlan}
               onTogglePause={togglePlanPaused}
               onDelete={() => goTo("deletePlan")}
+              operationStatus={appStatus.status}
+              operationMessage={appStatus.message}
             />
           )}
           {visibleScreen === "history" && (

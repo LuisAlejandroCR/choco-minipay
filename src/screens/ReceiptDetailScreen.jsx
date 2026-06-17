@@ -1,4 +1,4 @@
-import { CalendarDays, Check, ChevronDown, ChevronUp, CircleDollarSign, ExternalLink, QrCode, ReceiptText, Share2, Wallet } from "lucide-react";
+import { CalendarDays, Check, ChevronDown, ChevronUp, CircleDollarSign, ExternalLink, QrCode, Share2, Wallet } from "lucide-react";
 import { useState } from "react";
 import { QrCanvas } from "../components/QrCode.jsx";
 import { BottomNav } from "../components/BottomNav.jsx";
@@ -79,7 +79,6 @@ export function ReceiptDetailScreen({ transaction, onBack, onHome, onPlans }) {
             <ReceiptRow icon={<Wallet size={18} />} label="From" value={transaction.from ? `...${transaction.from.slice(-4)}` : ""} mono />
             <ReceiptRow icon={<Check size={18} />} label="To" value={transaction.to || ""} />
             <ReceiptRow icon={<CalendarDays size={18} />} label="Date" value={transaction.date} />
-            <ReceiptRow icon={<ReceiptText size={18} />} label="Hash" value={formatTransactionHash(transaction.hash)} mono />
           </div>
           {transaction.approveHash && isTransactionHash(transaction.approveHash) && (
             <a

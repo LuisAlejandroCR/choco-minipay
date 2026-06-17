@@ -3,9 +3,10 @@ import { BottomNav } from "../components/BottomNav.jsx";
 import { DetailLine } from "../components/SheetPrimitives.jsx";
 import { getPlanExecutionState, getTimingLabel } from "../utils/planUtils.js";
 
-export function PlanDetailScreen({ plan, onHome, onHistory, onBack, onEdit, onTogglePause, onDelete }) {
+export function PlanDetailScreen({ plan, onHome, onHistory, onBack, onEdit, onTogglePause, onDelete, operationStatus = "", operationMessage = "" }) {
   const execution = getPlanExecutionState(plan);
   const isPaused = execution.status === "Paused";
+  const isPending = operationStatus === "pending";
   return (
     <div className="screen details-screen">
       <div className="screen-hero">
@@ -45,13 +46,17 @@ export function PlanDetailScreen({ plan, onHome, onHistory, onBack, onEdit, onTo
           : "Your wallet authorized this plan once. Funds stay in your wallet until Choco runs the scheduled transfer."}
       </div>
 
+      {operationStatus === "error" && operationMessage && (
+        <div className="notice danger compact">{operationMessage}</div>
+      )}
+
       <div className="plan-actions">
-        <button type="button" onClick={onEdit}><Pencil size={18} />Edit</button>
-        <button className={isPaused ? "" : "pause-action"} type="button" onClick={onTogglePause}>
-          {isPaused ? <Play size={18} /> : <Pause size={18} />}
-          {isPaused ? "Resume" : "Pause"}
+        <button type="button" disabled={isPending} onClick={onEdit}><Pencil size={18} />Edit</button>
+        <button className={isPaused ? "" : "pause-action"} type="button" disabled={isPending} onClick={onTogglePause}>
+          {isPending ? <Pause size={18} /> : isPaused ? <Play size={18} /> : <Pause size={18} />}
+          {isPending ? "Working…" : isPaused ? "Resume" : "Pause"}
         </button>
-        <button className="danger-action" type="button" onClick={onDelete}><Trash2 size={18} />Delete</button>
+        <button className="danger-action" type="button" disabled={isPending} onClick={onDelete}><Trash2 size={18} />Delete</button>
       </div>
 
       <button className="secondary-dark" type="button" onClick={onHome}>Back home</button>
