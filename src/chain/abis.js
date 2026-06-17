@@ -138,6 +138,26 @@ export const REGISTRY_EVENTS_ABI = [
   },
 ];
 
+// ChocoLedger audit event. This is the primary source for send-now movement history.
+export const ATTEMPT_EVENT_ABI = [
+  {
+    type: "event",
+    name: "AttemptLogged",
+    inputs: [
+      { name: "attemptId", type: "uint256", indexed: true },
+      { name: "senderWallet", type: "address", indexed: true },
+      { name: "kind", type: "uint8", indexed: true },
+      { name: "receiptLabelHash", type: "bytes32", indexed: false },
+      { name: "recipientWallet", type: "address", indexed: false },
+      { name: "usdcAmount", type: "uint256", indexed: false },
+      { name: "ckesAmount", type: "uint256", indexed: false },
+      { name: "swapTxHash", type: "bytes32", indexed: false },
+      { name: "paymentTxHash", type: "bytes32", indexed: false },
+      { name: "note", type: "string", indexed: false },
+    ],
+  },
+];
+
 export const CKES_SWAP_ABI = [
   {
     type: "function",

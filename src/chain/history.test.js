@@ -37,6 +37,29 @@ test("composeMovementHistory keeps future plans out of movements", () => {
   assert.deepEqual(history, []);
 });
 
+test("composeMovementHistory prefers ledger attempts over reconstructed fallback", () => {
+  const hash = `0x${"b".repeat(64)}`;
+  const history = composeMovementHistory({
+    sendNowAttempts: [{
+      id: "attempt-1",
+      hash,
+      type: "USDC swap + cKES send",
+      sortKey: 20,
+    }],
+    sendNowHistory: [{
+      id: "fallback-1",
+      hash,
+      type: "cKES send",
+      sortKey: 10,
+    }],
+    settlements: [],
+  });
+
+  assert.equal(history.length, 1);
+  assert.equal(history[0].id, "attempt-1");
+  assert.equal(history[0].type, "USDC swap + cKES send");
+});
+
 test("composeMovementHistory adds executed schedule receipts to movements", () => {
   const history = composeMovementHistory({
     sendNowHistory: [],
