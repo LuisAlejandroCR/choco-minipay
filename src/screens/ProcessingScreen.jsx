@@ -36,7 +36,7 @@ export function ProcessingScreen({ plan, command, duplicateAttempt, onComplete }
     {
       icon: <RefreshCw size={15} />,
       title: "Route prepared",
-      copy: "USDC is quoted into cKES on Celo.",
+      copy: "USDC is routed into KESm on Celo.",
     },
     {
       icon: <ReceiptText size={15} />,
