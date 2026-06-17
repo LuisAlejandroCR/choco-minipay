@@ -60,6 +60,29 @@ const SCREEN_TITLES = {
   plan: "Home",
 };
 
+function humanisePlanError(error) {
+  const msg = String(error?.message || error || "");
+  if (/user rejected|user denied|rejected the request/i.test(msg)) {
+    return "Cancelled — you declined the wallet request.";
+  }
+  if (/not owner|not admin/i.test(msg)) {
+    return "Not authorised: this plan wasn't created by this wallet.";
+  }
+  if (/cancelled/i.test(msg) && /schedule/i.test(msg)) {
+    return "This plan is already cancelled and cannot be paused.";
+  }
+  if (/missing.*ledger|missing.*registry|vite_ledger|vite_registry/i.test(msg)) {
+    return "On-chain ledger is not configured. Contact support.";
+  }
+  if (/reverted|execution reverted/i.test(msg)) {
+    return "Transaction reverted — the plan may already be in this state.";
+  }
+  if (/network|fetch|timeout/i.test(msg)) {
+    return "Network error. Check your connection and try again.";
+  }
+  return "Something went wrong. Please try again.";
+}
+
 export default function App() {
   // --- Core app state ---
   const [screen, setScreen] = useState(INITIAL_SCREEN);
@@ -285,7 +308,7 @@ export default function App() {
       appStatus.setMessage("Schedule cancelled on-chain.");
     } catch (error) {
       appStatus.setStatus("error");
-      appStatus.setMessage(error.message);
+      appStatus.setMessage(humanisePlanError(error));
     }
     setSelectedPlanId("");
     goTo("plans");
@@ -311,7 +334,7 @@ export default function App() {
       goTo("plans");
     } catch (error) {
       appStatus.setStatus("error");
-      appStatus.setMessage(error.message);
+      appStatus.setMessage(humanisePlanError(error));
     }
   }
 
