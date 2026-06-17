@@ -2,16 +2,22 @@ import { useState } from "react";
 import { Check, Plus, Search } from "lucide-react";
 import { ChocoMark } from "../components/ChocoMark.jsx";
 import { BottomNav } from "../components/BottomNav.jsx";
-import { getSimilarPlanIds, getTimingLabel } from "../utils/planUtils.js";
+import { getPlanExecutionState, getSimilarPlanIds, getTimingLabel } from "../utils/planUtils.js";
 
 const STATUS_FILTERS = [
   { id: "all", label: "All" },
-  { id: "Active", label: "Active" },
-  { id: "Paused", label: "Paused" },
+  { id: "active", label: "Active" },
+  { id: "paused", label: "Paused" },
 ];
 
 function applyFilters(plans, statusFilter, query) {
-  let result = statusFilter === "all" ? plans : plans.filter((p) => p.status === statusFilter);
+  let result = plans;
+  if (statusFilter === "active") {
+    result = result.filter((p) => getPlanExecutionState(p).status !== "Paused");
+  }
+  if (statusFilter === "paused") {
+    result = result.filter((p) => getPlanExecutionState(p).status === "Paused");
+  }
   if (query.trim()) {
     const q = query.trim().toLowerCase();
     result = result.filter(
@@ -77,9 +83,14 @@ export function PlansScreen({ plans, onSelectPlan, onNewPlan, onHome, onHistory 
               <span>Similar plan already exists. Review before scheduling again.</span>
             </div>
           )}
+          <div className="plan-alert plan-info">
+            <Check size={16} />
+            <span>Plans are wallet-authorized auto-runs. Funds stay in your wallet until the scheduled execution.</span>
+          </div>
           <div className="plans-list" aria-label="Plans list">
             {visible.map((item) => {
               const isSimilar = similarPlanIds.has(item.id);
+              const execution = getPlanExecutionState(item);
               return (
                 <button className="plan-row" type="button" key={item.id} onClick={() => onSelectPlan(item.id)}>
                   <div className="plan-row-icon"><ChocoMark size="tiny" /></div>
@@ -87,7 +98,7 @@ export function PlansScreen({ plans, onSelectPlan, onNewPlan, onHome, onHistory 
                     <b>{item.recipient}</b>
                     <span>{item.amount} {item.asset} · {getTimingLabel(item)}</span>
                   </div>
-                  <small className={isSimilar ? "warning" : ""}>{isSimilar ? "Similar" : item.status}</small>
+                  <small className={isSimilar ? "warning" : execution.tone}>{isSimilar ? "Similar" : execution.label}</small>
                 </button>
               );
             })}
@@ -96,7 +107,7 @@ export function PlansScreen({ plans, onSelectPlan, onNewPlan, onHome, onHistory 
       ) : (
         <div className="empty-plans">
           <ChocoMark size="small" />
-          <h2>{query ? "No matches" : statusFilter === "all" ? "No plans yet" : `No ${statusFilter.toLowerCase()} plans`}</h2>
+          <h2>{query ? "No matches" : statusFilter === "all" ? "No plans yet" : `No ${statusFilter} plans`}</h2>
           <p>{query ? "Try a different search term." : statusFilter === "all" ? "Create a scheduled transfer with text or voice. One-time sends stay in history." : "Try a different filter."}</p>
           {!query && statusFilter === "all" && (
             <button type="button" onClick={onNewPlan}>Schedule transfer</button>

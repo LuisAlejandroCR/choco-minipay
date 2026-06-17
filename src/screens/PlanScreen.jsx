@@ -3,7 +3,7 @@ import { ArrowRight, CircleDollarSign, Eye, EyeOff, ExternalLink, ShieldCheck, X
 import { ChocoMark } from "../components/ChocoMark.jsx";
 import { BottomNav } from "../components/BottomNav.jsx";
 import { formatWalletAddress } from "../modules/wallet/useMiniPayWallet.js";
-import { getTimingLabel } from "../utils/planUtils.js";
+import { getPlanExecutionState, getTimingLabel } from "../utils/planUtils.js";
 import { demoPromptContent } from "../content/demoFlow.js";
 
 function DemoPrompt({ liveDemoUrl, onDismiss, onRunDemo }) {
@@ -52,14 +52,17 @@ export function PlanScreen({
   const usdcBalance = visibleBalances.find((b) => b.key === "usdc");
   const primaryAmount = usdcBalance?.formatted ?? visibleBalances[0]?.formatted ?? "0.00";
   const walletShort = formatWalletAddress(wallet.address);
-  const nextPlan = plans[0] || null;
+  const activePlans = plans.filter((plan) => getPlanExecutionState(plan).status !== "Paused");
+  const nextPlan = activePlans[0] || null;
+  const todayPlanCount = activePlans.filter((plan) =>
+    ["Runs today", "Awaiting auto-run"].includes(getPlanExecutionState(plan).status)).length;
 
   const heroSub = isWalletVerified
     ? wallet.isReadOnly
       ? `${walletShort} — connect wallet app to sign.`
       : nextPlan
         ? `Next: ${nextPlan.amount} ${nextPlan.asset} → ${nextPlan.recipient} · ${getTimingLabel(nextPlan)}`
-        : `${walletShort} · no active schedules`
+        : `${walletShort} · no active plans`
     : "";
 
   const connectLabel = wallet.needsMobileWallet
@@ -137,12 +140,14 @@ export function PlanScreen({
 
       {/* ── ACTIVE SCHEDULES (only when wallet is connected and plans exist) */}
       {isWalletVerified && plans.length > 0 && (
-        <section className="home-list" aria-label="Active schedules">
+        <section className="home-list" aria-label="Plans">
           <div className="section-heading">
-            <span>Active schedules</span>
-            {plans.length > 1 && <small className="section-count">{plans.length} active</small>}
+            <span>Plans</span>
+            <small className="section-count">{todayPlanCount ? `${todayPlanCount} today` : `${activePlans.length} active`}</small>
           </div>
-          {plans.slice(0, 3).map((item) => (
+          {activePlans.slice(0, 3).map((item) => {
+            const execution = getPlanExecutionState(item);
+            return (
             <button
               className="plan-row compact-row"
               type="button"
@@ -154,12 +159,13 @@ export function PlanScreen({
                 <b>{item.recipient}</b>
                 <span>{item.amount} {item.asset} · {getTimingLabel(item)}</span>
               </div>
-              <small>{item.status}</small>
+              <small className={execution.tone}>{execution.label}</small>
             </button>
-          ))}
-          {plans.length > 3 && (
+            );
+          })}
+          {(plans.length > activePlans.length || activePlans.length > 3) && (
             <button className="see-all-plans" type="button" onClick={onPlans}>
-              See all {plans.length} schedules
+              See all {plans.length} plans
             </button>
           )}
         </section>

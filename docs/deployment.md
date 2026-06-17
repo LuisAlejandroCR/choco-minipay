@@ -99,7 +99,7 @@ VITE_KESM_ADDRESS=0x456a3D042C0DbD3db53D5489e98dFb038553B0d0
 # Choco contracts (from step 1)
 VITE_LEDGER_ADDRESS=<ChocoLedger address printed by deploy:ledger>
 VITE_LEDGER_DEPLOY_BLOCK=<block number printed by deploy:ledger>
-VITE_SETTLEMENT_SPENDER_ADDRESS=<keeper EOA>
+VITE_SETTLEMENT_SPENDER_ADDRESS=<keeper/executor spender address>
 VITE_CKES_SWAP_CONTRACT_ADDRESS=<ChocoGateway address printed by deploy:gateway>
 VITE_CKES_SWAP_DEPLOY_BLOCK=<earliest block among configured ChocoGateway addresses>
 VITE_CKES_SWAP_CONTRACT_ADDRESSES=<active gateway>,<legacy gateway if any>
@@ -150,10 +150,12 @@ For content-addressed `agentURI`:
 2. Connect wallet
 3. Test send-now: type `send <address> 5 cKES now` → Build → Review → Confirm
    - Verify recipient receives **exactly 5 cKES** (exact-output path)
-4. Test schedule: `send <address> 1000 cKES monthly` → Build → Confirm
-   - Verify the future plan stays in Plans and does not appear in History yet
-5. After a keeper/settlement run emits `SettlementReceipt`, check History shows that executed plan run
-6. Check Celoscan for `AttemptLogged` on ChocoLedger (logged by ChocoGateway)
+4. Test schedule: `send <address> 1000 cKES monthly` → Build → Authorize plan
+   - Verify the authorized plan stays in Plans and does not appear in History yet
+   - Open the plan detail and verify Pause/Resume signs against ChocoLedger
+5. Run the keeper/executor for a due plan. It must execute the route and call `recordSettlement`.
+   After `SettlementReceipt`, check History shows that executed plan run.
+6. Check Celoscan for `AttemptLogged` on ChocoLedger (logged by ChocoGateway for send-now and by `recordSettlement` for scheduled runs)
 
 If History is missing send-now movements after a redeploy, confirm the active and legacy
 gateway addresses are both present in `VITE_CKES_SWAP_CONTRACT_ADDRESSES`. The active

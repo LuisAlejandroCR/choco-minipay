@@ -86,7 +86,7 @@ export function ReviewScreen({
       ? "Connect wallet"
       : isSendNow
         ? "Confirm send"
-        : "Confirm schedule";
+        : "Authorize plan";
   const canCaptureContact = !supabaseReady || contactLookupStatus === "missing";
   const contactErrorNeedsWallet = !walletReady || /wallet/i.test(contactLookupMessage);
   const contactErrorActionLabel = contactErrorNeedsWallet ? "Connect wallet" : "Retry saved contacts";
@@ -96,7 +96,7 @@ export function ReviewScreen({
       <div className="screen-hero">
         <span className="screen-hero-label">{isSendNow ? "Send now" : "Schedule"}</span>
         <div className="screen-hero-row">
-          <h2 className="screen-hero-title">{isSendNow ? "Confirm send" : "Confirm schedule"}</h2>
+          <h2 className="screen-hero-title">{isSendNow ? "Confirm send" : "Authorize plan"}</h2>
           <span className="sheet-chip">{APP_CONFIG.network.badge}</span>
         </div>
       </div>
@@ -224,9 +224,11 @@ export function ReviewScreen({
       <div className="notice compact">
         {!walletReady
           ? "Connect and verify your wallet to continue."
-          : supabaseReady
-            ? "Wallet signs after confirmation. Saved contacts are visible only to your connected wallet."
-            : "Wallet signs after confirmation. Choco reads your wallet balance only — no contact data is stored."}
+          : isSendNow
+            ? supabaseReady
+              ? "Wallet signs after confirmation. Saved contacts are visible only to your connected wallet."
+              : "Wallet signs after confirmation. Choco reads your wallet balance only — no contact data is stored."
+            : "Wallet authorizes this plan once. Funds stay in your wallet until the scheduled execution."}
       </div>
       {status === "error" && message && <div className="notice danger compact">{message}</div>}
       {setupNotice && <div className="notice compact">{setupNotice}</div>}

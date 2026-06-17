@@ -17,7 +17,13 @@ import {
   findRecentSimilarTransfer,
   findSimilarPlan,
 } from "./utils/planUtils.js";
-import { ADDRESSES, cancelScheduleViaRegistry, readStablecoinBalances } from "./lib/celo.js";
+import {
+  ADDRESSES,
+  cancelScheduleViaRegistry,
+  pauseScheduleViaRegistry,
+  readStablecoinBalances,
+  resumeScheduleViaRegistry,
+} from "./lib/celo.js";
 import { ContactPicker } from "./components/ContactPicker.jsx";
 import { PitchScreen } from "./components/PitchScreen.jsx";
 import { QuickInfoPanel } from "./screens/QuickInfoPanel.jsx";
@@ -277,6 +283,30 @@ export default function App() {
     goTo("plans");
   }
 
+  async function togglePlanPaused() {
+    if (!activePlan) {
+      goTo("plans");
+      return;
+    }
+    const isPaused = activePlan.status === "Paused" || activePlan.active === false;
+    try {
+      appStatus.setStatus("pending");
+      appStatus.setMessage(isPaused ? "Resuming plan on-chain..." : "Pausing plan on-chain...");
+      if (isPaused) {
+        await resumeScheduleViaRegistry({ account: wallet.address, id: activePlan.onchainId });
+      } else {
+        await pauseScheduleViaRegistry({ account: wallet.address, id: activePlan.onchainId });
+      }
+      await refreshLedger();
+      appStatus.setStatus("idle");
+      appStatus.setMessage(isPaused ? "Plan resumed. Choco can auto-run it on schedule." : "Plan paused. Choco will not run it until resumed.");
+      goTo("plans");
+    } catch (error) {
+      appStatus.setStatus("error");
+      appStatus.setMessage(error.message);
+    }
+  }
+
   const screenTitle = useMemo(() => {
     if (visibleScreen === "planEditor") {
       return reviewMode === "update" ? "Edit plan" : deliveryMode === "now" ? "Send now" : "New schedule";
@@ -374,6 +404,7 @@ export default function App() {
               onHistory={() => goTo("history")}
               onBack={() => goTo("plans")}
               onEdit={openEditPlan}
+              onTogglePause={togglePlanPaused}
               onDelete={() => goTo("deletePlan")}
             />
           )}

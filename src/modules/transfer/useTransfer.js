@@ -103,7 +103,7 @@ export function useTransfer({
     };
     const type = plan.deliveryMode === "now"
       ? "Action sent"
-      : reviewMode === "update" ? "Plan updated" : "Plan confirmed";
+      : reviewMode === "update" ? "Plan updated" : "Plan authorized";
     const transaction = buildTransactionFromPlan(committedPlan, type, wallet.address, recipientAddress);
     setLastReceipt(transaction);
     if (plan.deliveryMode === "schedule") {
@@ -142,7 +142,7 @@ export function useTransfer({
       setStatus("success");
       setMessage(reviewPlan.deliveryMode === "now"
         ? "Money sent from your wallet. Receipt filed."
-        : "Monthly plan saved. It moves to History only after execution.");
+        : "Monthly plan authorized. Choco can auto-run it on the scheduled day.");
 
       commitReceipt(reviewPlan, result.hash, result.approveHash || "", recipientAddress, reviewMode);
       onRefreshBalances(address).catch(() => {});

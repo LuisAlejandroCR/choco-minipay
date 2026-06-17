@@ -3,8 +3,9 @@ pragma solidity ^0.8.24;
 
 /// @title ChocoLedger
 /// @notice Unified on-chain record for Choco: recurring remittance schedules plus an append-only
-///         audit log for every transfer attempt. Schedule management is keeper-gated; audit entries
-///         are permissionless (bound to msg.sender). Every financial event — send-now or a keeper-
+///         audit log for every transfer attempt. Schedule execution receipts are keeper-gated;
+///         user schedule controls are wallet-signed. Audit entries are permissionless
+///         (bound to msg.sender). Every financial event — send-now or a keeper-
 ///         settled scheduled payment — increments totalTransactions for a complete on-chain audit.
 ///         The contract holds no funds and exposes no upgrade path.
 contract ChocoLedger {
@@ -39,6 +40,7 @@ contract ChocoLedger {
         uint8   maxRetries;
         uint64  firstRunAt;
         bool    active;
+        bool    cancelled;
         bytes32 commandHash;
         bytes32 receiptLabelHash; // stored at creation so recordSettlement can auto-log it
     }
@@ -77,6 +79,8 @@ contract ChocoLedger {
     );
 
     event ScheduleCancelled(uint256 indexed id, address indexed by);
+    event SchedulePaused(uint256 indexed id, address indexed by);
+    event ScheduleResumed(uint256 indexed id, address indexed by);
 
     event SettlementReceipt(
         uint256 indexed id,
@@ -158,6 +162,7 @@ contract ChocoLedger {
             maxRetries:        3,
             firstRunAt:        start,
             active:            true,
+            cancelled:         false,
             commandHash:       commandHash,
             receiptLabelHash:  receiptLabelHash
         });
@@ -172,7 +177,24 @@ contract ChocoLedger {
         Schedule storage s = schedules[id];
         require(s.owner == msg.sender || msg.sender == admin, "not owner");
         s.active = false;
+        s.cancelled = true;
         emit ScheduleCancelled(id, msg.sender);
+    }
+
+    function pauseSchedule(uint256 id) external {
+        Schedule storage s = schedules[id];
+        require(s.owner == msg.sender || msg.sender == admin, "not owner");
+        require(!s.cancelled, "cancelled");
+        s.active = false;
+        emit SchedulePaused(id, msg.sender);
+    }
+
+    function resumeSchedule(uint256 id) external {
+        Schedule storage s = schedules[id];
+        require(s.owner == msg.sender || msg.sender == admin, "not owner");
+        require(!s.cancelled, "cancelled");
+        s.active = true;
+        emit ScheduleResumed(id, msg.sender);
     }
 
     /// @notice Record a keeper-executed settlement and auto-log it to the unified audit trail.
@@ -186,7 +208,7 @@ contract ChocoLedger {
         bytes32 settlementRef,
         string  calldata note
     ) external onlyKeeper {
-        require(schedules[id].active, "inactive");
+        require(schedules[id].active && !schedules[id].cancelled, "inactive");
         emit SettlementReceipt(id, success, sourceAsset, sourceAmount, destinationAmount, settlementRef, note);
         _logAttempt(
             schedules[id].owner,

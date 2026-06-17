@@ -17,6 +17,7 @@ contract ChocoScheduleRegistry {
         uint8 maxRetries;
         uint64 firstRunAt;
         bool active;
+        bool cancelled;
         bytes32 commandHash;
     }
 
@@ -40,6 +41,8 @@ contract ChocoScheduleRegistry {
         bytes32 commandHash
     );
     event ScheduleCancelled(uint256 indexed id, address indexed by);
+    event SchedulePaused(uint256 indexed id, address indexed by);
+    event ScheduleResumed(uint256 indexed id, address indexed by);
     event SettlementReceipt(
         uint256 indexed id,
         bool success,
@@ -101,6 +104,7 @@ contract ChocoScheduleRegistry {
             maxRetries: 3,
             firstRunAt: start,
             active: true,
+            cancelled: false,
             commandHash: commandHash
         });
 
@@ -111,7 +115,24 @@ contract ChocoScheduleRegistry {
         Schedule storage schedule = schedules[id];
         require(schedule.owner == msg.sender || msg.sender == admin, "not owner");
         schedule.active = false;
+        schedule.cancelled = true;
         emit ScheduleCancelled(id, msg.sender);
+    }
+
+    function pauseSchedule(uint256 id) external {
+        Schedule storage schedule = schedules[id];
+        require(schedule.owner == msg.sender || msg.sender == admin, "not owner");
+        require(!schedule.cancelled, "cancelled");
+        schedule.active = false;
+        emit SchedulePaused(id, msg.sender);
+    }
+
+    function resumeSchedule(uint256 id) external {
+        Schedule storage schedule = schedules[id];
+        require(schedule.owner == msg.sender || msg.sender == admin, "not owner");
+        require(!schedule.cancelled, "cancelled");
+        schedule.active = true;
+        emit ScheduleResumed(id, msg.sender);
     }
 
     function recordSettlement(
@@ -123,7 +144,7 @@ contract ChocoScheduleRegistry {
         bytes32 settlementRef,
         string calldata note
     ) external onlyKeeper {
-        require(schedules[id].active, "inactive");
+        require(schedules[id].active && !schedules[id].cancelled, "inactive");
         emit SettlementReceipt(id, success, sourceAsset, sourceAmount, destinationAmount, settlementRef, note);
     }
 

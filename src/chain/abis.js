@@ -64,6 +64,20 @@ export const REGISTRY_ABI = [
     inputs: [{ name: "id", type: "uint256" }],
     outputs: [],
   },
+  {
+    type: "function",
+    name: "pauseSchedule",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "id", type: "uint256" }],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "resumeSchedule",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "id", type: "uint256" }],
+    outputs: [],
+  },
 ];
 
 // Event ABI used to rebuild plans and history straight from chain state — nothing is stored off-chain.
@@ -88,6 +102,22 @@ export const REGISTRY_EVENTS_ABI = [
   {
     type: "event",
     name: "ScheduleCancelled",
+    inputs: [
+      { name: "id", type: "uint256", indexed: true },
+      { name: "by", type: "address", indexed: true },
+    ],
+  },
+  {
+    type: "event",
+    name: "SchedulePaused",
+    inputs: [
+      { name: "id", type: "uint256", indexed: true },
+      { name: "by", type: "address", indexed: true },
+    ],
+  },
+  {
+    type: "event",
+    name: "ScheduleResumed",
     inputs: [
       { name: "id", type: "uint256", indexed: true },
       { name: "by", type: "address", indexed: true },
