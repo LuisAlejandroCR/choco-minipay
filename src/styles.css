@@ -3835,6 +3835,37 @@ a {
   font-weight: 800;
 }
 
+.notice.notice-hint {
+  background: rgba(255, 246, 232, 0.055);
+  border: 1px solid rgba(255, 246, 232, 0.14);
+  color: var(--muted);
+}
+
+@keyframes toastSlideDown {
+  from { transform: translateY(-110%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.plan-error-toast {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  z-index: 9000;
+  padding: 14px 18px;
+  border-radius: 18px;
+  background: rgba(60, 30, 14, 0.94);
+  border: 1px solid rgba(246, 232, 212, 0.18);
+  color: var(--cream);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: center;
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  animation: toastSlideDown 0.22s ease-out;
+}
+
 /* Contact capture card — shown in ReviewScreen when the recipient has no saved wallet address */
 .contact-resolution-card {
   margin-bottom: 12px;

@@ -61,21 +61,30 @@ const SCREEN_TITLES = {
 };
 
 function humanisePlanError(error) {
-  const msg = String(error?.message || error || "");
+  // Collect text from the full viem error chain: top-level message + nested cause + decoded reason
+  const reason = String(error?.cause?.reason || "");
+  const msg = [
+    error?.message,
+    error?.shortMessage,
+    error?.cause?.message,
+    error?.cause?.shortMessage,
+    reason,
+  ].filter(Boolean).join(" ");
+
   if (/user rejected|user denied|rejected the request/i.test(msg)) {
     return "Cancelled — you declined the wallet request.";
   }
-  if (/not owner|not admin/i.test(msg)) {
+  if (/not owner|not admin/i.test(msg) || reason === "not owner") {
     return "Not authorised: this plan wasn't created by this wallet.";
   }
-  if (/cancelled/i.test(msg) && /schedule/i.test(msg)) {
-    return "This plan is already cancelled and cannot be paused.";
+  if (reason === "cancelled" || (/cancelled/i.test(msg) && !/user rejected|user denied/i.test(msg) && /reverted|revert/i.test(msg))) {
+    return "This plan is already cancelled — it can't be paused or resumed.";
   }
   if (/missing.*ledger|missing.*registry|vite_ledger|vite_registry/i.test(msg)) {
     return "On-chain ledger is not configured. Contact support.";
   }
   if (/reverted|execution reverted/i.test(msg)) {
-    return "Transaction reverted — the plan may already be in this state.";
+    return "Transaction reverted — check the plan state and try again.";
   }
   if (/network|fetch|timeout/i.test(msg)) {
     return "Network error. Check your connection and try again.";
@@ -440,6 +449,7 @@ export default function App() {
               onDelete={() => goTo("deletePlan")}
               operationStatus={appStatus.status}
               operationMessage={appStatus.message}
+              onClearError={() => { appStatus.setStatus("idle"); appStatus.setMessage(""); }}
             />
           )}
           {visibleScreen === "history" && (
