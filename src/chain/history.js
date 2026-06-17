@@ -87,7 +87,11 @@ function tailAddress(address) {
 
 // --- Private log → model mappers ---
 
-function mapScheduleToPlan(log) {
+function logOrder(log) {
+  return BigInt(log.blockNumber || 0n) * 100000n + BigInt(log.logIndex || 0);
+}
+
+function mapScheduleToPlan(log, lastSettlementAt = 0, active = true) {
   const a = log.args;
   const amountKes = Math.round(Number(formatUnits(a.destinationAmount, 18)));
   return {
@@ -103,11 +107,15 @@ function mapScheduleToPlan(log) {
     corridor: APP_CONFIG.transfer.corridor,
     schedule: `Every ${formatDay(a.dayOfMonth)} - ${scheduleTimeLabel()}`,
     dayLabel: formatDay(a.dayOfMonth),
+    dayOfMonth: Number(a.dayOfMonth),
     nextDate: formatDay(a.dayOfMonth),
+    firstRunAt: Number(a.firstRunAt || 0),
+    lastSettlementAt,
     fee: APP_CONFIG.transfer.networkFeeLabel,
     routeEstimate: "",
     hash: log.transactionHash,
-    status: "Active",
+    status: active ? "Active" : "Paused",
+    active,
     deliveryMode: "schedule",
   };
 }
@@ -334,6 +342,20 @@ export async function readOwnerLedger(owner) {
       fromBlock,
       toBlock: "latest",
     });
+    const paused = await getContractEventsChunked(publicClient, {
+      address: ledgerOrRegistry,
+      abi: REGISTRY_EVENTS_ABI,
+      eventName: "SchedulePaused",
+      fromBlock,
+      toBlock: "latest",
+    });
+    const resumed = await getContractEventsChunked(publicClient, {
+      address: ledgerOrRegistry,
+      abi: REGISTRY_EVENTS_ABI,
+      eventName: "ScheduleResumed",
+      fromBlock,
+      toBlock: "latest",
+    });
     const ids = created.map((log) => log.args.id);
     const settlements = ids.length
       ? await getContractEventsChunked(publicClient, {
@@ -352,10 +374,25 @@ export async function readOwnerLedger(owner) {
 
     const cancelledIds = new Set(cancelled.map((log) => String(log.args.id)));
     const scheduleById = new Map(created.map((log) => [String(log.args.id), log.args]));
+    const ownerIds = new Set(scheduleById.keys());
+    const pausedById = new Map();
+    [...paused.map((log) => ({ log, paused: true })), ...resumed.map((log) => ({ log, paused: false }))]
+      .filter((entry) => ownerIds.has(String(entry.log.args.id)))
+      .sort((a, b) => (logOrder(a.log) < logOrder(b.log) ? -1 : 1))
+      .forEach((entry) => pausedById.set(String(entry.log.args.id), entry.paused));
+    const settlementTimestampById = new Map();
+    settlements.forEach((log) => {
+      const id = String(log.args.id);
+      const timestamp = timeByBlock.get(log.blockNumber) || 0;
+      settlementTimestampById.set(id, Math.max(settlementTimestampById.get(id) || 0, timestamp));
+    });
 
     const plans = created
       .filter((log) => !cancelledIds.has(String(log.args.id)))
-      .map(mapScheduleToPlan);
+      .map((log) => {
+        const id = String(log.args.id);
+        return mapScheduleToPlan(log, settlementTimestampById.get(id) || 0, !pausedById.get(id));
+      });
 
     const history = composeMovementHistory({
       sendNowHistory,

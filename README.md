@@ -27,9 +27,11 @@ off-chain except contacts the user explicitly saves.
 4. `parseTransferIntent` (intent.js) extracts recipient, amount, currency, timing.
 5. `verifyReadiness` (cepolia.js) gates on wallet + USDC balance before reaching Review.
 6. **Send now** — `swapAndSendExact` on ChocoGateway: caller approves `quoteExactOut(ckesExact)` USDC, gateway deducts fee, swaps USDC → USDm → cKES via Mento, delivers exactly `ckesExact` to recipient, returns surplus to sender.
-7. **Schedule** — wallet approves the keeper settlement spender and `createMonthlySchedule` writes the plan to ChocoLedger.
+7. **Schedule** — wallet approves the keeper settlement spender and `createMonthlySchedule` writes the authorized plan to ChocoLedger.
 8. Plans and movement history are re-read from ChocoLedger events — never cached off-chain.
-   Future schedules stay in Plans; History shows send-now movements and executed schedule runs.
+   Authorized schedules stay in Plans; History shows send-now movements and executed schedule runs.
+   The keeper/executor must run due plans automatically and emit `SettlementReceipt` so every
+   user-visible movement is registered on ChocoLedger.
 
 ## On-chain contracts
 
@@ -52,7 +54,7 @@ src/
     abis.js        ERC20, Mento Broker, Registry, ChocoGateway ABIs
     tokens.js      balances, approve, intent amount helpers
     swap.js        sendNow (exact-output + fixed-input + direct Mento)
-    schedule.js    createScheduleViaRegistry, cancelScheduleViaRegistry
+    schedule.js    createScheduleViaRegistry, pause/resume/cancel helpers
     history.js     readOwnerLedger (events → plans + movements)
   lib/             domain services
     celo.js        re-export barrel for src/chain/

@@ -1385,6 +1385,29 @@ a {
   letter-spacing: 0.06em;
 }
 
+.sheet-chip.due,
+.sheet-chip.warning,
+.plan-row small.due,
+.plan-row small.warning {
+  border-color: rgba(245, 191, 108, 0.38);
+  background: rgba(245, 191, 108, 0.18);
+  color: #ffe0a8;
+}
+
+.sheet-chip.success,
+.plan-row small.success {
+  border-color: rgba(119, 181, 126, 0.42);
+  background: rgba(68, 112, 71, 0.3);
+  color: #d9f5d7;
+}
+
+.sheet-chip.paused,
+.plan-row small.paused {
+  border-color: rgba(229, 211, 185, 0.32);
+  background: rgba(246, 232, 212, 0.13);
+  color: var(--latte-300);
+}
+
 .pay-row {
   margin-top: 16px;
   padding: 13px 14px;
@@ -2773,6 +2796,12 @@ a {
   line-height: 1.25;
 }
 
+.plan-alert.plan-info {
+  border-color: rgba(255, 246, 232, 0.14);
+  background: rgba(255, 246, 232, 0.055);
+  color: var(--muted);
+}
+
 .plan-row {
   width: 100%;
   min-height: 86px;
@@ -3305,7 +3334,7 @@ a {
 
 .plan-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   margin-bottom: 10px;
 }
@@ -3325,6 +3354,12 @@ a {
 .danger-cta {
   background: var(--cocoa-700);
   color: var(--cream);
+}
+
+.plan-actions .pause-action {
+  background: rgba(245, 191, 108, 0.13);
+  border-color: rgba(245, 191, 108, 0.34);
+  color: var(--vanilla-100);
 }
 
 .secondary-dark {
@@ -5021,6 +5056,29 @@ a {
 .section-heading span,
 .reference-card span {
   color: var(--latte-300);
+}
+
+.sheet-chip.paused,
+.plan-row small.paused {
+  border-color: rgba(229, 211, 185, 0.32);
+  background: rgba(246, 232, 212, 0.13);
+  color: var(--latte-300);
+}
+
+.sheet-chip.due,
+.plan-row small.due,
+.sheet-chip.warning,
+.plan-row small.warning {
+  border-color: rgba(245, 191, 108, 0.38);
+  background: rgba(245, 191, 108, 0.18);
+  color: #ffe0a8;
+}
+
+.sheet-chip.success,
+.plan-row small.success {
+  border-color: rgba(119, 181, 126, 0.42);
+  background: rgba(68, 112, 71, 0.3);
+  color: #d9f5d7;
 }
 
 .agent-plan {

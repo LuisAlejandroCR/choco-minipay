@@ -37,6 +37,8 @@ test("ABI exposes all schedule functions", () => {
   const names = abi.map((item) => item.name).filter(Boolean);
   assert.ok(names.includes("createMonthlySchedule"));
   assert.ok(names.includes("cancelSchedule"));
+  assert.ok(names.includes("pauseSchedule"));
+  assert.ok(names.includes("resumeSchedule"));
   assert.ok(names.includes("recordSettlement"));
   assert.ok(names.includes("getSchedule"));
 });
@@ -79,4 +81,6 @@ test("AttemptLogged and schedule events are emitted", () => {
   assert.ok(eventNames.includes("MonthlyScheduleCreated"));
   assert.ok(eventNames.includes("SettlementReceipt"));
   assert.ok(eventNames.includes("ScheduleCancelled"));
+  assert.ok(eventNames.includes("SchedulePaused"));
+  assert.ok(eventNames.includes("ScheduleResumed"));
 });

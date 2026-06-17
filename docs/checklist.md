@@ -58,14 +58,16 @@ Decisions taken for this pass:
   + two `swapIn` hops + cKES transfer to recipient), each hop wallet-signed. cKES sends go direct.
 - Flow preserved end to end: reads wallet funds → Agent Choco detects intent → transfer summary
   (`ReviewScreen`) → recipient address pasted (`ContactCapture`) → wallet signs.
-- Scheduling approves the **keeper** (`VITE_SETTLEMENT_SPENDER_ADDRESS`) and records the plan on the
-  registry. The keeper is an off-chain executor address, not a frontend backend dependency.
+- Scheduling approves the **keeper/executor spender** (`VITE_SETTLEMENT_SPENDER_ADDRESS`) and records
+  the authorized plan on-chain. The executor must run due plans automatically and call
+  `recordSettlement` so every completed plan run becomes a ChocoLedger transaction record.
 
 ## BLOCK 4 — History & plans live on-chain (Choco stores nothing)
 
 - **Choco does not store any user data.** All plans and transaction history are derived from blockchain events.
-- `src/lib/celo.js` `readOwnerLedger(owner)` reads `MonthlyScheduleCreated`, `ScheduleCancelled`, and
-  `SettlementReceipt` events. Created schedules rebuild Plans; only settled runs rebuild movements.
+- `src/lib/celo.js` `readOwnerLedger(owner)` reads `MonthlyScheduleCreated`, `SchedulePaused`,
+  `ScheduleResumed`, `ScheduleCancelled`, and `SettlementReceipt` events. Created schedules rebuild
+  Plans; only settled runs rebuild movements.
   New hook `useChocoLedger` feeds the UI.
 - `App.jsx` no longer keeps `plans`/`transactions` in React state. Deleting a plan now calls
   `cancelSchedule` on-chain and re-reads. The only transient is the receipt for the just-signed action.
@@ -149,8 +151,9 @@ and history. The audit contract is intentionally additive, not the source of tru
 - [ ] `npm install` (pulls `qrcode`)
 - [ ] `npm run check` (tests + build) and `npm run contracts:test`
 - [ ] Deploy `ChocoScheduleRegistry`; set `VITE_REGISTRY_ADDRESS` + `VITE_REGISTRY_DEPLOY_BLOCK`
-- [ ] Set `VITE_SETTLEMENT_SPENDER_ADDRESS` (keeper)
+- [ ] Set `VITE_SETTLEMENT_SPENDER_ADDRESS` (keeper/executor spender)
 - [ ] Deploy site so `/agent.json` returns 200; run `npm run register:agent`; set `VITE_AGENT_ID` + owner
 - [ ] (Compliance) pin `agent.json` to IPFS + `setAgentURI`
-- [ ] Verify a real send-now + a real schedule on a phone in MiniPay
+- [ ] Verify a real send-now + a real authorized schedule on a phone in MiniPay
+- [ ] Verify the keeper/executor runs a due plan and emits `SettlementReceipt`
 - [ ] Choco Agent flow: deploy `ChocoCkesSwap` + `ChocoAuditLog`; apply `supabase/schema.sql`; set `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_CKES_SWAP_CONTRACT_ADDRESS`, `VITE_AUDIT_CONTRACT_ADDRESS`; end-to-end test New Transfer (USDC and cKES paths) on a phone in MiniPay

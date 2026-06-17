@@ -53,6 +53,39 @@ export function getTimingLabel(item) {
   return item.deliveryMode === "now" ? "Send once now" : item.schedule;
 }
 
+export function getPlanExecutionState(plan, now = new Date()) {
+  if (!plan || plan.deliveryMode === "now") {
+    return { status: plan?.status || "Ready", label: plan?.status || "Ready", tone: "neutral" };
+  }
+  if (plan.status === "Paused" || plan.active === false) {
+    return { status: "Paused", label: "Paused", tone: "paused" };
+  }
+
+  const day = Number(plan.dayOfMonth || String(plan.dayLabel || "").match(/\d+/)?.[0] || 0);
+  const firstRunAtMs = plan.firstRunAt ? Number(plan.firstRunAt) * 1000 : 0;
+  const lastSettlementAtMs = plan.lastSettlementAt ? Number(plan.lastSettlementAt) * 1000 : 0;
+
+  if (firstRunAtMs && firstRunAtMs > now.getTime()) {
+    return { status: "Authorized", label: "Authorized", tone: "neutral" };
+  }
+
+  const settledDate = lastSettlementAtMs ? new Date(lastSettlementAtMs) : null;
+  const settledThisMonth = Boolean(
+    settledDate &&
+    settledDate.getFullYear() === now.getFullYear() &&
+    settledDate.getMonth() === now.getMonth(),
+  );
+  if (settledThisMonth) {
+    return { status: "Run recorded", label: "Run recorded", tone: "success" };
+  }
+
+  if (!day) return { status: "Authorized", label: "Authorized", tone: "neutral" };
+  const today = now.getDate();
+  if (today === day) return { status: "Runs today", label: "Runs today", tone: "due" };
+  if (today > day) return { status: "Awaiting auto-run", label: "Awaiting run", tone: "warning" };
+  return { status: "Authorized", label: "Authorized", tone: "neutral" };
+}
+
 export function getRecipientContactLabel(plan) {
   return plan.recipientContact || plan.recipient;
 }

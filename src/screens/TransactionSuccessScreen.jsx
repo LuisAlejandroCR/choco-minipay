@@ -93,7 +93,7 @@ export function TransactionSuccessScreen({ transaction, onViewDetails, onDismiss
 
   async function share() {
     const lines = [
-      isSendNow ? `Choco sent ${amountLabel} to ${toLabel}` : `Choco saved a monthly ${amountLabel} plan to ${toLabel}`,
+      isSendNow ? `Choco sent ${amountLabel} to ${toLabel}` : `Choco authorized a monthly ${amountLabel} plan to ${toLabel}`,
       `Status: ${transaction.status}`,
       `Date: ${transaction.date}`,
       hasHash ? `${isSendNow ? "Receipt" : "Plan transaction"}: ${receiptUrl}` : "",
@@ -143,7 +143,7 @@ export function TransactionSuccessScreen({ transaction, onViewDetails, onDismiss
         <div className="success-badge">
           <Check size={40} strokeWidth={2.5} />
         </div>
-        <h2 className="success-title">{isSendNow ? "Money sent" : "Plan saved"}</h2>
+        <h2 className="success-title">{isSendNow ? "Money sent" : "Plan authorized"}</h2>
         <p className="success-amount">{isSendNow ? amountLabel : `Monthly ${amountLabel}`}</p>
         <p className="success-recipient">to {toLabel}</p>
 

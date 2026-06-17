@@ -23,8 +23,9 @@ User wallet
 ┌─────────────────────────────────────────────────────┐
 │  ChocoLedger                                        │
 │  · AttemptLogged  — every send-now (via Gateway)    │
-│  · MonthlyScheduleCreated — user creates a plan     │
-│  · SettlementReceipt — keeper executes monthly pay  │
+│  · MonthlyScheduleCreated — user authorizes a plan   │
+│  · SchedulePaused / ScheduleResumed — user control   │
+│  · SettlementReceipt — executor runs monthly pay     │
 │  · totalTransactions() — unified counter            │
 └─────────────────────────────────────────────────────┘
 ```
@@ -57,7 +58,7 @@ Set env vars (PowerShell):
 
 ```powershell
 $env:DEPLOYER_PRIVATE_KEY  = "0x..."          # wallet that pays deploy gas (~7 CELO needed)
-$env:KEEPER_ADDRESS        = "0x..."          # EOA that will execute monthly settlements
+$env:KEEPER_ADDRESS        = "0x..."          # executor EOA that will run monthly settlements
 $env:FEE_RECIPIENT_ADDRESS = "0x..."          # wallet that receives the protocol fee
 $env:FEE_BPS               = "25"             # 25 = 0.25%; range 0–100
 $env:CELO_RPC_URL          = "https://forno.celo.org"
@@ -118,7 +119,7 @@ Add to Vercel (or `.env.local` for local dev):
 # Active
 VITE_LEDGER_ADDRESS=0x...
 VITE_LEDGER_DEPLOY_BLOCK=...
-VITE_SETTLEMENT_SPENDER_ADDRESS=0x...   # keeper EOA
+VITE_SETTLEMENT_SPENDER_ADDRESS=0x...   # keeper/executor spender
 VITE_CKES_SWAP_CONTRACT_ADDRESS=0x...   # points to ChocoGateway
 VITE_CKES_SWAP_DEPLOY_BLOCK=...         # earliest block among configured gateways
 VITE_CKES_SWAP_CONTRACT_ADDRESSES=0x...,0x...
@@ -217,6 +218,8 @@ Admin can adjust at any time via `setFee()` without redeploying.
 ```solidity
 // Schedule management (called by user wallet)
 function createMonthlySchedule(...) external returns (uint256 id);
+function pauseSchedule(uint256 id) external;
+function resumeSchedule(uint256 id) external;
 function cancelSchedule(uint256 id) external;
 
 // Keeper-only: record a settled payment and auto-log to audit trail
@@ -240,8 +243,10 @@ function getAttemptsBySender(address sender) external view returns (uint256[] me
 | Event | Emitted by | When |
 |---|---|---|
 | `MonthlyScheduleCreated` | user | `createMonthlySchedule` |
+| `SchedulePaused` | user or admin | `pauseSchedule` |
+| `ScheduleResumed` | user or admin | `resumeSchedule` |
 | `ScheduleCancelled` | user or admin | `cancelSchedule` |
-| `SettlementReceipt` | keeper | `recordSettlement` |
+| `SettlementReceipt` | keeper/executor | `recordSettlement` |
 | `AttemptLogged` | Gateway (via `logAttemptFor`) or keeper | every send-now + settlement |
 
 ### AttemptKind enum

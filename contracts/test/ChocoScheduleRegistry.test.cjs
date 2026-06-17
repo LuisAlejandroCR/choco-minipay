@@ -31,7 +31,12 @@ test("registry ABI exposes schedule and receipt functions", () => {
   const abi = output.contracts["ChocoScheduleRegistry.sol"].ChocoScheduleRegistry.abi;
   const names = abi.map((item) => item.name).filter(Boolean);
   assert.ok(names.includes("createMonthlySchedule"));
+  assert.ok(names.includes("pauseSchedule"));
+  assert.ok(names.includes("resumeSchedule"));
+  assert.ok(names.includes("cancelSchedule"));
   assert.ok(names.includes("recordSettlement"));
   assert.ok(names.includes("MonthlyScheduleCreated"));
   assert.ok(names.includes("SettlementReceipt"));
+  assert.ok(names.includes("SchedulePaused"));
+  assert.ok(names.includes("ScheduleResumed"));
 });

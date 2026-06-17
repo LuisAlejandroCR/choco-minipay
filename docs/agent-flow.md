@@ -32,8 +32,12 @@ explicitly saves. All transaction history is derived from blockchain events.
      ChocoGateway deducts the protocol fee (0.25%) before swapping.
    - **Fallback (no ChocoGateway)** → direct Mento two-hop: USDC → USDm → cKES, each hop
      wallet-signed, then cKES transferred to recipient.
+   - **Schedule** → wallet approves the settlement spender and writes the authorized plan to
+     `ChocoLedger`. The keeper/executor later runs the due transfer automatically.
 7. **On-chain audit** — ChocoGateway calls `ChocoLedger.logAttemptFor(payer, ...)` after every
    completed send. This writes an `AttemptLogged` event with `kind = SUCCESS`.
+   Scheduled executions must emit `SettlementReceipt`; otherwise they remain authorized plans,
+   not completed movements.
 8. **History** — `useChocoLedger` calls `readOwnerLedger`, which reads `UsdcToCkesSwap` +
    cKES `Transfer` events for send-now movements and `SettlementReceipt` events for executed
    schedule runs. `MonthlyScheduleCreated` builds Plans only; it is not a movement receipt.
@@ -100,7 +104,7 @@ to avoid asking the user to sign just to record a non-event.
 | Concern | Lives at |
 |---|---|
 | Contact labels (`dad` → `0x…`) | Supabase `contacts` (user-authorized only) |
-| Plans (scheduled transfers) | ChocoLedger: `MonthlyScheduleCreated` events |
+| Plans (authorized scheduled transfers) | ChocoLedger: `MonthlyScheduleCreated`, `SchedulePaused`, `ScheduleResumed`, `ScheduleCancelled` events |
 | Send-now movements | Active + legacy ChocoGateway contracts: `UsdcToCkesSwap` + cKES `Transfer` events |
 | Executed plan runs | ChocoLedger: `SettlementReceipt` events |
 | Audit trail | ChocoLedger: `AttemptLogged` events |
@@ -126,7 +130,9 @@ once when enabling it.
 1. Deploy **ChocoLedger** → set `VITE_LEDGER_ADDRESS`, `VITE_LEDGER_DEPLOY_BLOCK`, `VITE_SETTLEMENT_SPENDER_ADDRESS`.
 2. Deploy **ChocoGateway** (needs `VITE_LEDGER_ADDRESS`) → set `VITE_CKES_SWAP_CONTRACT_ADDRESS`, `VITE_CKES_SWAP_DEPLOY_BLOCK`, and include active + legacy gateways in `VITE_CKES_SWAP_CONTRACT_ADDRESSES`.
 3. Authorize ChocoGateway on ChocoLedger: `setSwapContract(gatewayAddress, true)`.
-4. (Optional) Apply `supabase/schema.sql`; set `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`.
+4. Run a keeper/executor for due plans. It must execute the wallet-approved route and then call
+   `recordSettlement` so the automatic run appears in History.
+5. (Optional) Apply `supabase/schema.sql`; set `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`.
 
 See `contracts/README.md` for the full deploy + authorization commands.
 

@@ -71,3 +71,30 @@ export async function cancelScheduleViaRegistry({ account, id }) {
   await publicClient.waitForTransactionReceipt({ hash });
   return { hash };
 }
+
+async function updateSchedulePauseState({ account, id, paused }) {
+  assertAddress(account, "Wallet");
+  const ledgerOrRegistry = ADDRESSES.ledger || ADDRESSES.registry;
+  assertAddress(ledgerOrRegistry, "VITE_LEDGER_ADDRESS or VITE_REGISTRY_ADDRESS");
+  if (id === undefined || id === null || id === "") throw new Error("Missing on-chain schedule id.");
+
+  const walletClient = makeWalletClient(account);
+  const publicClient = makePublicClient();
+  const hash = await walletClient.writeContract({
+    address: ledgerOrRegistry,
+    abi: REGISTRY_ABI,
+    functionName: paused ? "pauseSchedule" : "resumeSchedule",
+    args: [BigInt(id)],
+    feeCurrency: ADDRESSES.feeCurrency,
+  });
+  await publicClient.waitForTransactionReceipt({ hash });
+  return { hash };
+}
+
+export async function pauseScheduleViaRegistry({ account, id }) {
+  return updateSchedulePauseState({ account, id, paused: true });
+}
+
+export async function resumeScheduleViaRegistry({ account, id }) {
+  return updateSchedulePauseState({ account, id, paused: false });
+}

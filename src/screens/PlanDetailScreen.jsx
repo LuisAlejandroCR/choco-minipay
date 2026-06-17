@@ -1,9 +1,11 @@
-import { CalendarDays, Pencil, Trash2 } from "lucide-react";
+import { CalendarDays, Pause, Pencil, Play, Trash2 } from "lucide-react";
 import { BottomNav } from "../components/BottomNav.jsx";
 import { DetailLine } from "../components/SheetPrimitives.jsx";
-import { getTimingLabel } from "../utils/planUtils.js";
+import { getPlanExecutionState, getTimingLabel } from "../utils/planUtils.js";
 
-export function PlanDetailScreen({ plan, onHome, onHistory, onBack, onEdit, onDelete }) {
+export function PlanDetailScreen({ plan, onHome, onHistory, onBack, onEdit, onTogglePause, onDelete }) {
+  const execution = getPlanExecutionState(plan);
+  const isPaused = execution.status === "Paused";
   return (
     <div className="screen details-screen">
       <div className="screen-hero">
@@ -13,7 +15,7 @@ export function PlanDetailScreen({ plan, onHome, onHistory, onBack, onEdit, onDe
             <h2 className="screen-hero-title">{plan.recipient}</h2>
             <p className="screen-hero-detail">{plan.amount} {plan.asset}</p>
           </div>
-          <span className="sheet-chip">{plan.status}</span>
+          <span className={`sheet-chip ${execution.tone}`}>{execution.label}</span>
         </div>
       </div>
 
@@ -24,11 +26,31 @@ export function PlanDetailScreen({ plan, onHome, onHistory, onBack, onEdit, onDe
 
       <div className="detail-list" aria-label="Plan details">
         <DetailLine label="Route" value={`${plan.payAsset} to ${plan.asset}`} />
+        <DetailLine
+          label="Execution"
+          value={
+            isPaused
+              ? "Paused until you resume"
+              : execution.status === "Run recorded"
+                ? "This month is recorded in History"
+                : "Auto-runs on the scheduled day"
+          }
+        />
         <DetailLine label="Retries" value="3 attempts if a transfer fails" />
+      </div>
+
+      <div className="notice compact">
+        {isPaused
+          ? "This plan stays on-chain but Choco will not run it while paused."
+          : "Your wallet authorized this plan once. Funds stay in your wallet until Choco runs the scheduled transfer."}
       </div>
 
       <div className="plan-actions">
         <button type="button" onClick={onEdit}><Pencil size={18} />Edit</button>
+        <button className={isPaused ? "" : "pause-action"} type="button" onClick={onTogglePause}>
+          {isPaused ? <Play size={18} /> : <Pause size={18} />}
+          {isPaused ? "Resume" : "Pause"}
+        </button>
         <button className="danger-action" type="button" onClick={onDelete}><Trash2 size={18} />Delete</button>
       </div>
 
