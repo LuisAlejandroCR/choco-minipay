@@ -1,31 +1,40 @@
-import { Check, ReceiptText, RefreshCw } from "lucide-react";
+import { CalendarDays, Check, CircleDollarSign, ReceiptText, RefreshCw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { ChocoMark } from "../components/ChocoMark.jsx";
 import { getTimingLabel } from "../utils/planUtils.js";
 
 // ProcessingScreen owns its animation-step timer so it does not cause full-tree
 // re-renders from App root while the steps advance.
-// onComplete is called after the final step delay — App uses it to navigate to
-// "duplicateGuard" or "review" depending on duplicateAttempt.
-export function ProcessingScreen({ plan, command, duplicateAttempt, onComplete }) {
+// When duplicateAttempt is set, onComplete fires after the final step to navigate
+// to duplicateGuard. Otherwise the screen transitions inline into a checkpoint so
+// the user confirms the parsed intent without a page jump.
+export function ProcessingScreen({ plan, command, duplicateAttempt, onComplete, onApprove, onEdit }) {
   const [step, setStep] = useState(0);
+  const [done, setDone] = useState(false);
   const isSendNow = plan.deliveryMode === "now";
 
-  // Use a ref so the final timeout always calls the latest onComplete without
-  // re-running the effect when onComplete changes reference between renders.
   const onCompleteRef = useRef(onComplete);
   useEffect(() => { onCompleteRef.current = onComplete; });
 
-  // Run the step sequence once on mount; clean up if the screen unmounts early.
   useEffect(() => {
     const timers = [
       window.setTimeout(() => setStep(1), 220),
       window.setTimeout(() => setStep(2), 720),
       window.setTimeout(() => setStep(3), 1220),
-      window.setTimeout(() => onCompleteRef.current(), 1900),
+      window.setTimeout(() => {
+        if (duplicateAttempt) {
+          onCompleteRef.current?.();
+        } else {
+          setDone(true);
+        }
+      }, 1900),
     ];
     return () => timers.forEach((timer) => window.clearTimeout(timer));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- intentional: run once on mount
+
+  const confidence = plan?.intent?.confidence;
+  const confidencePct = confidence != null ? Math.round(confidence * 100) : null;
+  const chipTone = confidencePct != null && confidencePct >= 80 ? "success" : "neutral";
 
   const feed = [
     {
@@ -64,7 +73,12 @@ export function ProcessingScreen({ plan, command, duplicateAttempt, onComplete }
         </div>
 
         <div className={`agent-plan ${step >= 1 ? "lift" : ""}`}>
-          <span>{isSendNow ? "Send once now" : "Scheduled transfer"}</span>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span>{isSendNow ? "Send once now" : "Scheduled transfer"}</span>
+            {done && confidencePct != null && (
+              <span className={`sheet-chip ${chipTone}`}>{confidencePct}%</span>
+            )}
+          </div>
           <strong>{plan.amount} {plan.asset}</strong>
           <small>To {plan.recipient} - {getTimingLabel(plan)}</small>
         </div>
@@ -81,7 +95,19 @@ export function ProcessingScreen({ plan, command, duplicateAttempt, onComplete }
           ))}
         </div>
 
-        <div className="agent-next">{duplicateAttempt ? "Opening safety review" : "Opening quote review"}</div>
+        {done ? (
+          <div className="agent-cta">
+            <button className="primary-cta" type="button" onClick={onApprove}>
+              {isSendNow ? <CircleDollarSign size={18} /> : <CalendarDays size={18} />}
+              Looks right
+            </button>
+            <button className="secondary-dark" type="button" onClick={onEdit}>
+              Edit instruction
+            </button>
+          </div>
+        ) : (
+          <div className="agent-next">{duplicateAttempt ? "Opening safety review" : "Reviewing your instruction…"}</div>
+        )}
       </div>
     </div>
   );
