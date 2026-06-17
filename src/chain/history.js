@@ -255,6 +255,30 @@ function mapSettlementToMovement(log, schedule, timestamp) {
   };
 }
 
+function mapScheduleToMovement(log, timestamp) {
+  const a = log.args;
+  const amountKes = Math.round(unitsToNumber(a.destinationAmount, 18));
+  return {
+    id: `created-${log.transactionHash}-${log.logIndex}`,
+    planId: `schedule-${a.id}`,
+    recipient: tailAddress(a.recipient),
+    amount: amountKes.toLocaleString("en-US"),
+    asset: APP_CONFIG.assets.destination,
+    payAsset: isCkesAsset(a.sourceAsset) ? APP_CONFIG.assets.destination : APP_CONFIG.assets.source,
+    schedule: `Every ${formatDay(a.dayOfMonth)} - ${scheduleTimeLabel()}`,
+    date: formatChainDate(timestamp),
+    status: "Scheduled",
+    hash: log.transactionHash,
+    type: "Plan confirmed",
+    deliveryMode: "schedule",
+    from: a.owner,
+    to: tailAddress(a.recipient),
+    toAddress: a.recipient,
+    routeEstimate: "",
+    sortKey: timestamp || 0,
+  };
+}
+
 function mapAttemptToMovement(log, timestamp) {
   const a = log.args;
   const kind = Number(a.kind ?? 0);
@@ -717,7 +741,14 @@ export async function readOwnerLedger(owner) {
       return mapScheduleToPlan(log, settlementTimestampById.get(id) || 0, !pausedById.get(id));
     });
 
-  const history = composeMovementHistory({ sendNowHistory, settlements, scheduleById, timeByBlock });
+  const creationMovements = created.map((log) =>
+    mapScheduleToMovement(log, timeByBlock.get(log.blockNumber)),
+  );
+
+  const history = [
+    ...composeMovementHistory({ sendNowHistory, settlements, scheduleById, timeByBlock }),
+    ...creationMovements,
+  ].sort((a, b) => b.sortKey - a.sortKey);
 
   const result = { plans, history };
   _cache = { owner: ownerLower, result, ts: Date.now() };
