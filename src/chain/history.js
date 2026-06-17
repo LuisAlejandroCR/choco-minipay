@@ -133,6 +133,9 @@ async function fetchExplorerTransactions(address, fromBlock) {
   url.searchParams.set("sort", "asc");
   url.searchParams.set("page", "1");
   url.searchParams.set("offset", String(EXPLORER_TX_OFFSET));
+  if (APP_CONFIG.network.explorerApiKey) {
+    url.searchParams.set("apikey", APP_CONFIG.network.explorerApiKey);
+  }
 
   const response = await fetch(url.toString());
   if (!response.ok) throw new Error(`Explorer API ${response.status}`);
@@ -141,6 +144,16 @@ async function fetchExplorerTransactions(address, fromBlock) {
   if (json.status === "0" && /no transactions/i.test(String(json.message || json.result || ""))) return [];
   if (!Array.isArray(json.result)) throw new Error("Explorer API returned no transaction list");
   return json.result;
+}
+
+function uniqueExplorerTransactions(txs = []) {
+  const seen = new Set();
+  return txs.filter((tx) => {
+    const key = String(tx?.hash || "").toLowerCase();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 async function readReceipts(publicClient, txs) {
@@ -433,17 +446,26 @@ async function readSendNowHistory(publicClient, owner, fromBlock) {
 async function readSendNowHistoryFromReceipts(publicClient, owner, fromBlock) {
   const swapAddresses = getSwapAddresses();
   if (!swapAddresses.length) return [];
+  const swapAddressSet = new Set(swapAddresses.map((address) => address.toLowerCase()));
 
-  const txGroups = await Promise.all(
-    swapAddresses.map((swapAddress) => fetchExplorerTransactions(swapAddress, fromBlock)
+  const [contractTxGroups, walletTxs] = await Promise.all([
+    Promise.all(swapAddresses.map((swapAddress) => fetchExplorerTransactions(swapAddress, fromBlock)
       .then((txs) => txs
         .filter(isSuccessfulTx)
         .filter((tx) => sameAddress(tx.from, owner))
         .filter((tx) => sameAddress(tx.to, swapAddress))
         .filter((tx) => [SELECTORS.swapAndSend, SELECTORS.swapAndSendExact].includes(txSelector(tx)))
-        .map((tx) => ({ ...tx, swapAddress })))),
-  );
-  const txs = txGroups.flat();
+        .map((tx) => ({ ...tx, swapAddress }))))),
+    fetchExplorerTransactions(owner, fromBlock)
+      .then((txs) => txs
+        .filter(isSuccessfulTx)
+        .filter((tx) => sameAddress(tx.from, owner))
+        .filter((tx) => swapAddressSet.has(String(tx.to || "").toLowerCase()))
+        .filter((tx) => [SELECTORS.swapAndSend, SELECTORS.swapAndSendExact].includes(txSelector(tx)))
+        .map((tx) => ({ ...tx, swapAddress: tx.to })))
+      .catch(() => []),
+  ]);
+  const txs = uniqueExplorerTransactions([...contractTxGroups.flat(), ...walletTxs]);
   if (!txs.length) return [];
 
   const receipts = await readReceipts(publicClient, txs);
@@ -568,13 +590,17 @@ async function readScheduleData(publicClient, owner, fromBlock, contractAddress)
 }
 
 async function readScheduleDataFromReceipts(publicClient, owner, fromBlock, contractAddress) {
-  const txs = await fetchExplorerTransactions(contractAddress, fromBlock);
   const scheduleSelectors = [
     SELECTORS.createSchedule,
     SELECTORS.cancelSchedule,
     SELECTORS.pauseSchedule,
     SELECTORS.resumeSchedule,
   ];
+  const [contractTxs, walletTxs] = await Promise.all([
+    fetchExplorerTransactions(contractAddress, fromBlock).catch(() => []),
+    fetchExplorerTransactions(owner, fromBlock).catch(() => []),
+  ]);
+  const txs = uniqueExplorerTransactions([...contractTxs, ...walletTxs]);
   const relevantTxs = txs
     .filter(isSuccessfulTx)
     .filter((tx) => sameAddress(tx.to, contractAddress))
