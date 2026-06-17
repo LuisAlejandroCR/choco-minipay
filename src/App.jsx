@@ -303,15 +303,15 @@ export default function App() {
       appStatus.setStatus("pending");
       appStatus.setMessage("Cancelling schedule on-chain...");
       await cancelScheduleViaRegistry({ account: wallet.address, id: activePlan.onchainId });
-      await refreshLedger();
       appStatus.setStatus("idle");
-      appStatus.setMessage("Schedule cancelled on-chain.");
+      setSelectedPlanId("");
+      goTo("plans");
+      // Refresh after a short delay — gives the RPC time to index the ScheduleCancelled event
+      window.setTimeout(() => { void refreshLedger(); }, 1500);
     } catch (error) {
       appStatus.setStatus("error");
       appStatus.setMessage(humanisePlanError(error));
     }
-    setSelectedPlanId("");
-    goTo("plans");
   }
 
   async function togglePlanPaused() {
@@ -328,10 +328,10 @@ export default function App() {
       } else {
         await pauseScheduleViaRegistry({ account: wallet.address, id: activePlan.onchainId });
       }
-      await refreshLedger();
       appStatus.setStatus("idle");
-      appStatus.setMessage(isPaused ? "Plan resumed. Choco can auto-run it on schedule." : "Plan paused. Choco will not run it until resumed.");
       goTo("plans");
+      // Refresh after a short delay — gives the RPC time to index the Paused/Resumed event
+      window.setTimeout(() => { void refreshLedger(); }, 1500);
     } catch (error) {
       appStatus.setStatus("error");
       appStatus.setMessage(humanisePlanError(error));
@@ -484,7 +484,12 @@ export default function App() {
             </>
           )}
           {visibleScreen === "deletePlan" && activePlan && (
-            <DeletePlanScreen plan={activePlan} onCancel={() => goTo("planDetail")} onDelete={confirmDeletePlan} />
+            <DeletePlanScreen
+              plan={activePlan}
+              onCancel={() => goTo("planDetail")}
+              onDelete={confirmDeletePlan}
+              isPending={appStatus.status === "pending"}
+            />
           )}
           {visibleScreen === "processing" && (
             <ProcessingScreen
