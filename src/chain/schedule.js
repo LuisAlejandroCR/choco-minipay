@@ -47,7 +47,7 @@ export async function createScheduleViaRegistry({ account, recipient, intent }) 
       keccak256(toHex(intent.rawCommand)),
       receiptLabelHash,
     ],
-    feeCurrency: ADDRESSES.feeCurrency,
+    feeCurrency: ADDRESSES.usdm, // pay gas in USDm so USDC balance stays unchanged
   });
   await publicClient.waitForTransactionReceipt({ hash });
   return { approveHash, hash };
@@ -66,7 +66,7 @@ export async function cancelScheduleViaRegistry({ account, id }) {
     abi: REGISTRY_ABI,
     functionName: "cancelSchedule",
     args: [BigInt(id)],
-    feeCurrency: ADDRESSES.feeCurrency,
+    feeCurrency: ADDRESSES.usdm, // pay gas in USDm so USDC balance stays unchanged
   });
   await publicClient.waitForTransactionReceipt({ hash });
   return { hash };
@@ -85,7 +85,7 @@ async function updateSchedulePauseState({ account, id, paused }) {
     abi: REGISTRY_ABI,
     functionName: paused ? "pauseSchedule" : "resumeSchedule",
     args: [BigInt(id)],
-    feeCurrency: ADDRESSES.feeCurrency,
+    feeCurrency: ADDRESSES.usdm, // pay gas in USDm so USDC balance stays unchanged
   });
   await publicClient.waitForTransactionReceipt({ hash });
   return { hash };
