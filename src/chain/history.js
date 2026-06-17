@@ -130,6 +130,30 @@ function mapScheduleToPlan(log, lastSettlementAt = 0, active = true) {
   };
 }
 
+function mapScheduleToMovement(log, timestamp) {
+  const a = log.args;
+  const amountKes = Math.round(Number(formatUnits(a.destinationAmount, 18)));
+  return {
+    id: `tx-${log.transactionHash}-${log.logIndex}`,
+    planId: `schedule-${a.id}`,
+    recipient: tailAddress(a.recipient),
+    amount: amountKes.toLocaleString("en-US"),
+    asset: APP_CONFIG.assets.destination,
+    payAsset: isCkesAsset(a.sourceAsset) ? APP_CONFIG.assets.destination : APP_CONFIG.assets.source,
+    schedule: `Every ${formatDay(a.dayOfMonth)} - ${scheduleTimeLabel()}`,
+    date: formatChainDate(timestamp),
+    status: "Scheduled",
+    hash: log.transactionHash,
+    type: "Plan confirmed",
+    deliveryMode: "schedule",
+    from: a.owner,
+    to: tailAddress(a.recipient),
+    toAddress: a.recipient,
+    routeEstimate: "",
+    sortKey: timestamp || 0,
+  };
+}
+
 function mapSettlementToMovement(log, schedule, timestamp) {
   const a = log.args;
   const amountKes = Math.round(Number(formatUnits(a.destinationAmount, 18)));
@@ -381,7 +405,7 @@ export async function readOwnerLedger(owner) {
 
   const { created, cancelled, paused, resumed, settlements } = scheduleData;
 
-  const blockNumbers = [...new Set(settlements.map((log) => log.blockNumber))];
+  const blockNumbers = [...new Set([...created, ...settlements].map((log) => log.blockNumber))];
   const blocks = await Promise.all(blockNumbers.map((blockNumber) => publicClient.getBlock({ blockNumber })));
   const timeByBlock = new Map(blocks.map((block) => [block.number, Number(block.timestamp)]));
 
@@ -407,12 +431,10 @@ export async function readOwnerLedger(owner) {
       return mapScheduleToPlan(log, settlementTimestampById.get(id) || 0, !pausedById.get(id));
     });
 
-  const history = composeMovementHistory({
-    sendNowHistory,
-    settlements,
-    scheduleById,
-    timeByBlock,
-  });
+  const history = [
+    ...composeMovementHistory({ sendNowHistory, settlements, scheduleById, timeByBlock }),
+    ...created.map((log) => mapScheduleToMovement(log, timeByBlock.get(log.blockNumber))),
+  ].sort((a, b) => b.sortKey - a.sortKey);
 
   const result = { plans, history };
   _cache = { owner: ownerLower, result, ts: Date.now() };
