@@ -117,6 +117,7 @@ export function HistoryScreen({
 
   return (
     <div className="screen history-screen">
+      <div className="screen-header">
       <div className="screen-hero">
         <span className="screen-hero-label">Receipts</span>
         <h2 className="screen-hero-title">Movements</h2>
@@ -146,6 +147,7 @@ export function HistoryScreen({
             aria-label="Search movements"
           />
         </div>
+      </div>
       </div>
 
       {loading && transactions.length === 0 ? (

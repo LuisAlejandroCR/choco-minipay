@@ -1872,6 +1872,7 @@ a {
   gap: 6px;
   border: none;
   border-top: 1px solid var(--line-soft);
+  border-radius: 20px 20px 0 0;
 }
 
 .plan-screen .primary-cta {
@@ -2999,9 +3000,30 @@ a {
 
 /* ── Screen-level hero (History, Plans — matches home hero language) ─── */
 .screen-hero {
+  position: sticky;
+  top: 0;
+  z-index: 5;
   padding: 4px 0 10px;
   border-bottom: 1px solid var(--line-soft);
   margin-bottom: 2px;
+  background: rgba(23, 12, 8, 0.97);
+  backdrop-filter: blur(8px);
+}
+
+/* Hero + filters wrapper — sticks as one unit (Plans, History) */
+.screen-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: rgba(23, 12, 8, 0.97);
+  backdrop-filter: blur(8px);
+  margin-bottom: 4px;
+}
+
+.screen-header .screen-hero {
+  position: static;
+  background: transparent;
+  backdrop-filter: none;
 }
 
 .screen-hero-label {
@@ -4699,9 +4721,14 @@ a {
 }
 
 .rds-hero {
+  position: sticky;
+  top: 0;
+  z-index: 5;
   padding: 4px 0 22px;
   display: grid;
   gap: 5px;
+  background: rgba(23, 12, 8, 0.97);
+  backdrop-filter: blur(8px);
 }
 
 .rds-hero-top {
