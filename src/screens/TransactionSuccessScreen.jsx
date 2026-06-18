@@ -150,7 +150,7 @@ export function TransactionSuccessScreen({ transaction, onViewDetails, onDismiss
         <div className="success-actions">
           <button className="primary-cta" type="button" onClick={onViewDetails}>
             <Check size={18} />
-            {isSendNow ? "View movement details" : "Back to plans"}
+            {isSendNow ? "View movement details" : "View plans"}
           </button>
           <button className="secondary-dark" type="button" onClick={share}>
             <Share2 size={18} />

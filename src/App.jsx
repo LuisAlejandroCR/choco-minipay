@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Bell, MessageCircleQuestionMark, X } from "lucide-react";
+import { Bell, MessageCircleQuestionMark } from "lucide-react";
 import { useMiniPayWallet } from "./modules/wallet/useMiniPayWallet.js";
 import { useChocoLedger } from "./modules/ledger/useChocoLedger.js";
 import { useAppStatus } from "./modules/app/useAppStatus.js";
@@ -369,9 +369,7 @@ export default function App() {
       <img className="map-preload" src={WORLD_MAP_URL} alt="" aria-hidden="true" />
       <section className="miniapp" aria-label="Choco Mini App">
         <div className="topbar">
-          <button className="icon-button" type="button" aria-label="Back to home" onClick={() => setScreen("plan")}>
-            <X size={34} strokeWidth={2.4} />
-          </button>
+          <div aria-hidden="true" />
           <div className="app-title">{screenTitle}</div>
           <div className="topbar-actions" aria-label="Feature and support shortcuts">
             <button
@@ -453,7 +451,6 @@ export default function App() {
               plan={activePlan}
               onHome={() => setScreen("plan")}
               onHistory={() => goTo("history")}
-              onBack={() => goTo("plans")}
               onEdit={openEditPlan}
               onTogglePause={togglePlanPaused}
               onDelete={() => goTo("deletePlan")}
@@ -487,9 +484,6 @@ export default function App() {
           {visibleScreen === "receiptDetail" && activeTransaction && (
             <ReceiptDetailScreen
               transaction={activeTransaction}
-              onBack={() => setScreen("history")}
-              onHome={() => setScreen("plan")}
-              onPlans={() => goTo("plans")}
             />
           )}
           {visibleScreen === "planEditor" && (
@@ -504,7 +498,6 @@ export default function App() {
                 statusMessage={appStatus.status === "error" ? appStatus.message : ""}
                 onBuild={handleBuildPlan}
                 onHome={() => setScreen("plan")}
-                onBack={reviewMode === "update" ? () => goTo("planDetail") : null}
               />
             </>
           )}

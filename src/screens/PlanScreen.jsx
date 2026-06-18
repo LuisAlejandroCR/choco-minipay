@@ -81,7 +81,8 @@ export function PlanScreen({
   return (
     <div className="screen plan-screen">
 
-      {/* ── HERO ───────────────────────────────────────── */}
+      {/* ── STICKY HERO + CTA ─────────────────────────── */}
+      <div className="screen-header">
       <div className="home-hero">
         <div className="home-actions">
           <button type="button" aria-label="Profile"><ChocoMark size="tiny" /></button>
@@ -120,7 +121,6 @@ export function PlanScreen({
         )}
       </div>
 
-      {/* ── SINGLE CTA ────────────────────────────────── */}
       <button
         className={`home-start-action ${isWalletVerified ? "" : "verify-action"}`}
         type="button"
@@ -136,6 +136,7 @@ export function PlanScreen({
         </span>
         <ArrowRight size={21} />
       </button>
+      </div>
 
       {/* ── ACTIVE SCHEDULES (only when wallet is connected and plans exist) */}
       {isWalletVerified && plans.length > 0 && (
