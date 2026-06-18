@@ -283,6 +283,54 @@ a {
   color: var(--cream);
 }
 
+/* Primary CTA on vanilla panel → dark cocoa pill */
+.app-panel .primary-cta {
+  background: var(--cocoa-900);
+  color: var(--cream);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* Restore cream CTA inside dark sticky sections */
+.app-panel .screen-header .primary-cta,
+.app-panel .screen-hero .primary-cta {
+  background: var(--cream);
+  color: var(--cocoa-900);
+  box-shadow: 0 10px 24px rgba(5, 3, 2, 0.16);
+}
+
+/* Splash / pitch screen on vanilla panel */
+.app-panel .pitch-kicker {
+  color: var(--cocoa-600);
+}
+
+.app-panel .pitch-copy h1 {
+  color: #1B0F0A;
+}
+
+.app-panel .voice-highlight {
+  color: var(--latte-500);
+  text-shadow: none;
+}
+
+.app-panel .headline-wave {
+  border-color: rgba(27, 15, 10, 0.2);
+  background: rgba(27, 15, 10, 0.07);
+}
+
+.app-panel .pitch-memory {
+  color: #1B0F0A;
+}
+
+.app-panel .pitch-support {
+  color: rgba(27, 15, 10, 0.62);
+}
+
+/* Agent plan card on vanilla panel */
+.app-panel .agent-plan {
+  background: rgba(27, 15, 10, 0.07);
+  color: var(--text);
+}
+
 .screen {
   position: relative;
   z-index: 1;
