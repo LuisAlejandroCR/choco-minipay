@@ -4724,6 +4724,19 @@ a {
   background: linear-gradient(180deg, #2a1a11 0%, var(--cocoa-900) 100%);
 }
 
+/* Hero + QR wrapper — sticks as one unit (ReceiptDetail) */
+.rds-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: linear-gradient(180deg, #2a1a11 0%, var(--cocoa-900) 100%);
+}
+
+.rds-header .rds-hero {
+  position: static;
+  background: transparent;
+}
+
 .rds-hero-top {
   display: flex;
   align-items: center;

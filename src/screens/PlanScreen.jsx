@@ -136,15 +136,17 @@ export function PlanScreen({
         </span>
         <ArrowRight size={21} />
       </button>
+      {isWalletVerified && plans.length > 0 && (
+        <div className="section-heading">
+          <span>Plans</span>
+          <small className="section-count">{todayPlanCount ? `${todayPlanCount} today` : `${activePlans.length} active`}</small>
+        </div>
+      )}
       </div>
 
       {/* ── ACTIVE SCHEDULES (only when wallet is connected and plans exist) */}
       {isWalletVerified && plans.length > 0 && (
         <section className="home-list" aria-label="Plans">
-          <div className="section-heading">
-            <span>Plans</span>
-            <small className="section-count">{todayPlanCount ? `${todayPlanCount} today` : `${activePlans.length} active`}</small>
-          </div>
           {activePlans.slice(0, 3).map((item) => {
             const execution = getPlanExecutionState(item);
             return (
