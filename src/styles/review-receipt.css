@@ -899,6 +899,8 @@
 .review-screen .contact-resolution-card {
   border-color: rgba(201, 144, 96, 0.18);
   background: rgba(18, 9, 6, 0.5);
+  max-height: none;
+  overflow: visible;
 }
 
 .review-screen .contact-resolution-card > button {
@@ -982,6 +984,14 @@
 .home-start-action,
 .primary-cta {
   box-shadow: 0 12px 26px rgba(0, 0, 0, 0.2);
+}
+
+.review-screen .contact-resolution-card,
+.review-screen .contact-resolution-card .contact-resolved-row,
+.review-screen .contact-resolution-card .contact-resolved-info,
+.review-screen .contact-resolution-card .contact-resolved-actions {
+  max-height: none;
+  overflow: visible;
 }
 
 .primary-cta,
