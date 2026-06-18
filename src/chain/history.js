@@ -557,7 +557,8 @@ export async function readOwnerLedger(owner) {
     .map((log) => {
       const id = String(log.args.id);
       return mapScheduleToPlan(log, settlementTimestampById.get(id) || 0, !pausedById.get(id));
-    });
+    })
+    .sort((a, b) => b.onchainId - a.onchainId);
 
   const history = composeMovementHistory({ sendNowHistory, settlements, scheduleById, timeByBlock });
 
