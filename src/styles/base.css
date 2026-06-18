@@ -20,19 +20,9 @@
   --surface: rgba(28, 16, 10, 0.7);
   --surface-strong: rgba(18, 9, 6, 0.76);
   --surface-soft: rgba(255, 241, 220, 0.08);
-  /* ── Option B: Soft Vanilla Wallet — dark shell ─────────────────────── */
-  --app-bg: #140B07;
-  --surface-1: #21130D;
-  --surface-2: #2B1A11;
-  --celo-green: #476F47;
-  /* Pattern kept for brand moments (logo, splash) only */
-  --choco-pattern:
-    linear-gradient(135deg, rgba(255, 241, 220, 0.055) 25%, transparent 25%) 0 0 / 44px 44px,
-    linear-gradient(225deg, rgba(201, 144, 96, 0.05) 25%, transparent 25%) 0 0 / 44px 44px;
-  /* Vanilla content panel; shell surfaces stay dark */
-  --choco-surface: #F6E8D2;
-  --choco-sticky-surface: #21130D;
-  --choco-deep-surface: #21130D;
+  --app-bg: #120906;
+  --surface-1: #1b0f0a;
+  --surface-2: #24150e;
 }
 
 * {
@@ -109,7 +99,7 @@ a {
   grid-template-columns: 74px 1fr 112px;
   align-items: center;
   padding: 0 22px;
-  background: var(--choco-deep-surface);
+  background: var(--surface-1);
   border-bottom: 1px solid rgba(255, 241, 220, 0.10);
 }
 
@@ -179,156 +169,11 @@ a {
   min-height: 0;
   padding: 24px 22px calc(24px + env(safe-area-inset-bottom));
   border-radius: 28px 28px 0 0;
-  background: var(--choco-surface);
+  background: var(--surface-1);
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   position: relative;
-  /* Option B: light panel — re-scope all vars for dark ink */
-  color: #1B0F0A;
-  --text: #1B0F0A;
-  --muted: rgba(27, 15, 10, 0.55);
-  --line-soft: rgba(27, 15, 10, 0.12);
-}
-
-/* ── Option B: restore light vars inside sticky dark sections ───────── */
-.app-panel .screen-hero,
-.app-panel .screen-header {
-  color: var(--cream);
-  --text: #fff8ee;
-  --muted: #cbb59d;
-  --line-soft: rgba(255, 241, 220, 0.10);
-}
-
-/* Section heading button on vanilla panel */
-.app-panel .section-heading button {
-  background: rgba(27, 15, 10, 0.08);
-  color: var(--text);
-}
-
-/* Plan rows on vanilla panel */
-.app-panel .plan-row {
-  background: rgba(27, 15, 10, 0.07);
-  color: var(--text);
-}
-
-.app-panel .plan-row-icon {
-  background: rgba(27, 15, 10, 0.1);
-  color: var(--latte-500);
-}
-
-.app-panel .plan-row small {
-  background: rgba(27, 15, 10, 0.1);
-  color: var(--cocoa-700);
-}
-
-.app-panel .plan-row small.warning {
-  background: rgba(201, 144, 96, 0.18);
-  color: var(--cocoa-700);
-}
-
-.app-panel .plan-alert.plan-info {
-  border-color: rgba(27, 15, 10, 0.14);
-  background: rgba(27, 15, 10, 0.055);
-}
-
-/* Transaction rows on vanilla panel */
-.app-panel .transaction-row {
-  background: rgba(27, 15, 10, 0.07);
-  color: var(--text);
-}
-
-.app-panel .transaction-row small {
-  color: var(--cocoa-600);
-}
-
-/* History dots and amounts on vanilla panel */
-.app-panel .tx-dot.sent {
-  background: rgba(27, 15, 10, 0.1);
-  color: var(--cocoa-700);
-}
-
-.app-panel .tx-dot.plan {
-  background: rgba(27, 15, 10, 0.06);
-  color: var(--cocoa-500);
-}
-
-.app-panel .tx-amount.sent {
-  color: var(--text);
-}
-
-/* Empty states on vanilla panel */
-.app-panel .empty-plans {
-  background: rgba(27, 15, 10, 0.06);
-}
-
-.app-panel .empty-plans h2 {
-  color: var(--text);
-}
-
-.app-panel .empty-chain-hint {
-  color: rgba(27, 15, 10, 0.65);
-}
-
-/* Action buttons on vanilla panel */
-.app-panel .plan-actions button,
-.app-panel .secondary-dark {
-  background: rgba(27, 15, 10, 0.08);
-  color: var(--text);
-}
-
-.app-panel .plan-actions .danger-action,
-.app-panel .danger-cta {
-  background: var(--cocoa-700);
-  color: var(--cream);
-}
-
-/* Primary CTA on vanilla panel → dark cocoa pill */
-.app-panel .primary-cta {
-  background: var(--cocoa-900);
-  color: var(--cream);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
-}
-
-/* Restore cream CTA inside dark sticky sections */
-.app-panel .screen-header .primary-cta,
-.app-panel .screen-hero .primary-cta {
-  background: var(--cream);
-  color: var(--cocoa-900);
-  box-shadow: 0 10px 24px rgba(5, 3, 2, 0.16);
-}
-
-/* Splash / pitch screen on vanilla panel */
-.app-panel .pitch-kicker {
-  color: var(--cocoa-600);
-}
-
-.app-panel .pitch-copy h1 {
-  color: #1B0F0A;
-}
-
-.app-panel .voice-highlight {
-  color: var(--latte-500);
-  text-shadow: none;
-}
-
-.app-panel .headline-wave {
-  border-color: rgba(27, 15, 10, 0.2);
-  background: rgba(27, 15, 10, 0.07);
-}
-
-.app-panel .pitch-memory {
-  color: #1B0F0A;
-}
-
-.app-panel .pitch-support {
-  color: rgba(27, 15, 10, 0.62);
-}
-
-/* Agent plan card on vanilla panel */
-.app-panel .agent-plan {
-  background: rgba(27, 15, 10, 0.07);
-  color: var(--text);
 }
 
 .screen {
