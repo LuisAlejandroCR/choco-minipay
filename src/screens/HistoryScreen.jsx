@@ -48,7 +48,7 @@ function TxDot({ tx }) {
 
 function TxAmount({ tx }) {
   const cls = tx.status === "Failed" ? "tx-amount failed" : isScheduleEvent(tx) ? "tx-amount plan" : "tx-amount sent";
-  const prefix = isScheduleEvent(tx) || tx.status === "Failed" ? "" : "−";
+  const prefix = tx.status === "Failed" ? "" : "-";
   return (
     <div className={cls}>
       <span>{prefix}{tx.amount}</span>
