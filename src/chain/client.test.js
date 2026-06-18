@@ -30,9 +30,9 @@ test("assertAddress throws on malformed input", () => {
   assert.throws(() => assertAddress("0x123", "Wallet"), /Wallet is not a valid Celo address/);
 });
 
-test("getApprovalTarget needs no approval when the source is already cKES", () => {
+test("getApprovalTarget needs no approval when the source is already KESm", () => {
   // source === destination ("cKES") → nothing to swap, so no spender to approve
-  assert.equal(getApprovalTarget({ deliveryMode: "now", intent: { sourceAsset: "cKES" } }), null);
+  assert.equal(getApprovalTarget({ deliveryMode: "now", intent: { sourceAsset: "KESm" } }), null);
 });
 
 test("getApprovalTarget points schedule approvals at the settlement spender", () => {

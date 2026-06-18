@@ -6,9 +6,9 @@
   flex-direction: column;
   border-radius: 28px;
   background:
-    linear-gradient(135deg, rgba(246, 232, 212, 0.08) 25%, transparent 25%) 0 0 / 36px 36px,
-    linear-gradient(225deg, rgba(246, 232, 212, 0.045) 25%, transparent 25%) 0 0 / 36px 36px,
-    var(--cocoa-700);
+    linear-gradient(135deg, rgba(255, 241, 220, 0.04) 25%, transparent 25%) 0 0 / 36px 36px,
+    linear-gradient(225deg, rgba(255, 241, 220, 0.025) 25%, transparent 25%) 0 0 / 36px 36px,
+    var(--surface-1);
 }
 
 .home-actions {

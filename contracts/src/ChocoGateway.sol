@@ -76,6 +76,7 @@ contract ChocoGateway {
     // ─── Mutable state ─────────────────────────────────────────────────────
 
     address public admin;
+    address public scheduleKeeper;
     address public feeRecipient;
     uint16  public feeBps;           // basis points; 3 = 0.03 %, max 100 = 1 %
 
@@ -105,6 +106,14 @@ contract ChocoGateway {
     );
 
     event FeeUpdated(address indexed feeRecipient, uint16 feeBps);
+    event ScheduleKeeperUpdated(address indexed scheduleKeeper);
+    event ScheduledSwapRecorded(
+        uint256 indexed scheduleId,
+        address indexed payer,
+        address indexed recipient,
+        uint256 usdcIn,
+        uint256 ckesOut
+    );
     event LedgerLogFailed(
         address indexed ledger,
         address indexed payer,
@@ -123,6 +132,7 @@ contract ChocoGateway {
     // ─── Modifiers ─────────────────────────────────────────────────────────
 
     modifier onlyAdmin() { require(msg.sender == admin, "not admin"); _; }
+    modifier onlyScheduleKeeper() { require(msg.sender == scheduleKeeper || msg.sender == admin, "not schedule keeper"); _; }
 
     // ─── Constructor ───────────────────────────────────────────────────────
 
@@ -142,6 +152,7 @@ contract ChocoGateway {
         require(feeRecipientAddress != address(0), "bad fee recipient");
 
         admin            = msg.sender;
+        scheduleKeeper   = msg.sender;
         feeRecipient     = feeRecipientAddress;
         feeBps           = initialFeeBps;
         broker           = IMentoBroker(brokerAddress);
@@ -152,6 +163,7 @@ contract ChocoGateway {
         usdm             = IERC20(usdmAddress);
         ckes             = IERC20(ckesAddress);
         ledger           = IChocoLedger(ledgerAddress);
+        emit ScheduleKeeperUpdated(msg.sender);
     }
 
     // ─── Admin ─────────────────────────────────────────────────────────────
@@ -167,6 +179,12 @@ contract ChocoGateway {
     function transferAdmin(address newAdmin) external onlyAdmin {
         require(newAdmin != address(0), "bad admin");
         admin = newAdmin;
+    }
+
+    function setScheduleKeeper(address newScheduleKeeper) external onlyAdmin {
+        require(newScheduleKeeper != address(0), "bad keeper");
+        scheduleKeeper = newScheduleKeeper;
+        emit ScheduleKeeperUpdated(newScheduleKeeper);
     }
 
     // ─── Quote ─────────────────────────────────────────────────────────────
@@ -347,6 +365,63 @@ contract ChocoGateway {
     }
 
     // ─── Views ─────────────────────────────────────────────────────────────
+
+    /// @notice Keeper path for wallet-authorized scheduled plans.
+    ///         Pulls USDC from the schedule owner, swaps through Mento, and sends exact cKES
+    ///         to the recipient. The off-chain keeper records the SettlementReceipt after this
+    ///         transaction confirms so ChocoLedger remains the source of truth for history.
+    function executeScheduledExact(
+        uint256 scheduleId,
+        address payer,
+        address recipient,
+        uint256 usdcAmountIn,
+        uint256 ckesExactOut
+    ) external onlyScheduleKeeper returns (uint256 ckesAmountOut) {
+        if (usdcAmountIn == 0 || ckesExactOut == 0) revert ZeroAmount();
+        require(payer != address(0), "bad payer");
+        require(recipient != address(0), "bad recipient");
+
+        require(usdc.transferFrom(payer, address(this), usdcAmountIn), "usdc pull");
+
+        uint256 feeUsdc  = (usdcAmountIn * feeBps) / 10000;
+        uint256 swapUsdc = usdcAmountIn - feeUsdc;
+        if (feeUsdc > 0) require(usdc.transfer(feeRecipient, feeUsdc), "fee send");
+
+        require(usdc.approve(address(broker), swapUsdc), "usdc approve");
+        uint256 usdmQuote    = broker.getAmountOut(exchangeProvider, usdcToUsdmId, address(usdc), address(usdm), swapUsdc);
+        uint256 usdmReceived = broker.swapIn(
+            exchangeProvider, usdcToUsdmId,
+            address(usdc), address(usdm),
+            swapUsdc, (usdmQuote * 985) / 1000
+        );
+
+        require(usdm.approve(address(broker), usdmReceived), "usdm approve");
+        ckesAmountOut = broker.swapIn(
+            exchangeProvider, usdmToCkesId,
+            address(usdm), address(ckes),
+            usdmReceived, ckesExactOut
+        );
+        require(ckesAmountOut >= ckesExactOut, "swap below exact");
+
+        require(ckes.transfer(recipient, ckesExactOut), "ckes deliver");
+        uint256 surplus = ckesAmountOut - ckesExactOut;
+        if (surplus > 0) require(ckes.transfer(payer, surplus), "ckes surplus");
+
+        emit UsdcToCkesSwap(payer, usdcAmountIn, usdmReceived, ckesExactOut, ckesExactOut);
+
+        uint256 txId = ++txCount;
+        txs[txId] = TxRecord({
+            payer:     payer,
+            recipient: recipient,
+            usdcIn:    usdcAmountIn,
+            feeUsdc:   feeUsdc,
+            ckesOut:   ckesExactOut,
+            timestamp: uint64(block.timestamp)
+        });
+        txsByPayer[payer].push(txId);
+        emit SwapRecorded(txId, payer, recipient, usdcAmountIn, feeUsdc, ckesExactOut);
+        emit ScheduledSwapRecorded(scheduleId, payer, recipient, usdcAmountIn, ckesExactOut);
+    }
 
     function getTx(uint256 txId) external view returns (TxRecord memory) {
         require(txId > 0 && txId <= txCount, "no tx");

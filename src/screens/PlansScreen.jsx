@@ -6,16 +6,12 @@ import { getPlanExecutionState, getSimilarPlanIds, getTimingLabel } from "../uti
 const STATUS_FILTERS = [
   { id: "all", label: "All" },
   { id: "active", label: "Active" },
-  { id: "paused", label: "Paused" },
 ];
 
 function applyFilters(plans, statusFilter, query) {
   let result = plans;
   if (statusFilter === "active") {
     result = result.filter((p) => getPlanExecutionState(p).status !== "Paused");
-  }
-  if (statusFilter === "paused") {
-    result = result.filter((p) => getPlanExecutionState(p).status === "Paused");
   }
   if (query.trim()) {
     const q = query.trim().toLowerCase();

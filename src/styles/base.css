@@ -14,24 +14,25 @@
   --paper: #f8ead7;
   --paper-2: #ead5ba;
   --line: rgba(201, 144, 96, 0.22);
-  --line-soft: rgba(255, 241, 220, 0.13);
+  --line-soft: rgba(255, 241, 220, 0.10);
   --text: #fff8ee;
   --muted: #cbb59d;
   --surface: rgba(28, 16, 10, 0.7);
   --surface-strong: rgba(18, 9, 6, 0.76);
   --surface-soft: rgba(255, 241, 220, 0.08);
+  /* ── Option A: Premium Cocoa ────────────────────────────────────────── */
+  --app-bg: #140B07;
+  --surface-1: #21130D;
+  --surface-2: #2B1A11;
+  --celo-green: #476F47;
+  /* Pattern kept for brand moments (logo, splash, quick-info) only */
   --choco-pattern:
     linear-gradient(135deg, rgba(255, 241, 220, 0.055) 25%, transparent 25%) 0 0 / 44px 44px,
     linear-gradient(225deg, rgba(201, 144, 96, 0.05) 25%, transparent 25%) 0 0 / 44px 44px;
-  --choco-surface:
-    var(--choco-pattern),
-    linear-gradient(180deg, #2c1a11 0%, #1d100a 58%, #100806 100%);
-  --choco-sticky-surface:
-    var(--choco-pattern),
-    linear-gradient(180deg, #2c1a11 0%, #1d100a 100%);
-  --choco-deep-surface:
-    var(--choco-pattern),
-    linear-gradient(180deg, #100806 0%, #070403 100%);
+  /* App surfaces — solid, no pattern */
+  --choco-surface: #140B07;
+  --choco-sticky-surface: #21130D;
+  --choco-deep-surface: #21130D;
 }
 
 * {
@@ -94,7 +95,7 @@ a {
   height: min(900px, 100dvh);
   display: flex;
   flex-direction: column;
-  background: #030201;
+  background: var(--app-bg);
   border: 1px solid rgba(255, 241, 220, 0.08);
   overflow: hidden;
   box-shadow: 0 34px 90px rgba(0, 0, 0, 0.42);
@@ -109,7 +110,7 @@ a {
   align-items: center;
   padding: 0 22px;
   background: var(--choco-deep-surface);
-  border-bottom: 1px solid rgba(255, 241, 220, 0.06);
+  border-bottom: 1px solid rgba(255, 241, 220, 0.10);
 }
 
 .topbar::after {
@@ -120,7 +121,7 @@ a {
   bottom: -18px;
   height: 18px;
   pointer-events: none;
-  background: linear-gradient(180deg, rgba(18, 9, 6, 0.8), transparent);
+  background: linear-gradient(180deg, rgba(33, 19, 13, 0.8), transparent);
 }
 
 .icon-button {

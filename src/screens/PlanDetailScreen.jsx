@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { CalendarDays, Pause, Pencil, Play, Trash2 } from "lucide-react";
+import { CalendarDays, Pencil, Trash2 } from "lucide-react";
 import { DetailLine } from "../components/SheetPrimitives.jsx";
 import { getPlanExecutionState, getTimingLabel } from "../utils/planUtils.js";
 
-export function PlanDetailScreen({ plan, onHome, onHistory, onEdit, onTogglePause, onDelete, operationStatus = "", operationMessage = "", onClearError }) {
+export function PlanDetailScreen({ plan, onHome, onHistory, onEdit, onDelete, operationStatus = "", operationMessage = "", onClearError }) {
   const execution = getPlanExecutionState(plan);
   const isPaused = execution.status === "Paused";
   const isPending = operationStatus === "pending";
@@ -58,7 +58,7 @@ export function PlanDetailScreen({ plan, onHome, onHistory, onEdit, onTogglePaus
           label="Execution"
           value={
             isPaused
-              ? "Paused until you resume"
+              ? "Paused on-chain"
               : execution.status === "Run recorded"
                 ? "This month is recorded in History"
                 : "Auto-runs on the scheduled day"
@@ -69,16 +69,12 @@ export function PlanDetailScreen({ plan, onHome, onHistory, onEdit, onTogglePaus
 
       <div className="notice compact notice-hint">
         {isPaused
-          ? "This plan stays on-chain but Choco will not run it while paused."
-          : "Your wallet authorized this plan once. Funds stay in your wallet until Choco runs the scheduled transfer."}
+          ? "This plan is paused on-chain. Delete it or create a new plan when you are ready."
+          : "Your wallet authorized this plan once. Funds stay in your wallet until Choco runs the scheduled transfer. Delete the plan to stop future runs."}
       </div>
 
       <div className="plan-actions">
         <button type="button" disabled={isPending} onClick={onEdit}><Pencil size={18} />Edit</button>
-        <button className={isPaused ? "" : "pause-action"} type="button" disabled={isPending} onClick={onTogglePause}>
-          {isPending ? <Pause size={18} /> : isPaused ? <Play size={18} /> : <Pause size={18} />}
-          {isPending ? "Working…" : isPaused ? "Resume" : "Pause"}
-        </button>
         <button className="danger-action" type="button" disabled={isPending} onClick={onDelete}><Trash2 size={18} />Delete</button>
       </div>
     </div>

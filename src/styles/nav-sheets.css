@@ -6,8 +6,8 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 6px;
   border-radius: 20px;
-  border: 1px solid rgba(255, 241, 220, 0.12);
-  background: var(--choco-deep-surface);
+  border: 1px solid rgba(255, 241, 220, 0.10);
+  background: var(--surface-1);
 }
 
 .plan-screen .primary-cta {
@@ -15,6 +15,7 @@
 }
 
 .bottom-nav button {
+  position: relative;
   min-height: 58px;
   display: grid;
   place-items: center;
@@ -27,8 +28,18 @@
 }
 
 .bottom-nav button.active {
-  background: rgba(246, 232, 212, 0.12);
+  background: rgba(255, 241, 220, 0.08);
   color: var(--cream);
+}
+
+.bottom-nav button.active::after {
+  content: "";
+  position: absolute;
+  bottom: 7px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--latte-500);
 }
 
 .quick-info-overlay {
@@ -1141,7 +1152,7 @@
   padding: 4px 0 10px;
   border-bottom: 1px solid var(--line-soft);
   margin-bottom: 2px;
-  background: var(--choco-sticky-surface);
+  background: var(--surface-1);
 }
 
 /* Hero + filters wrapper — sticks as one unit (Plans, History, Home) */
@@ -1150,7 +1161,7 @@
   top: 0;
   z-index: 5;
   margin-bottom: 4px;
-  background: var(--choco-sticky-surface);
+  background: var(--surface-1);
 }
 
 .screen-header::after {
@@ -1161,7 +1172,7 @@
   bottom: -18px;
   height: 18px;
   pointer-events: none;
-  background: linear-gradient(180deg, rgba(29, 16, 10, 0.86), transparent);
+  background: linear-gradient(180deg, rgba(33, 19, 13, 0.86), transparent);
 }
 
 .screen-header .screen-hero {

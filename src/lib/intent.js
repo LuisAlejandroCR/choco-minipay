@@ -1,5 +1,6 @@
 import { APP_CONFIG } from "./app-config.js";
 import { buildAgentChocoIntent, formatDay, normalizeCommand } from "./agent-choco.js";
+import { nextLocalMonthlyRun } from "./schedule-time.js";
 
 export const DEFAULT_COMMAND = "";
 export const DEFAULT_KES_PER_USDC = APP_CONFIG.transfer.kesPerUsdc;
@@ -8,16 +9,7 @@ export const MONTH_SECONDS = 30 * 24 * 60 * 60;
 export { formatDay, normalizeCommand };
 
 export function nextMonthlyRun(dayOfMonth, from = new Date()) {
-  const now = new Date(from);
-  const next = new Date(now);
-  next.setUTCSeconds(0, 0);
-  next.setUTCHours(APP_CONFIG.transfer.defaultScheduleHour, 0, 0, 0);
-  next.setUTCDate(dayOfMonth);
-  if (next.getTime() <= now.getTime()) {
-    next.setUTCMonth(next.getUTCMonth() + 1);
-    next.setUTCDate(dayOfMonth);
-  }
-  return Math.floor(next.getTime() / 1000);
+  return nextLocalMonthlyRun(dayOfMonth, from);
 }
 
 export function estimateUsdcForKes(kesAmount, kesPerUsdc = DEFAULT_KES_PER_USDC) {
