@@ -1,9 +1,10 @@
 import { DEFAULT_COMMAND, estimateUsdcForKes } from "../lib/intent.js";
 import { APP_CONFIG } from "../lib/app-config.js";
+import { formatScheduleLabel, formatScheduleTimeFromTimestamp } from "../lib/schedule-time.js";
 
 export const CHOCO_SCENARIO = {
   senderAddress: "",
-  scheduledTimeLabel: "9:00 AM",
+  scheduledTimeLabel: formatScheduleTimeFromTimestamp(),
   defaultAmountKes: 0,
   kesPerUsdc: APP_CONFIG.transfer.kesPerUsdc,
   scheduledTimestamp: "Next 1st - 9:00 AM Local",
@@ -35,8 +36,8 @@ export function formatRouteEstimate(amountKes, sourceAsset = "USDC", kesPerUsdc 
 
 export function getScheduleLabelForIntent(intent) {
   if (intent.deliveryMode === "now") return "Send once now";
-  if (intent.cadence === "weekly") return `Every ${intent.dayLabel} - ${CHOCO_SCENARIO.scheduledTimeLabel}`;
-  return `Every ${intent.dayLabel} - ${CHOCO_SCENARIO.scheduledTimeLabel}`;
+  if (intent.cadence === "weekly") return formatScheduleLabel(intent.dayLabel, intent.firstRunAt);
+  return formatScheduleLabel(intent.dayLabel, intent.firstRunAt);
 }
 
 export function getNextDateForIntent(intent) {

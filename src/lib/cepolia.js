@@ -211,7 +211,7 @@ export async function summariseTransfer({ account, recipient, intent, walletRead
 
   return {
     recipientReceives: ckesFloat,
-    recipientReceivesLabel: ckesFloat ? `${ckesFloat.toLocaleString("en-US", { maximumFractionDigits: 2 })} cKES` : "",
+    recipientReceivesLabel: ckesFloat ? `${ckesFloat.toLocaleString("en-US", { maximumFractionDigits: 2 })} KESm` : "",
     walletPays: usdcRequested,
     walletPaysLabel: `${usdcRequested.toLocaleString("en-US", { maximumFractionDigits: 2 })} USDC`,
     networkFeeLabel: feeLabel,

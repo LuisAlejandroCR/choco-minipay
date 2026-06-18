@@ -91,7 +91,7 @@ export function useTransfer({
 
     setStatus(wallet.address ? "review" : "idle");
     setMessage(wallet.address ? "Review the action before signing." : "Connect your wallet so Choco can check stablecoin funds.");
-    onNavigate("processing");
+    onNavigate("review");
   }
 
   function commitReceipt(plan, hash, approveHash, recipientAddress, reviewMode) {
@@ -111,9 +111,8 @@ export function useTransfer({
       onNavigate("plans");
     } else {
       onTransactionCreated(transaction.id);
-      onNavigate("receiptDetail");
+      onNavigate("history");
     }
-    setShowSuccessModal(true);
   }
 
   async function confirmAction(reviewPlan, recipientAddress, reviewMode) {
