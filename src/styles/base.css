@@ -20,6 +20,18 @@
   --surface: rgba(28, 16, 10, 0.7);
   --surface-strong: rgba(18, 9, 6, 0.76);
   --surface-soft: rgba(255, 241, 220, 0.08);
+  --choco-pattern:
+    linear-gradient(135deg, rgba(255, 241, 220, 0.055) 25%, transparent 25%) 0 0 / 44px 44px,
+    linear-gradient(225deg, rgba(201, 144, 96, 0.05) 25%, transparent 25%) 0 0 / 44px 44px;
+  --choco-surface:
+    var(--choco-pattern),
+    linear-gradient(180deg, #2c1a11 0%, #1d100a 58%, #100806 100%);
+  --choco-sticky-surface:
+    var(--choco-pattern),
+    linear-gradient(180deg, #2c1a11 0%, #1d100a 100%);
+  --choco-deep-surface:
+    var(--choco-pattern),
+    linear-gradient(180deg, #100806 0%, #070403 100%);
 }
 
 * {
@@ -96,12 +108,8 @@ a {
   grid-template-columns: 74px 1fr 112px;
   align-items: center;
   padding: 0 22px;
-  background:
-    linear-gradient(135deg, rgba(255, 241, 220, 0.035) 25%, transparent 25%) 0 0 / 44px 44px,
-    linear-gradient(225deg, rgba(201, 144, 96, 0.03) 25%, transparent 25%) 0 0 / 44px 44px,
-    linear-gradient(180deg, rgba(5, 3, 2, 0.92), rgba(18, 9, 6, 0.72));
+  background: var(--choco-deep-surface);
   border-bottom: 1px solid rgba(255, 241, 220, 0.06);
-  backdrop-filter: blur(14px);
 }
 
 .topbar::after {
@@ -112,7 +120,7 @@ a {
   bottom: -18px;
   height: 18px;
   pointer-events: none;
-  background: linear-gradient(180deg, rgba(18, 9, 6, 0.42), transparent);
+  background: linear-gradient(180deg, rgba(18, 9, 6, 0.8), transparent);
 }
 
 .icon-button {
@@ -170,10 +178,7 @@ a {
   min-height: 0;
   padding: 24px 22px calc(24px + env(safe-area-inset-bottom));
   border-radius: 28px 28px 0 0;
-  background:
-    linear-gradient(135deg, rgba(255, 241, 220, 0.055) 25%, transparent 25%) 0 0 / 44px 44px,
-    linear-gradient(225deg, rgba(201, 144, 96, 0.05) 25%, transparent 25%) 0 0 / 44px 44px,
-    linear-gradient(180deg, #2a1a11 0%, var(--cocoa-900) 56%, var(--cocoa-950) 100%);
+  background: var(--choco-surface);
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;

@@ -753,7 +753,8 @@
 
 .contact-resolved-info small {
   font-family: monospace;
-  font-size: 12px;
+  font-size: 14px;
+  font-weight: 800;
   color: var(--cocoa-500);
   white-space: nowrap;
   overflow: hidden;

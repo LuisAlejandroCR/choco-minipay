@@ -131,7 +131,6 @@ export function ReviewScreen({
             <div className="contact-resolved-row">
               <div className="contact-resolved-info">
                 <span>Recipient contact</span>
-                <b>{resolvedContact.label}</b>
                 <small>{shortAddr(resolvedContact.address)}</small>
               </div>
               <div className="contact-resolved-actions">
@@ -140,7 +139,7 @@ export function ReviewScreen({
                   className="contact-select-pill"
                   onClick={() => { setPendingDel(false); onPickContact(); }}
                 >
-                  Select
+                  Change
                 </button>
                 <button
                   type="button"

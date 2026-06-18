@@ -6,7 +6,8 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 6px;
   border-radius: 20px;
-  background: linear-gradient(180deg, #2a1a11 0%, var(--cocoa-900) 100%);
+  border: 1px solid rgba(255, 241, 220, 0.12);
+  background: var(--choco-deep-surface);
 }
 
 .plan-screen .primary-cta {
@@ -1140,11 +1141,7 @@
   padding: 4px 0 10px;
   border-bottom: 1px solid var(--line-soft);
   margin-bottom: 2px;
-  background:
-    linear-gradient(135deg, rgba(255, 241, 220, 0.055) 25%, transparent 25%) 0 0 / 44px 44px,
-    linear-gradient(225deg, rgba(201, 144, 96, 0.05) 25%, transparent 25%) 0 0 / 44px 44px,
-    linear-gradient(180deg, rgba(44, 26, 17, 0.9), rgba(29, 16, 10, 0.74));
-  backdrop-filter: blur(12px);
+  background: var(--choco-sticky-surface);
 }
 
 /* Hero + filters wrapper — sticks as one unit (Plans, History, Home) */
@@ -1153,11 +1150,7 @@
   top: 0;
   z-index: 5;
   margin-bottom: 4px;
-  background:
-    linear-gradient(135deg, rgba(255, 241, 220, 0.055) 25%, transparent 25%) 0 0 / 44px 44px,
-    linear-gradient(225deg, rgba(201, 144, 96, 0.05) 25%, transparent 25%) 0 0 / 44px 44px,
-    linear-gradient(180deg, rgba(44, 26, 17, 0.92), rgba(29, 16, 10, 0.78));
-  backdrop-filter: blur(12px);
+  background: var(--choco-sticky-surface);
 }
 
 .screen-header::after {
@@ -1168,7 +1161,7 @@
   bottom: -18px;
   height: 18px;
   pointer-events: none;
-  background: linear-gradient(180deg, rgba(29, 16, 10, 0.46), transparent);
+  background: linear-gradient(180deg, rgba(29, 16, 10, 0.86), transparent);
 }
 
 .screen-header .screen-hero {
