@@ -1,0 +1,190 @@
+:root {
+  color-scheme: dark;
+  --black: #070403;
+  --cocoa-950: #120906;
+  --cocoa-900: #1b0f0a;
+  --cocoa-850: #24150e;
+  --cocoa-800: #2d1b12;
+  --cocoa-700: #442918;
+  --cocoa-600: #664027;
+  --cocoa-500: #805438;
+  --latte-500: #c99060;
+  --latte-300: #e6c5a1;
+  --cream: #fff1dc;
+  --paper: #f8ead7;
+  --paper-2: #ead5ba;
+  --line: rgba(201, 144, 96, 0.22);
+  --line-soft: rgba(255, 241, 220, 0.13);
+  --text: #fff8ee;
+  --muted: #cbb59d;
+  --surface: rgba(28, 16, 10, 0.7);
+  --surface-strong: rgba(18, 9, 6, 0.76);
+  --surface-soft: rgba(255, 241, 220, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--black);
+  color: var(--text);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  border: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.map-preload {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.stage {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  background:
+    radial-gradient(circle at 18% 16%, rgba(201, 144, 96, 0.1), transparent 32%),
+    radial-gradient(circle at 80% 70%, rgba(102, 64, 39, 0.26), transparent 34%),
+    var(--black);
+}
+
+.miniapp {
+  width: 100%;
+  max-width: 430px;
+  flex: 0 1 430px;
+  height: min(900px, 100dvh);
+  display: flex;
+  flex-direction: column;
+  background: #030201;
+  border: 1px solid rgba(255, 241, 220, 0.08);
+  overflow: hidden;
+  box-shadow: 0 34px 90px rgba(0, 0, 0, 0.42);
+}
+
+.topbar {
+  position: relative;
+  z-index: 8;
+  height: 76px;
+  display: grid;
+  grid-template-columns: 74px 1fr 112px;
+  align-items: center;
+  padding: 0 22px;
+  background:
+    linear-gradient(135deg, rgba(255, 241, 220, 0.035) 25%, transparent 25%) 0 0 / 44px 44px,
+    linear-gradient(225deg, rgba(201, 144, 96, 0.03) 25%, transparent 25%) 0 0 / 44px 44px,
+    linear-gradient(180deg, rgba(5, 3, 2, 0.92), rgba(18, 9, 6, 0.72));
+  border-bottom: 1px solid rgba(255, 241, 220, 0.06);
+  backdrop-filter: blur(14px);
+}
+
+.topbar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -18px;
+  height: 18px;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(18, 9, 6, 0.42), transparent);
+}
+
+.icon-button {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  color: var(--cream);
+  cursor: pointer;
+}
+
+.app-title {
+  text-align: center;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.topbar-actions {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-icon {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(246, 232, 212, 0.14);
+  border-radius: 50%;
+  background: rgba(246, 232, 212, 0.08);
+  color: var(--cream);
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+
+.header-icon.future::after {
+  content: "";
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  width: 7px;
+  height: 7px;
+  border: 2px solid #000;
+  border-radius: 50%;
+  background: var(--latte-500);
+}
+
+.app-panel {
+  flex: 1;
+  min-height: 0;
+  padding: 24px 22px calc(24px + env(safe-area-inset-bottom));
+  border-radius: 28px 28px 0 0;
+  background:
+    linear-gradient(135deg, rgba(255, 241, 220, 0.055) 25%, transparent 25%) 0 0 / 44px 44px,
+    linear-gradient(225deg, rgba(201, 144, 96, 0.05) 25%, transparent 25%) 0 0 / 44px 44px,
+    linear-gradient(180deg, #2a1a11 0%, var(--cocoa-900) 56%, var(--cocoa-950) 100%);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  position: relative;
+}
+
+.screen {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
