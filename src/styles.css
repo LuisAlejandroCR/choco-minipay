@@ -1869,6 +1869,7 @@ a {
   grid-template-columns: repeat(3, 1fr);
   gap: 6px;
   border-radius: 20px;
+  background: linear-gradient(180deg, #2a1a11 0%, var(--cocoa-900) 100%);
 }
 
 .plan-screen .primary-cta {
@@ -2191,7 +2192,7 @@ a {
 .demo-overlay {
   position: absolute;
   inset: 0;
-  z-index: 4;
+  z-index: 10;
   display: grid;
   align-items: end;
   padding: 18px;
@@ -3002,6 +3003,7 @@ a {
   padding: 4px 0 10px;
   border-bottom: 1px solid var(--line-soft);
   margin-bottom: 2px;
+  background: linear-gradient(180deg, #2a1a11 0%, var(--cocoa-900) 100%);
 }
 
 /* Hero + filters wrapper — sticks as one unit (Plans, History, Home) */
@@ -3010,10 +3012,12 @@ a {
   top: 0;
   z-index: 5;
   margin-bottom: 4px;
+  background: linear-gradient(180deg, #2a1a11 0%, var(--cocoa-900) 100%);
 }
 
 .screen-header .screen-hero {
   position: static;
+  background: transparent;
 }
 
 .screen-hero-label {
@@ -4717,6 +4721,7 @@ a {
   padding: 4px 0 22px;
   display: grid;
   gap: 5px;
+  background: linear-gradient(180deg, #2a1a11 0%, var(--cocoa-900) 100%);
 }
 
 .rds-hero-top {
