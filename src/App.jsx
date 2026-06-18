@@ -210,6 +210,12 @@ export default function App() {
     void refreshBalances(wallet.address);
   }, [wallet.address]);
 
+  // When buildPlan lands on "review" and a duplicate exists, redirect to the guard screen.
+  useEffect(() => {
+    if (visibleScreen !== "review" || reviewMode === "update" || !duplicateAttempt) return;
+    goTo("duplicateGuard");
+  }, [visibleScreen, duplicateAttempt, reviewMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // --- Event handlers ---
   async function connectWallet() {
     appStatus.setStatus("pending");

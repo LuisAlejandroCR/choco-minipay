@@ -1,5 +1,6 @@
 import { decodeEventLog, formatUnits, isAddress } from "viem";
 import { APP_CONFIG } from "../lib/app-config.js";
+import { formatScheduleLabel } from "../lib/schedule-time.js";
 import { ADDRESSES, makePublicClient, shortAddress } from "./client.js";
 import { ATTEMPT_EVENT_ABI, REGISTRY_EVENTS_ABI, SWAP_EVENT_ABI, TRANSFER_EVENT_ABI } from "./abis.js";
 
@@ -74,13 +75,6 @@ function formatDay(day) {
   if (value === 2) return "2nd";
   if (value === 3) return "3rd";
   return `${value}th`;
-}
-
-function scheduleTimeLabel() {
-  const hour = APP_CONFIG.transfer.defaultScheduleHour;
-  const period = hour < 12 ? "AM" : "PM";
-  const display = hour % 12 === 0 ? 12 : hour % 12;
-  return `${display}:00 ${period}`;
 }
 
 function formatChainDate(seconds) {
@@ -205,6 +199,7 @@ function logOrder(log) {
 function mapScheduleToPlan(log, lastSettlementAt = 0, active = true) {
   const a = log.args;
   const amountKes = Math.round(Number(formatUnits(a.destinationAmount, 18)));
+  const dayLabel = formatDay(a.dayOfMonth);
   return {
     id: `schedule-${a.id}`,
     onchainId: Number(a.id),
@@ -216,8 +211,8 @@ function mapScheduleToPlan(log, lastSettlementAt = 0, active = true) {
     asset: APP_CONFIG.assets.destination,
     payAsset: isCkesAsset(a.sourceAsset) ? APP_CONFIG.assets.destination : APP_CONFIG.assets.source,
     corridor: APP_CONFIG.transfer.corridor,
-    schedule: `Every ${formatDay(a.dayOfMonth)} - ${scheduleTimeLabel()}`,
-    dayLabel: formatDay(a.dayOfMonth),
+    schedule: formatScheduleLabel(dayLabel, a.firstRunAt),
+    dayLabel,
     dayOfMonth: Number(a.dayOfMonth),
     nextDate: formatDay(a.dayOfMonth),
     firstRunAt: Number(a.firstRunAt || 0),
@@ -241,7 +236,7 @@ function mapSettlementToMovement(log, schedule, timestamp) {
     amount: amountKes.toLocaleString("en-US"),
     asset: APP_CONFIG.assets.destination,
     payAsset: schedule && isCkesAsset(schedule.sourceAsset) ? APP_CONFIG.assets.destination : APP_CONFIG.assets.source,
-    schedule: schedule ? `Every ${formatDay(schedule.dayOfMonth)} - ${scheduleTimeLabel()}` : "Scheduled",
+    schedule: schedule ? formatScheduleLabel(formatDay(schedule.dayOfMonth), schedule.firstRunAt) : "Scheduled",
     date: formatChainDate(timestamp),
     status: a.success ? "Sent" : "Failed",
     hash: log.transactionHash,
@@ -436,7 +431,7 @@ async function readSendNowHistory(publicClient, owner, fromBlock) {
         from: swapLog ? swapLog.args.payer : transferLog.args.from,
         to: tailAddress(transferLog.args.to),
         toAddress: transferLog.args.to,
-        routeEstimate: swapLog ? `${usdcIn} USDC -> ${amountKes} cKES via Mento` : "",
+        routeEstimate: swapLog ? `${usdcIn} USDC -> ${amountKes} KESm via Mento` : "",
         sortKey: timestamp || 0,
       };
     })
@@ -510,7 +505,7 @@ async function readSendNowHistoryFromReceipts(publicClient, owner, fromBlock) {
         from: swapLog ? swapLog.args.payer : transferLog.args.from,
         to: tailAddress(transferLog.args.to),
         toAddress: transferLog.args.to,
-        routeEstimate: swapLog ? `${usdcIn} USDC -> ${amountKes} cKES via Mento` : "",
+        routeEstimate: swapLog ? `${usdcIn} USDC -> ${amountKes} KESm via Mento` : "",
         sortKey: timestamp || 0,
       };
     })
