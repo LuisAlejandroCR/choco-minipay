@@ -33,6 +33,10 @@ off-chain except contacts the user explicitly saves.
    The keeper/executor must run due plans automatically and emit `SettlementReceipt` so every
    user-visible movement is registered on ChocoLedger.
 
+The included Vercel worker at `/api/run-due-schedules` runs the same keeper logic as
+`npm run settle:due -- --send`. It should hold only the keeper key, never user funds or user
+private keys.
+
 ## On-chain contracts
 
 | Contract | Purpose |
@@ -123,6 +127,11 @@ VITE_MENTO_USDM_CKES_ID=...
 # Supabase (optional — contact persistence only)
 VITE_SUPABASE_URL=https://xxx.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJ...
+
+# Schedules and worker
+VITE_DEFAULT_SCHEDULE_TIME=04:00
+KEEPER_KEY=0x...       # Vercel server-only secret
+CRON_SECRET=...        # Vercel server-only secret
 ```
 
 See `docs/deployment.md` for the full Vercel variable list and deploy order.

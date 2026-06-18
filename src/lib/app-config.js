@@ -13,6 +13,19 @@ function cleanMainnetLabel(value, fallback) {
   return configuredChainId === 42220 ? label.replace(/\s*testnet\s*/gi, " ").replace(/\s+/g, " ").trim() : label;
 }
 
+function parseScheduleTime(value) {
+  const raw = String(value || "").trim();
+  const match = raw.match(/^(\d{1,2})(?::(\d{1,2}))?$/);
+  if (!match) return null;
+  const hour = Number(match[1]);
+  const minute = Number(match[2] || 0);
+  if (!Number.isInteger(hour) || hour < 0 || hour > 23) return null;
+  if (!Number.isInteger(minute) || minute < 0 || minute > 59) return null;
+  return { hour, minute };
+}
+
+const defaultScheduleTime = parseScheduleTime(env.VITE_DEFAULT_SCHEDULE_TIME || env.VITE_DEFAULT_SCHEDULE_HOUR);
+
 export const APP_CONFIG = {
   appName: "Choco",
   network: {
@@ -68,7 +81,8 @@ export const APP_CONFIG = {
     corridor: env.VITE_CORRIDOR_LABEL || "US to Kenya",
     destinationCountry: env.VITE_DESTINATION_COUNTRY || "Kenya",
     kesPerUsdc: Number(env.VITE_KES_PER_USDC || 129.39),
-    defaultScheduleHour: Number(env.VITE_DEFAULT_SCHEDULE_HOUR || 4),
+    defaultScheduleHour: defaultScheduleTime?.hour ?? 4,
+    defaultScheduleMinute: defaultScheduleTime?.minute ?? Number(env.VITE_DEFAULT_SCHEDULE_MINUTE || 0),
     minimumConfidence: Number(env.VITE_AGENT_MIN_CONFIDENCE || 0.75),
     networkFeeLabel: env.VITE_NETWORK_FEE_LABEL || "Network fee",
     retryPolicy: env.VITE_RETRY_POLICY || "3 attempts",
