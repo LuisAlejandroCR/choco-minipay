@@ -61,6 +61,21 @@ export function useChocoLedger(address) {
     void refresh();
   }, [refresh]);
 
+  useEffect(() => {
+    if (!address) return undefined;
+    const refreshOnReturn = () => {
+      if (document.visibilityState && document.visibilityState !== "visible") return;
+      clearLedgerCache();
+      void refresh();
+    };
+    document.addEventListener("visibilitychange", refreshOnReturn);
+    window.addEventListener("focus", refreshOnReturn);
+    return () => {
+      document.removeEventListener("visibilitychange", refreshOnReturn);
+      window.removeEventListener("focus", refreshOnReturn);
+    };
+  }, [address, refresh]);
+
   // Optimistically patch a plan in local state — call after a successful on-chain mutation
   // so the UI updates instantly without waiting for the full ledger re-read.
   const patchPlan = useCallback((onchainId, updates) => {
@@ -75,9 +90,9 @@ export function useChocoLedger(address) {
   }, []);
 
   // Invalidate the module-level cache then refresh so the next read goes to the chain.
-  const refreshFresh = useCallback(() => {
+  const refreshFresh = useCallback(async () => {
     clearLedgerCache();
-    void refresh();
+    await refresh();
   }, [refresh]);
 
   return { plans, transactions, loading, error, refresh, refreshFresh, patchPlan, removePlan };

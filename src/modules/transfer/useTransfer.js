@@ -143,9 +143,15 @@ export function useTransfer({
         ? "Money sent from your wallet. Receipt filed."
         : "Monthly plan authorized. Choco can auto-run it on the scheduled day.");
 
+      if (reviewPlan.deliveryMode === "schedule") {
+        setMessage("Plan authorized. Syncing it from chain...");
+        await onRefreshLedger();
+      }
+
       commitReceipt(reviewPlan, result.hash, result.approveHash || "", recipientAddress, reviewMode);
       onRefreshBalances(address).catch(() => {});
-      onRefreshLedger().catch(() => {});
+      window.setTimeout(() => { onRefreshLedger().catch(() => {}); }, 3000);
+      window.setTimeout(() => { onRefreshLedger().catch(() => {}); }, 8000);
     } catch (error) {
       setStatus("error");
       setMessage(humaniseTransferError(error));
