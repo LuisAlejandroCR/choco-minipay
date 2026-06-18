@@ -20,7 +20,7 @@
   --surface: rgba(28, 16, 10, 0.7);
   --surface-strong: rgba(18, 9, 6, 0.76);
   --surface-soft: rgba(255, 241, 220, 0.08);
-  /* ── Option A: Premium Cocoa ────────────────────────────────────────── */
+  /* ── Dark shell (topbar, nav, sticky headers) ───────────────────────── */
   --app-bg: #140B07;
   --surface-1: #21130D;
   --surface-2: #2B1A11;
@@ -179,11 +179,16 @@ a {
   min-height: 0;
   padding: 24px 22px calc(24px + env(safe-area-inset-bottom));
   border-radius: 28px 28px 0 0;
-  background: var(--choco-surface);
+  background: #F6E8D2;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   position: relative;
+  /* Option B: Soft Vanilla Wallet — re-scope vars for light panel */
+  color: #1B0F0A;
+  --text: #1B0F0A;
+  --muted: rgba(27, 15, 10, 0.55);
+  --line-soft: rgba(27, 15, 10, 0.12);
 }
 
 .screen {
@@ -193,4 +198,95 @@ a {
   min-height: 100%;
   display: flex;
   flex-direction: column;
+}
+
+/* ── Option B: restore dark vars inside sticky dark sections ────────── */
+.app-panel .screen-hero,
+.app-panel .screen-header {
+  color: var(--cream);
+  --muted: #cbb59d;
+  --line-soft: rgba(255, 241, 220, 0.10);
+}
+
+/* Section heading on vanilla panel */
+.app-panel .section-heading button {
+  background: rgba(27, 15, 10, 0.08);
+  color: var(--text);
+}
+
+/* Plan rows on vanilla panel */
+.app-panel .plan-row {
+  background: rgba(27, 15, 10, 0.07);
+  color: var(--text);
+}
+
+.app-panel .plan-row-icon {
+  background: rgba(27, 15, 10, 0.1);
+  color: var(--latte-500);
+}
+
+.app-panel .plan-row small {
+  background: rgba(27, 15, 10, 0.1);
+  color: var(--cocoa-700);
+}
+
+.app-panel .plan-row small.warning {
+  background: rgba(201, 144, 96, 0.18);
+  color: var(--cocoa-700);
+}
+
+.app-panel .plan-alert.plan-info {
+  border-color: rgba(27, 15, 10, 0.14);
+  background: rgba(27, 15, 10, 0.055);
+}
+
+/* Transaction rows on vanilla panel */
+.app-panel .transaction-row {
+  background: rgba(27, 15, 10, 0.07);
+  color: var(--text);
+}
+
+.app-panel .transaction-row small {
+  color: var(--cocoa-600);
+}
+
+/* History dots and amounts on vanilla panel */
+.app-panel .tx-dot.sent {
+  background: rgba(27, 15, 10, 0.1);
+  color: var(--cocoa-700);
+}
+
+.app-panel .tx-dot.plan {
+  background: rgba(27, 15, 10, 0.06);
+  color: var(--cocoa-500);
+}
+
+.app-panel .tx-amount.sent {
+  color: var(--text);
+}
+
+/* Empty states on vanilla panel */
+.app-panel .empty-plans {
+  background: rgba(27, 15, 10, 0.06);
+}
+
+.app-panel .empty-plans h2 {
+  color: var(--text);
+}
+
+.app-panel .empty-chain-hint {
+  color: rgba(27, 15, 10, 0.65);
+}
+
+/* Action buttons on vanilla panel */
+.app-panel .plan-actions button,
+.app-panel .secondary-dark {
+  background: rgba(27, 15, 10, 0.08);
+  color: var(--text);
+}
+
+.app-panel .plan-actions .danger-action,
+.app-panel .danger-cta {
+  background: var(--cocoa-700);
+  color: var(--cream);
 }
