@@ -1,0 +1,1100 @@
+/* ─── Contact Picker ─────────────────────────────────────────────────── */
+
+.contact-picker-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(10, 6, 3, 0.64);
+  border-radius: 28px 28px 0 0;
+}
+
+.contact-picker-sheet {
+  width: 100%;
+  max-height: 72%;
+  overflow-y: auto;
+  padding: 20px 18px 28px;
+  border-radius: 24px 24px 0 0;
+  background: var(--paper);
+  color: var(--cocoa-900);
+}
+
+.contact-picker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.contact-picker-head > span {
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cocoa-500);
+}
+
+.contact-picker-close {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(91, 55, 31, 0.1);
+  color: var(--cocoa-700);
+  cursor: pointer;
+}
+
+.contact-picker-status {
+  margin: 12px 0;
+  color: var(--cocoa-500);
+  font-size: 13px;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.contact-picker-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.contact-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(91, 55, 31, 0.06);
+  border: 1px solid rgba(91, 55, 31, 0.09);
+  transition: border-color 0.15s;
+}
+
+.contact-picker-row.pending-delete {
+  border-color: rgba(220, 38, 38, 0.28);
+  background: rgba(220, 38, 38, 0.04);
+}
+
+.contact-picker-select {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+.contact-picker-name {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--cocoa-800);
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.contact-picker-addr {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--cocoa-500);
+  font-family: "SF Mono", "Fira Mono", ui-monospace, monospace;
+  display: block;
+  letter-spacing: 0.02em;
+}
+
+.contact-picker-reason {
+  font-size: 11px;
+  color: var(--cocoa-600);
+  display: block;
+  margin-top: 2px;
+}
+
+.contact-picker-row-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.cp-icon {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: rgba(91, 55, 31, 0.09);
+  color: var(--cocoa-600);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.cp-icon-danger {
+  background: rgba(220, 38, 38, 0.12);
+  color: #c53030;
+}
+
+/* Edit mode */
+.contact-picker-edit-mode {
+  flex: 1;
+  display: grid;
+  gap: 8px;
+}
+
+.contact-picker-input {
+  width: 100%;
+  height: 40px;
+  padding: 0 10px;
+  border: 1px solid rgba(91, 55, 31, 0.18);
+  border-radius: 10px;
+  background: rgba(246, 232, 212, 0.45);
+  color: var(--cocoa-900);
+  font-size: 12px;
+  font-family: "SF Mono", "Fira Mono", ui-monospace, monospace;
+}
+
+.contact-picker-edit-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.cp-btn-save {
+  min-height: 36px;
+  border-radius: 999px;
+  background: var(--cocoa-700);
+  color: var(--cream);
+  font-size: 13px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.cp-btn-save:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.cp-btn-cancel {
+  min-height: 36px;
+  border-radius: 999px;
+  border: 1px solid rgba(91, 55, 31, 0.18);
+  background: transparent;
+  color: var(--cocoa-600);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ─── Use button: disabled state when no valid address ───────────────── */
+.wallet-use-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  background: rgba(246, 232, 212, 0.3);
+  color: var(--cocoa-600);
+}
+
+@media (max-width: 900px) {
+  .stage {
+    display: block;
+    padding: 0;
+    background: #000;
+  }
+
+  .miniapp {
+    width: 100%;
+    min-height: 100dvh;
+    border: 0;
+    box-shadow: none;
+  }
+
+}
+
+@media (max-width: 390px) {
+  .topbar {
+    grid-template-columns: 58px 1fr 100px;
+    padding: 0 16px;
+  }
+
+  .topbar-actions {
+    gap: 6px;
+  }
+
+  .header-icon {
+    width: 39px;
+    height: 39px;
+  }
+
+  .app-panel {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .balance-copy strong {
+    font-size: 56px;
+  }
+
+  .asset-row h2 {
+    font-size: 19px;
+  }
+
+  .composer-box {
+    grid-template-columns: 1fr 44px;
+  }
+}
+
+.balance-summary-card b {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.receipt-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #267456;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.agent-intent-card,
+.wallet-contact-hint,
+.reference-card {
+  width: calc(100% - 48px);
+  margin: 18px 24px 0;
+  border: 1px solid rgba(255, 239, 215, 0.14);
+  border-radius: 8px;
+  background: rgba(10, 5, 3, 0.36);
+  color: #f6ddbd;
+}
+
+.agent-intent-card {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+}
+
+.agent-intent-card.ready {
+  border-color: rgba(80, 190, 124, 0.45);
+}
+
+.agent-intent-card div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.agent-intent-card span,
+.reference-card span {
+  color: rgba(246, 221, 189, 0.82);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.agent-intent-card b,
+.reference-card b {
+  color: #fff7eb;
+  font-size: 14px;
+}
+
+.agent-intent-card p {
+  margin: 0;
+  color: rgba(255, 239, 215, 0.84);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.agent-intent-card small {
+  color: rgba(255, 239, 215, 0.62);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.wallet-contact-hint {
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.compact-confirmation-head {
+  margin-bottom: 20px;
+}
+
+.confirmation-grid {
+  margin-top: 0;
+}
+
+.confirmation-grid .summary-card b {
+  display: block;
+  font-size: 17px;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.reference-card {
+  width: 100%;
+  margin: 14px 0 0;
+  padding: 14px;
+  background: rgba(255, 247, 235, 0.72);
+  color: var(--cocoa-700);
+}
+
+.reference-card b {
+  display: block;
+  margin-top: 6px;
+  color: var(--cocoa-900);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.secondary-heading {
+  margin-top: 18px;
+}
+
+.empty-inline {
+  padding: 16px;
+  border: 1px solid rgba(255, 239, 215, 0.12);
+  border-radius: 8px;
+  color: rgba(255, 239, 215, 0.72);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+/* ── screen-hero sub-detail line (PlanDetailScreen amount/asset) ──────── */
+.screen-hero-detail {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* ── ReviewScreen — dark overrides (replaces LightSheet cream context) ── */
+.review-screen {
+  gap: 12px;
+}
+
+.review-screen .contact-capture {
+  border-color: var(--line-soft);
+  background: rgba(16, 9, 6, 0.4);
+}
+
+.review-screen .contact-capture-eyebrow {
+  color: var(--muted);
+}
+
+.review-screen .contact-capture-heading {
+  color: var(--latte-300);
+}
+
+.review-screen .contact-save-toggle {
+  color: var(--muted);
+}
+
+.review-screen .contact-save-toggle input[type="checkbox"] {
+  accent-color: var(--latte-500);
+}
+
+.review-screen .contact-picker-input {
+  border-color: var(--line-soft);
+  background: rgba(16, 9, 6, 0.4);
+  color: var(--cream);
+}
+
+.review-screen .cp-btn-cancel {
+  border-color: var(--line-soft);
+  color: var(--muted);
+}
+
+.review-screen .reference-card {
+  width: 100%;
+  margin: 14px 0 0;
+  padding: 14px;
+  background: rgba(16, 9, 6, 0.4);
+  border: 1px solid var(--line-soft);
+  color: var(--muted);
+  border-radius: 8px;
+}
+
+.review-screen .reference-card span {
+  color: var(--muted);
+}
+
+.review-screen .reference-card b {
+  display: block;
+  margin-top: 6px;
+  color: var(--cream);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.review-screen .notice {
+  background: rgba(16, 9, 6, 0.4);
+  border: 1px solid var(--line-soft);
+  color: var(--muted);
+}
+
+.review-screen .notice.danger {
+  border-color: rgba(235, 100, 88, 0.35);
+  background: rgba(120, 30, 30, 0.18);
+  color: #f8c5bd;
+}
+
+/* ── ReceiptDetailScreen — Choco receipt (inspired by DaviPlata / Nequi) */
+.receipt-detail-screen {
+  gap: 0;
+}
+
+.rds-hero {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding: 4px 0 22px;
+  display: grid;
+  gap: 5px;
+  background:
+    linear-gradient(135deg, rgba(255, 241, 220, 0.055) 25%, transparent 25%) 0 0 / 44px 44px,
+    linear-gradient(225deg, rgba(201, 144, 96, 0.05) 25%, transparent 25%) 0 0 / 44px 44px,
+    linear-gradient(180deg, rgba(44, 26, 17, 0.9), rgba(29, 16, 10, 0.74));
+  backdrop-filter: blur(12px);
+}
+
+/* Hero + QR wrapper — sticks as one unit (ReceiptDetail) */
+.rds-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background:
+    linear-gradient(135deg, rgba(255, 241, 220, 0.055) 25%, transparent 25%) 0 0 / 44px 44px,
+    linear-gradient(225deg, rgba(201, 144, 96, 0.05) 25%, transparent 25%) 0 0 / 44px 44px,
+    linear-gradient(180deg, rgba(44, 26, 17, 0.92), rgba(29, 16, 10, 0.78));
+  backdrop-filter: blur(12px);
+}
+
+.rds-header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -18px;
+  height: 18px;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(29, 16, 10, 0.46), transparent);
+}
+
+.rds-header .rds-hero {
+  position: static;
+  background: transparent;
+}
+
+.rds-hero-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.rds-hero-kicker {
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--latte-300);
+}
+
+.rds-hero-recipient {
+  font-size: 30px;
+  font-weight: 900;
+  color: var(--cream);
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+}
+
+.rds-hero-amount {
+  font-size: 54px;
+  font-weight: 500;
+  color: var(--cream);
+  letter-spacing: -0.06em;
+  line-height: 1;
+  margin-top: 2px;
+}
+
+.rds-hero-amount small {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--latte-300);
+}
+
+.rds-hero-date {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.rds-qr {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 22px 0;
+  border-top: 1px solid var(--line-soft);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.rds-qr-wrapper {
+  padding: 12px;
+  background: var(--paper);
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+
+.rds-qr-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--latte-300);
+  font-size: 13px;
+  font-weight: 850;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.rds-qr-notice {
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+  padding: 12px 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: 14px;
+  background: rgba(255, 241, 220, 0.05);
+  width: 100%;
+}
+
+.rds-fields {
+  display: grid;
+  margin: 4px 0 16px;
+}
+
+.rds-field {
+  padding: 13px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.rds-field:last-child {
+  border-bottom: 0;
+}
+
+.rds-field-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.rds-field-icon {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: rgba(217, 166, 121, 0.1);
+  color: var(--latte-300);
+  flex-shrink: 0;
+}
+
+.rds-field-key {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.rds-field-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--cream);
+  text-align: right;
+  min-width: 0;
+  word-break: break-all;
+}
+
+.rds-field-value.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.rds-actions {
+  margin-top: auto;
+  padding-top: 8px;
+  display: grid;
+  gap: 10px;
+}
+
+.rds-actions .primary-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 0;
+}
+
+.rds-actions .secondary-dark {
+  margin-top: 0;
+}
+
+/* ── Inline contact picker (dark, embedded in ReviewScreen) ─────────── */
+.contact-picker-inline {
+  display: grid;
+  gap: 8px;
+}
+
+.contact-picker-inline-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.contact-picker-inline .contact-picker-status {
+  color: var(--muted);
+  font-size: 13px;
+  text-align: left;
+  margin: 0;
+}
+
+.contact-picker-inline .contact-picker-list {
+  display: grid;
+  gap: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.contact-picker-inline .contact-picker-row {
+  background: rgba(58, 36, 21, 0.22);
+  border-color: rgba(217, 166, 121, 0.15);
+}
+
+.contact-picker-inline .contact-picker-row:hover {
+  border-color: rgba(217, 166, 121, 0.35);
+}
+
+.contact-picker-inline .contact-picker-name {
+  color: var(--cream);
+}
+
+.contact-picker-inline .contact-picker-addr {
+  color: var(--muted);
+}
+
+.contact-picker-inline .contact-picker-reason {
+  color: var(--muted);
+}
+
+.contact-picker-inline .cp-icon {
+  background: rgba(217, 166, 121, 0.1);
+  color: var(--latte-300);
+}
+
+.contact-picker-inline .cp-icon-danger {
+  background: rgba(220, 60, 60, 0.15);
+  color: #f8a0a0;
+}
+
+.contact-picker-inline .contact-picker-input {
+  border-color: var(--line-soft);
+  background: rgba(16, 9, 6, 0.4);
+  color: var(--cream);
+}
+
+.contact-picker-inline .cp-btn-cancel {
+  border-color: var(--line-soft);
+  color: var(--muted);
+}
+
+/* ── "or enter address" divider ─────────────────────────────────────── */
+.contact-or-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0;
+}
+
+.contact-or-divider::before,
+.contact-or-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line-soft);
+}
+
+.contact-or-divider span {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* ── Palette warmup — swap near-black card bg for warm cocoa ─────────── */
+/* Summary tiles, asset cards, detail lines get a slight warm undertone   */
+.review-screen .summary-card {
+  border-color: rgba(217, 166, 121, 0.14);
+  background: rgba(40, 24, 15, 0.65);
+}
+
+.review-screen .summary-card span {
+  color: var(--latte-300);
+  opacity: 0.7;
+}
+
+.review-screen .summary-card b {
+  color: var(--cream);
+}
+
+.review-screen .confirmation-grid .summary-card b {
+  font-size: 17px;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+/* Hero label (eyebrow) — warm latte tint instead of pure muted grey */
+.screen-hero-label {
+  color: var(--latte-500);
+  opacity: 0.75;
+}
+
+/* Active filter pill: latte amber fill */
+.filter-pill.active {
+  background: rgba(217, 166, 121, 0.18);
+  border-color: rgba(217, 166, 121, 0.4);
+  color: var(--latte-300);
+}
+
+/* Plan rows / history rows: warm border on hover */
+.plan-row:hover,
+.transaction-row:hover {
+  border-color: rgba(217, 166, 121, 0.2);
+  background: rgba(40, 24, 15, 0.55);
+}
+
+/* Warm up the home hero card slightly */
+.home-hero {
+  background: rgba(28, 16, 8, 0.75);
+  border-color: rgba(217, 166, 121, 0.12);
+}
+
+/* home-list section heading */
+.section-heading span {
+  color: var(--latte-300);
+  opacity: 0.65;
+}
+
+/* reference card in review — warm accent line on left */
+.review-screen .reference-card {
+  border-left: 3px solid rgba(217, 166, 121, 0.4);
+}
+
+/* ── Resolved contact card in review — dark warm ─────────────────────── */
+.review-screen .contact-resolution-card {
+  border-color: rgba(217, 166, 121, 0.15);
+  background: rgba(40, 24, 15, 0.55);
+}
+
+.review-screen .contact-resolution-card span {
+  color: var(--muted);
+}
+
+.review-screen .contact-resolution-card b {
+  color: var(--cream);
+}
+
+.review-screen .contact-resolution-card small {
+  color: var(--muted);
+}
+
+.review-screen .contact-resolution-card > button {
+  border-color: rgba(217, 166, 121, 0.2);
+  background: rgba(40, 24, 15, 0.4);
+  color: var(--latte-300);
+}
+
+/* Final palette refinement: balanced cocoa surfaces + soft vanilla actions. */
+.home-start-action,
+.asset-card,
+.composer,
+.schedule-bar,
+.bottom-nav,
+.detail-line,
+.summary-tile,
+.plan-row,
+.transaction-row,
+.ready-check-row {
+  border-color: rgba(255, 241, 220, 0.12);
+  background: var(--surface-strong);
+}
+
+.bottom-nav button.active {
+  background: rgba(255, 241, 220, 0.14);
+  color: var(--cream);
+}
+
+.primary-cta {
+  background: linear-gradient(180deg, #fff4e4, var(--cream));
+  color: var(--cocoa-900);
+  box-shadow: 0 10px 24px rgba(5, 3, 2, 0.16);
+}
+
+.secondary-dark {
+  border-color: rgba(255, 241, 220, 0.13);
+  background: rgba(18, 9, 6, 0.34);
+}
+
+.review-screen .summary-card {
+  border-color: rgba(201, 144, 96, 0.18);
+  background: rgba(36, 21, 14, 0.72);
+}
+
+.screen-hero-label {
+  color: var(--latte-500);
+  opacity: 0.82;
+}
+
+.plan-row:hover,
+.transaction-row:hover {
+  border-color: rgba(201, 144, 96, 0.26);
+  background: rgba(45, 27, 18, 0.66);
+}
+
+.home-hero {
+  border: 1px solid rgba(255, 241, 220, 0.1);
+  background:
+    linear-gradient(135deg, rgba(255, 241, 220, 0.055) 25%, transparent 25%) 0 0 / 36px 36px,
+    linear-gradient(225deg, rgba(201, 144, 96, 0.045) 25%, transparent 25%) 0 0 / 36px 36px,
+    rgba(36, 21, 14, 0.78);
+}
+
+.review-screen .reference-card {
+  border-left: 3px solid rgba(201, 144, 96, 0.58);
+  background: rgba(36, 21, 14, 0.68);
+}
+
+.review-screen .reference-card span {
+  color: var(--latte-300);
+  opacity: 0.78;
+}
+
+.review-screen .contact-resolution-card {
+  border-color: rgba(201, 144, 96, 0.18);
+  background: rgba(36, 21, 14, 0.62);
+}
+
+.review-screen .contact-resolution-card > button {
+  border-color: rgba(201, 144, 96, 0.24);
+  background: rgba(18, 9, 6, 0.28);
+  color: var(--latte-300);
+}
+
+.review-screen .contact-select-pill {
+  border-color: rgba(201, 144, 96, 0.26);
+  background: rgba(255, 241, 220, 0.12);
+  color: var(--latte-300);
+}
+
+.agent-phone-card {
+  min-height: min(520px, calc(100dvh - 210px));
+  border-color: rgba(255, 241, 220, 0.12);
+  background:
+    linear-gradient(135deg, rgba(255, 241, 220, 0.055) 25%, transparent 25%) 0 0 / 42px 42px,
+    linear-gradient(180deg, rgba(45, 27, 18, 0.78), rgba(18, 9, 6, 0.94));
+}
+
+.agent-plan {
+  background: rgba(255, 241, 220, 0.075);
+}
+
+.agent-plan strong {
+  font-size: 32px;
+}
+
+.agent-line {
+  border-color: rgba(255, 241, 220, 0.11);
+  background: rgba(18, 9, 6, 0.44);
+}
+
+.agent-next {
+  color: var(--latte-300);
+  opacity: 0.72;
+}
+
+/* MiniPay UX polish: warmer cocoa depth with vanilla action clarity. */
+:root {
+  --vanilla-strong: #fff6e8;
+  --vanilla-soft: rgba(255, 246, 232, 0.16);
+  --cocoa-glass: rgba(30, 17, 11, 0.82);
+  --cocoa-glass-strong: rgba(18, 9, 6, 0.88);
+}
+
+.stage {
+  background:
+    radial-gradient(circle at 18% 14%, rgba(201, 144, 96, 0.14), transparent 30%),
+    radial-gradient(circle at 82% 80%, rgba(255, 241, 220, 0.08), transparent 28%),
+    var(--black);
+}
+
+.app-panel {
+  background:
+    linear-gradient(135deg, rgba(255, 241, 220, 0.06) 25%, transparent 25%) 0 0 / 44px 44px,
+    linear-gradient(225deg, rgba(201, 144, 96, 0.055) 25%, transparent 25%) 0 0 / 44px 44px,
+    linear-gradient(180deg, #2c1a11 0%, #1d100a 58%, #100806 100%);
+}
+
+.home-hero,
+.editor-card,
+.agent-phone-card {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 246, 232, 0.06),
+    0 18px 38px rgba(0, 0, 0, 0.16);
+}
+
+.home-start-action,
+.composer,
+.timing-toggle,
+.bottom-nav,
+.plan-row,
+.transaction-row,
+.contact-resolution-card,
+.review-screen .summary-card,
+.review-screen .reference-card,
+.notice.compact {
+  border-color: var(--vanilla-soft);
+  background: var(--cocoa-glass);
+}
+
+.home-start-action,
+.primary-cta {
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.2);
+}
+
+.primary-cta,
+.demo-actions button:first-child {
+  background: linear-gradient(180deg, var(--vanilla-strong), #f4dfc4);
+  color: var(--cocoa-950);
+}
+
+.secondary-dark,
+.demo-actions button:last-child {
+  border-color: rgba(255, 246, 232, 0.2);
+  background: rgba(255, 246, 232, 0.035);
+  color: var(--cream);
+}
+
+.home-network-pill.ready,
+.sheet-chip,
+.filter-pill.active {
+  border-color: rgba(119, 181, 126, 0.42);
+  background: rgba(68, 112, 71, 0.3);
+}
+
+.agent-intent-card.ready,
+.agent-line.show {
+  border-color: rgba(119, 181, 126, 0.34);
+}
+
+.agent-phone-head span,
+.screen-hero-label,
+.balance-hero-label,
+.section-heading span,
+.reference-card span {
+  color: var(--latte-300);
+}
+
+.sheet-chip.paused,
+.plan-row small.paused {
+  border-color: rgba(229, 211, 185, 0.32);
+  background: rgba(246, 232, 212, 0.13);
+  color: var(--latte-300);
+}
+
+.sheet-chip.due,
+.plan-row small.due,
+.sheet-chip.warning,
+.plan-row small.warning {
+  border-color: rgba(245, 191, 108, 0.38);
+  background: rgba(245, 191, 108, 0.18);
+  color: #ffe0a8;
+}
+
+.sheet-chip.success,
+.plan-row small.success {
+  border-color: rgba(119, 181, 126, 0.42);
+  background: rgba(68, 112, 71, 0.3);
+  color: #d9f5d7;
+}
+
+.agent-plan {
+  border-color: var(--vanilla-soft);
+  background: rgba(255, 246, 232, 0.085);
+}
+
+.agent-next {
+  color: var(--vanilla-strong);
+  opacity: 0.82;
+}
+
+/* Visible palette pass: make active states read clearly in screenshots. */
+.home-hero,
+.screen-hero,
+.editor-card {
+  background:
+    linear-gradient(135deg, rgba(255, 246, 232, 0.075) 25%, transparent 25%) 0 0 / 36px 36px,
+    linear-gradient(180deg, rgba(58, 35, 23, 0.88), rgba(28, 15, 9, 0.9));
+  border-color: rgba(255, 246, 232, 0.18);
+}
+
+.bottom-nav button.active,
+.filter-pill.active,
+.timing-toggle button.active {
+  background: linear-gradient(180deg, #f5e5ce, #dcc4a7);
+  color: var(--cocoa-950);
+  border-color: rgba(255, 246, 232, 0.58);
+}
+
+.bottom-nav button.active svg,
+.filter-pill.active svg,
+.timing-toggle button.active svg {
+  color: var(--cocoa-950);
+}
+
+.home-start-icon,
+.plan-row-icon,
+.tx-dot,
+.agent-line-icon {
+  background: rgba(255, 246, 232, 0.14);
+  color: var(--vanilla-strong);
+}
+
+.home-start-action b,
+.plan-row b,
+.transaction-row b {
+  color: var(--vanilla-strong);
+}
