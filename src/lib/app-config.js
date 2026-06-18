@@ -68,7 +68,7 @@ export const APP_CONFIG = {
     corridor: env.VITE_CORRIDOR_LABEL || "US to Kenya",
     destinationCountry: env.VITE_DESTINATION_COUNTRY || "Kenya",
     kesPerUsdc: Number(env.VITE_KES_PER_USDC || 129.39),
-    defaultScheduleHour: Number(env.VITE_DEFAULT_SCHEDULE_HOUR || 9),
+    defaultScheduleHour: Number(env.VITE_DEFAULT_SCHEDULE_HOUR || 4),
     minimumConfidence: Number(env.VITE_AGENT_MIN_CONFIDENCE || 0.75),
     networkFeeLabel: env.VITE_NETWORK_FEE_LABEL || "Network fee",
     retryPolicy: env.VITE_RETRY_POLICY || "3 attempts",

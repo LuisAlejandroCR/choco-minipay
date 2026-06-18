@@ -1,6 +1,7 @@
 import { parseTransferIntent } from "../lib/intent.js";
 import { APP_CONFIG } from "../lib/app-config.js";
 import { labelWithAddress, shortAddress } from "../lib/celo.js";
+import { scheduledLocalDateForPlan } from "../lib/schedule-time.js";
 import { KES_PER_USDC } from "../config/runtime.js";
 import {
   CHOCO_SCENARIO,
@@ -63,12 +64,9 @@ export function getPlanExecutionState(plan, now = new Date()) {
   }
 
   const day = Number(plan.dayOfMonth || String(plan.dayLabel || "").match(/\d+/)?.[0] || 0);
+  const nowMs = now.getTime();
   const firstRunAtMs = plan.firstRunAt ? Number(plan.firstRunAt) * 1000 : 0;
   const lastSettlementAtMs = plan.lastSettlementAt ? Number(plan.lastSettlementAt) * 1000 : 0;
-
-  if (firstRunAtMs && firstRunAtMs > now.getTime()) {
-    return { status: "Authorized", label: "Authorized", tone: "neutral" };
-  }
 
   const settledDate = lastSettlementAtMs ? new Date(lastSettlementAtMs) : null;
   const settledThisMonth = Boolean(
@@ -81,9 +79,29 @@ export function getPlanExecutionState(plan, now = new Date()) {
   }
 
   if (!day) return { status: "Authorized", label: "Authorized", tone: "neutral" };
+  const firstRunDate = firstRunAtMs ? new Date(firstRunAtMs) : null;
+  const firstRunIsToday = Boolean(
+    firstRunDate &&
+    firstRunDate.getFullYear() === now.getFullYear() &&
+    firstRunDate.getMonth() === now.getMonth() &&
+    firstRunDate.getDate() === now.getDate(),
+  );
+
+  if (firstRunAtMs && firstRunAtMs > nowMs) {
+    return firstRunIsToday
+      ? { status: "Runs today", label: "Runs today", tone: "due" }
+      : { status: "Authorized", label: "Authorized", tone: "neutral" };
+  }
+
+  const scheduledToday = scheduledLocalDateForPlan(plan, now);
+  const scheduledAtMs = scheduledToday?.getTime() || 0;
   const today = now.getDate();
-  if (today === day) return { status: "Runs today", label: "Runs today", tone: "due" };
-  if (today > day) return { status: "Awaiting auto-run", label: "Awaiting run", tone: "warning" };
+  if (today === day && scheduledAtMs && nowMs < scheduledAtMs) {
+    return { status: "Runs today", label: "Runs today", tone: "due" };
+  }
+  if ((today === day && (!scheduledAtMs || nowMs >= scheduledAtMs)) || today > day) {
+    return { status: "Awaiting auto-run", label: "Awaiting run", tone: "warning" };
+  }
   return { status: "Authorized", label: "Authorized", tone: "neutral" };
 }
 

@@ -152,7 +152,7 @@ For content-addressed `agentURI`:
    - Verify recipient receives **exactly 5 cKES** (exact-output path)
 4. Test schedule: `send <address> 1000 cKES monthly` → Build → Authorize plan
    - Verify the authorized plan stays in Plans and does not appear in History yet
-   - Open the plan detail and verify Pause/Resume signs against ChocoLedger
+   - Open the plan detail and verify Edit/Delete signs against ChocoLedger
 5. Run the keeper/executor for a due plan. It must execute the route and call `recordSettlement`.
    After `SettlementReceipt`, check History shows that executed plan run.
 6. Check Celoscan for `AttemptLogged` on ChocoLedger (logged by ChocoGateway for send-now and by `recordSettlement` for scheduled runs)

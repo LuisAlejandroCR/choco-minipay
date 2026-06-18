@@ -7,10 +7,10 @@ export const CHOCO_SCENARIO = {
   scheduledTimeLabel: formatScheduleTimeFromTimestamp(),
   defaultAmountKes: 0,
   kesPerUsdc: APP_CONFIG.transfer.kesPerUsdc,
-  scheduledTimestamp: "Next 1st - 9:00 AM Local",
+  scheduledTimestamp: "Next 1st - 4:00 AM local",
   scheduledTimestampsByDate: {
-    "15th": "Next 15th - 9:00 AM Local",
-    "Next Monday": "Next Monday - 9:00 AM Local",
+    "15th": "Next 15th - 4:00 AM local",
+    "Next Monday": "Next Monday - 4:00 AM local",
   },
   hashes: {
     default: "",

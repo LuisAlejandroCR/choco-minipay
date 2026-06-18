@@ -12,6 +12,7 @@
     "check": "npm run test && npm run build",
     "contracts:test": "npm --prefix contracts test",
     "demo:contract-example": "node scripts/contract-example-demo.mjs",
+    "settle:due": "node scripts/run-due-schedules.mjs",
     "register:agent": "node scripts/register-agent.mjs"
   },
   "repository": { "type": "git", "url": "git+https://github.com/LuisAlejandroCR/choco.git" },

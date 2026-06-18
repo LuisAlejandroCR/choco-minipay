@@ -14,7 +14,7 @@ test("Agent Choco extracts the hackathon command with high confidence", () => {
   assert.equal(intent.amountKes, 50000);
   assert.equal(intent.dayOfMonth, 1);
   assert.equal(intent.estimatedUsdc, 400);
-  assert.equal(intent.destinationAsset, "cKES");
+  assert.equal(intent.destinationAsset, "KESm");
 });
 
 test("Agent Choco rejects incomplete commands instead of using static defaults", () => {
@@ -30,7 +30,7 @@ test("Agent Choco supports compact amount and schedule language", () => {
   assert.equal(intent.isReady, true);
   assert.equal(intent.amountKes, 5000);
   assert.equal(intent.dayOfMonth, 15);
-  assert.equal(intent.transferAsset, "cKES");
+  assert.equal(intent.transferAsset, "KESm");
   assert.equal(intent.sourceAsset, "USDC");
 });
 
@@ -40,7 +40,7 @@ test("Agent Choco accepts in-progress cKES shorthand", () => {
   assert.equal(intent.isReady, true);
   assert.equal(intent.recipientAlias, "mom");
   assert.equal(intent.amountKes, 20000);
-  assert.equal(intent.transferAsset, "cKES");
+  assert.equal(intent.transferAsset, "KESm");
   assert.equal(intent.sourceAsset, "USDC");
 });
 
@@ -50,7 +50,7 @@ test("Agent Choco accepts currency before recipient", () => {
   assert.equal(intent.isReady, true);
   assert.equal(intent.recipientAlias, "mom");
   assert.equal(intent.amountKes, 10000);
-  assert.equal(intent.transferAsset, "cKES");
+  assert.equal(intent.transferAsset, "KESm");
   assert.equal(intent.sourceAsset, "USDC");
 });
 
@@ -85,7 +85,7 @@ test("Agent Choco accepts amount-first named contacts", () => {
   assert.equal(intent.contactResolutionRequired, true);
 });
 
-test("Agent Choco infers cKES for the fixed Kenya corridor", () => {
+test("Agent Choco infers KESm for the fixed Kenya corridor", () => {
   const intent = parseTransferIntent("20k mom every 1st", { deliveryMode: "schedule", kesPerUsdc: 100 });
 
   assert.equal(intent.isReady, true);
@@ -93,7 +93,7 @@ test("Agent Choco infers cKES for the fixed Kenya corridor", () => {
   assert.equal(intent.recipientAlias, "mom");
   assert.equal(intent.amountKes, 20000);
   assert.equal(intent.sourceAsset, "USDC");
-  assert.equal(intent.destinationAsset, "cKES");
+  assert.equal(intent.destinationAsset, "KESm");
   assert.equal(intent.estimatedUsdc, 200);
 });
 
@@ -104,16 +104,16 @@ test("Agent Choco keeps single-letter drafts incomplete", () => {
   assert.deepEqual(agent.missing, ["recipient", "amount", "currency"]);
 });
 
-test("Agent Choco extracts recipient from a to-clause and routes USDC to cKES", () => {
+test("Agent Choco extracts recipient from a to-clause and routes USDC to KESm", () => {
   const intent = parseTransferIntent("Send 20 USDC to Brian", { kesPerUsdc: 100 });
 
   assert.equal(intent.isReady, true);
   assert.equal(intent.recipientAlias, "Brian");
   assert.equal(intent.amountKes, 2000);
   assert.equal(intent.sourceAmount, 20);
-  assert.equal(intent.transferAsset, "cKES");
+  assert.equal(intent.transferAsset, "KESm");
   assert.equal(intent.sourceAsset, "USDC");
-  assert.equal(intent.destinationAsset, "cKES");
+  assert.equal(intent.destinationAsset, "KESm");
 });
 
 test("Agent Choco blocks transfers without a currency", () => {
