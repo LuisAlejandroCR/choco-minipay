@@ -12,6 +12,8 @@ const SELECTORS = {
   cancelSchedule: "0x237fc2a6",
   pauseSchedule: "0xd2c9f4a0",
   resumeSchedule: "0x635c1c6c",
+  recordSettlement: "0xa74c3b74",
+  recordSettlementLegacy: "0xebc97f9d",
   swapAndSend: "0x28b16ca8",
   swapAndSendExact: "0x47f703ee",
 };
@@ -590,6 +592,8 @@ async function readScheduleDataFromReceipts(publicClient, owner, fromBlock, cont
     SELECTORS.cancelSchedule,
     SELECTORS.pauseSchedule,
     SELECTORS.resumeSchedule,
+    SELECTORS.recordSettlement,
+    SELECTORS.recordSettlementLegacy,
   ];
   const [contractTxs, walletTxs] = await Promise.all([
     fetchExplorerTransactions(contractAddress, fromBlock).catch(() => []),
