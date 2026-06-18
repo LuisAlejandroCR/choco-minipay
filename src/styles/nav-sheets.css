@@ -39,7 +39,7 @@
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: var(--celo-green);
+  background: var(--latte-500);
 }
 
 .quick-info-overlay {
@@ -1172,7 +1172,7 @@
   bottom: -18px;
   height: 18px;
   pointer-events: none;
-  background: linear-gradient(180deg, rgba(26, 16, 10, 0.86), transparent);
+  background: linear-gradient(180deg, rgba(33, 19, 13, 0.86), transparent);
 }
 
 .screen-header .screen-hero {
