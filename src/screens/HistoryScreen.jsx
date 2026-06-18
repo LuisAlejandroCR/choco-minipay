@@ -83,6 +83,16 @@ function shortWallet(address) {
   return address ? shortAddress(address) : "";
 }
 
+function movementDescription(tx) {
+  return isScheduleEvent(tx) ? tx.schedule || tx.type : tx.type;
+}
+
+function movementTime(tx) {
+  const label = timeLabel(tx.sortKey);
+  if (!label) return "";
+  return isScheduleEvent(tx) ? `Ran ${label}` : label;
+}
+
 export function HistoryScreen({
   transactions,
   loading = false,
@@ -160,11 +170,11 @@ export function HistoryScreen({
                   <TxDot tx={item} />
                   <div className="tx-details">
                     <b>{item.recipient}</b>
-                    <span>{item.type}</span>
+                    <span>{movementDescription(item)}</span>
                   </div>
                   <div className="tx-right">
                     <TxAmount tx={item} />
-                    {item.sortKey ? <time className="tx-time">{timeLabel(item.sortKey)}</time> : null}
+                    {item.sortKey ? <time className="tx-time">{movementTime(item)}</time> : null}
                   </div>
                 </button>
               ))}

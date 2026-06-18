@@ -1,7 +1,6 @@
 import { CalendarDays, Check, ExternalLink, GitBranch, Share2, User, Wallet } from "lucide-react";
 import { useState } from "react";
 import { QrCanvas } from "../components/QrCode.jsx";
-import { BottomNav } from "../components/BottomNav.jsx";
 import { shortAddress } from "../lib/celo.js";
 import { formatTransactionHash, getTransactionExplorerUrl, isTransactionHash } from "../lib/transactions.js";
 import { getTimingLabel } from "../utils/planUtils.js";
@@ -78,7 +77,7 @@ export function ReceiptDetailScreen({ transaction, onBack, onHome, onPlans }) {
             </div>
             <span className="rds-field-value">
               {transaction.recipient}
-              {transaction.to ? <span style={{ color: "var(--muted)", fontWeight: 600 }}> — {shortAddress(transaction.to)}</span> : null}
+              {transaction.to ? <span style={{ color: "var(--muted)", fontWeight: 600 }}> — {transaction.to}</span> : null}
             </span>
           </div>
         )}
@@ -138,7 +137,6 @@ export function ReceiptDetailScreen({ transaction, onBack, onHome, onPlans }) {
         <button className="secondary-dark" type="button" onClick={onBack}>Back to movements</button>
       </div>
 
-      <BottomNav active="history" onHome={onHome} onPlans={onPlans} onHistory={onBack} />
     </div>
   );
 }

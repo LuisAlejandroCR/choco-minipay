@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { isAddress } from "viem";
 import { ShieldCheck, X } from "lucide-react";
-import { BottomNav } from "../components/BottomNav.jsx";
 import { shortAddress } from "../lib/celo.js";
 
 export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
@@ -118,7 +117,6 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
           Back home
         </button>
       </section>
-      <BottomNav active="home" onHome={onHome} onPlans={onHome} onHistory={onHome} />
     </div>
   );
 }

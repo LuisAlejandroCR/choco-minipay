@@ -24,6 +24,7 @@ import {
   readStablecoinBalances,
   resumeScheduleViaRegistry,
 } from "./lib/celo.js";
+import { BottomNav } from "./components/BottomNav.jsx";
 import { ContactPicker } from "./components/ContactPicker.jsx";
 import { PitchScreen } from "./components/PitchScreen.jsx";
 import { QuickInfoPanel } from "./screens/QuickInfoPanel.jsx";
@@ -572,6 +573,17 @@ export default function App() {
             />
           )}
         </div>
+        <BottomNav
+          active={
+            ["history", "receiptDetail"].includes(visibleScreen) ? "history"
+            : ["plans", "planDetail", "deletePlan"].includes(visibleScreen) ? "plans"
+            : ["plan", "walletGate"].includes(visibleScreen) ? "home"
+            : ""
+          }
+          onHome={() => setScreen("plan")}
+          onPlans={() => goTo("plans")}
+          onHistory={() => goTo("history")}
+        />
       </section>
     </main>
   );
