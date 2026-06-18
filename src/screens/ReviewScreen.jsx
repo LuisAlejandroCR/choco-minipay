@@ -137,6 +137,13 @@ export function ReviewScreen({
               <div className="contact-resolved-actions">
                 <button
                   type="button"
+                  className="contact-select-pill"
+                  onClick={() => { setPendingDel(false); onPickContact(); }}
+                >
+                  Select
+                </button>
+                <button
+                  type="button"
                   className="cp-icon"
                   onClick={() => { setShowEdit(true); setEditAddr(""); setPendingDel(false); }}
                   aria-label="Edit contact address"
@@ -154,9 +161,6 @@ export function ReviewScreen({
               </div>
             </div>
           )}
-          <button type="button" onClick={() => { setPendingDel(false); onPickContact(); }}>
-            Change contact
-          </button>
         </>
       ) : contactLookupStatus === "checking" ? (
         <div>
