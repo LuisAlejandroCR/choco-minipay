@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { CalendarDays, Pause, Pencil, Play, Trash2 } from "lucide-react";
-import { BottomNav } from "../components/BottomNav.jsx";
 import { DetailLine } from "../components/SheetPrimitives.jsx";
 import { getPlanExecutionState, getTimingLabel } from "../utils/planUtils.js";
 
@@ -84,7 +83,6 @@ export function PlanDetailScreen({ plan, onHome, onHistory, onBack, onEdit, onTo
       </div>
 
       <button className="secondary-dark" type="button" onClick={onHome}>Back home</button>
-      <BottomNav active="plans" onHome={onHome} onPlans={onBack} onHistory={onHistory} />
     </div>
   );
 }

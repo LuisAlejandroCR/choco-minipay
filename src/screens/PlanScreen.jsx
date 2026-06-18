@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { ArrowRight, CircleDollarSign, Eye, EyeOff, ExternalLink, ShieldCheck, X } from "lucide-react";
 import { ChocoMark } from "../components/ChocoMark.jsx";
-import { BottomNav } from "../components/BottomNav.jsx";
 import { formatWalletAddress } from "../modules/wallet/useMiniPayWallet.js";
 import { getPlanExecutionState, getTimingLabel } from "../utils/planUtils.js";
 import { demoPromptContent } from "../content/demoFlow.js";
@@ -171,7 +170,6 @@ export function PlanScreen({
         </section>
       )}
 
-      <BottomNav active="home" onHome={() => {}} onPlans={onPlans} onHistory={onHistory} />
       {showDemoPrompt && (
         <DemoPrompt liveDemoUrl={liveDemoUrl} onDismiss={onDismissDemo} onRunDemo={onRunDemo} />
       )}

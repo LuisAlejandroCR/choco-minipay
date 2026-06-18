@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Check, Plus, Search } from "lucide-react";
 import { ChocoMark } from "../components/ChocoMark.jsx";
-import { BottomNav } from "../components/BottomNav.jsx";
 import { getPlanExecutionState, getSimilarPlanIds, getTimingLabel } from "../utils/planUtils.js";
 
 const STATUS_FILTERS = [
@@ -121,7 +120,6 @@ export function PlansScreen({ plans, loading = false, onSelectPlan, onNewPlan, o
         </div>
       )}
 
-      <BottomNav active="plans" onHome={onHome} onPlans={() => {}} onHistory={onHistory} />
     </div>
   );
 }

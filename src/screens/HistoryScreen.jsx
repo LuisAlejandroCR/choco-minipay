@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { AlertCircle, ArrowDownLeft, CalendarDays, Clock, ReceiptText, RefreshCw, Search } from "lucide-react";
-import { BottomNav } from "../components/BottomNav.jsx";
 import { ChocoMark } from "../components/ChocoMark.jsx";
 import { shortAddress } from "../lib/celo.js";
 
@@ -202,7 +201,6 @@ export function HistoryScreen({
         </div>
       )}
 
-      <BottomNav active="history" onHome={onHome} onPlans={onPlans} onHistory={() => {}} />
     </div>
   );
 }
