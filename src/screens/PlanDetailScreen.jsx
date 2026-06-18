@@ -3,7 +3,7 @@ import { CalendarDays, Pause, Pencil, Play, Trash2 } from "lucide-react";
 import { DetailLine } from "../components/SheetPrimitives.jsx";
 import { getPlanExecutionState, getTimingLabel } from "../utils/planUtils.js";
 
-export function PlanDetailScreen({ plan, onHome, onHistory, onBack, onEdit, onTogglePause, onDelete, operationStatus = "", operationMessage = "", onClearError }) {
+export function PlanDetailScreen({ plan, onHome, onHistory, onEdit, onTogglePause, onDelete, operationStatus = "", operationMessage = "", onClearError }) {
   const execution = getPlanExecutionState(plan);
   const isPaused = execution.status === "Paused";
   const isPending = operationStatus === "pending";
@@ -81,8 +81,6 @@ export function PlanDetailScreen({ plan, onHome, onHistory, onBack, onEdit, onTo
         </button>
         <button className="danger-action" type="button" disabled={isPending} onClick={onDelete}><Trash2 size={18} />Delete</button>
       </div>
-
-      <button className="secondary-dark" type="button" onClick={onHome}>Back home</button>
     </div>
   );
 }

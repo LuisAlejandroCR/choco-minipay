@@ -112,10 +112,6 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
         <div className="wallet-contact-hint">
           Recipient selection uses the Choco contact/alias flow. Wallet addresses stay out of the main screen.
         </div>
-
-        <button className="secondary-dark" type="button" onClick={onHome}>
-          Back home
-        </button>
       </section>
     </div>
   );

@@ -1,23 +1,27 @@
-import { CalendarDays, Check, ExternalLink, GitBranch, Share2, User, Wallet } from "lucide-react";
+import { CalendarDays, Check, ExternalLink, GitBranch, Share2, User } from "lucide-react";
 import { useState } from "react";
 import { QrCanvas } from "../components/QrCode.jsx";
 import { shortAddress } from "../lib/celo.js";
 import { formatTransactionHash, getTransactionExplorerUrl, isTransactionHash } from "../lib/transactions.js";
 import { getTimingLabel } from "../utils/planUtils.js";
 
-export function ReceiptDetailScreen({ transaction, onBack, onHome, onPlans }) {
+export function ReceiptDetailScreen({ transaction }) {
   const [shareState, setShareState] = useState("");
   const hasHash = isTransactionHash(transaction.hash);
   const verifyUrl = getTransactionExplorerUrl(transaction.hash);
   const timingLabel = getTimingLabel(transaction);
   const hasApproveHash = transaction.approveHash && isTransactionHash(transaction.approveHash);
+  const recipientDetail = transaction.toAddress
+    ? `${transaction.recipient} ${shortAddress(transaction.toAddress)}`
+    : transaction.to && transaction.to !== transaction.recipient
+      ? transaction.to
+      : transaction.recipient;
 
   const shareText = [
     `Choco receipt: ${transaction.amount} ${transaction.asset} to ${transaction.recipient}`,
     `Timing: ${timingLabel}`,
     `Status: ${transaction.status}`,
-    `From: ${transaction.from}`,
-    `To: ${transaction.to}`,
+    `Recipient: ${recipientDetail}`,
     `Hash: ${formatTransactionHash(transaction.hash)}`,
     hasHash ? `Verify: ${verifyUrl}` : "Verify: pending wallet signature",
   ].join("\n");
@@ -38,7 +42,6 @@ export function ReceiptDetailScreen({ transaction, onBack, onHome, onPlans }) {
 
   return (
     <div className="screen receipt-detail-screen">
-
       <div className="rds-hero">
         <div className="rds-hero-top">
           <span className="rds-hero-kicker">Choco receipt</span>
@@ -69,26 +72,13 @@ export function ReceiptDetailScreen({ transaction, onBack, onHome, onPlans }) {
       </div>
 
       <div className="rds-fields">
-        {(transaction.recipient || transaction.to) && (
+        {recipientDetail && (
           <div className="rds-field">
             <div className="rds-field-label">
               <span className="rds-field-icon"><User size={15} /></span>
-              <span className="rds-field-key">To</span>
+              <span className="rds-field-key">Recipient</span>
             </div>
-            <span className="rds-field-value">
-              {transaction.recipient}
-              {transaction.to ? <span style={{ color: "var(--muted)", fontWeight: 600 }}> — {transaction.to}</span> : null}
-            </span>
-          </div>
-        )}
-
-        {transaction.from && (
-          <div className="rds-field">
-            <div className="rds-field-label">
-              <span className="rds-field-icon"><Wallet size={15} /></span>
-              <span className="rds-field-key">From</span>
-            </div>
-            <span className="rds-field-value">{shortAddress(transaction.from)}</span>
+            <span className="rds-field-value">{recipientDetail}</span>
           </div>
         )}
 
@@ -134,9 +124,7 @@ export function ReceiptDetailScreen({ transaction, onBack, onHome, onPlans }) {
           <Share2 size={18} />
           {shareState ? `${shareState} receipt` : "Share receipt"}
         </button>
-        <button className="secondary-dark" type="button" onClick={onBack}>Back to movements</button>
       </div>
-
     </div>
   );
 }

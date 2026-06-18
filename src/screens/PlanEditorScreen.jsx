@@ -14,7 +14,6 @@ export function PlanEditorScreen({
   statusMessage = "",
   onBuild,
   onHome,
-  onBack = null,
 }) {
   const {
     isRecording,
@@ -180,14 +179,6 @@ export function PlanEditorScreen({
           <button type="button" aria-label="Dismiss" onClick={clearVoiceError}>✕</button>
         </div>
       )}
-
-      <button
-        className="secondary-dark editor-home-button"
-        type="button"
-        onClick={mode === "update" ? onBack : onHome}
-      >
-        {mode === "update" ? "Back to plan" : "Back home"}
-      </button>
     </div>
   );
 }
