@@ -3981,7 +3981,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
 }
 
 .contact-resolved-info {
@@ -4004,6 +4004,18 @@ a {
   gap: 6px;
   align-items: center;
   flex-shrink: 0;
+}
+
+.contact-select-pill {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid rgba(91, 55, 31, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 247, 235, 0.45);
+  color: var(--cocoa-800);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 850;
 }
 
 .contact-capture {
@@ -5150,6 +5162,12 @@ a {
 .review-screen .contact-resolution-card > button {
   border-color: rgba(201, 144, 96, 0.24);
   background: rgba(18, 9, 6, 0.28);
+  color: var(--latte-300);
+}
+
+.review-screen .contact-select-pill {
+  border-color: rgba(201, 144, 96, 0.26);
+  background: rgba(255, 241, 220, 0.12);
   color: var(--latte-300);
 }
 
