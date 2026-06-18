@@ -37,7 +37,7 @@ export const MENTO_BROKER_ABI = [
   },
 ];
 
-// REGISTRY_ABI targets ChocoLedger (new) which adds receiptLabelHash to createMonthlySchedule.
+// REGISTRY_ABI targets the deployed ChocoLedger (0xd8F54…).
 // Falls back to ChocoScheduleRegistry (old) via ADDRESSES.registry when ADDRESSES.ledger is unset.
 export const REGISTRY_ABI = [
   {
@@ -53,7 +53,6 @@ export const REGISTRY_ABI = [
       { name: "dayOfMonth", type: "uint8" },
       { name: "firstRunAt", type: "uint64" },
       { name: "commandHash", type: "bytes32" },
-      { name: "receiptLabelHash", type: "bytes32" },
     ],
     outputs: [{ name: "id", type: "uint256" }],
   },
