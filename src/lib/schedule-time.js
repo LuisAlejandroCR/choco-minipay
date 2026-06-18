@@ -5,11 +5,16 @@ export function getDefaultScheduleHour() {
   return Number.isFinite(hour) && hour >= 0 && hour <= 23 ? hour : 4;
 }
 
+export function getDefaultScheduleMinute() {
+  const minute = Number(APP_CONFIG.transfer.defaultScheduleMinute);
+  return Number.isFinite(minute) && minute >= 0 && minute <= 59 ? minute : 0;
+}
+
 export function buildLocalScheduleDate(dayOfMonth, from = new Date()) {
   const day = Math.min(28, Math.max(1, Number(dayOfMonth) || 1));
   const next = new Date(from);
   next.setSeconds(0, 0);
-  next.setHours(getDefaultScheduleHour(), 0, 0, 0);
+  next.setHours(getDefaultScheduleHour(), getDefaultScheduleMinute(), 0, 0);
   next.setDate(day);
   return next;
 }
@@ -49,7 +54,7 @@ export function formatScheduleTimeFromTimestamp(seconds) {
 
   const fallback = new Date();
   fallback.setSeconds(0, 0);
-  fallback.setHours(getDefaultScheduleHour(), 0, 0, 0);
+  fallback.setHours(getDefaultScheduleHour(), getDefaultScheduleMinute(), 0, 0);
   return formatScheduleTimeFromDate(fallback);
 }
 

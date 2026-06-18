@@ -103,10 +103,15 @@ VITE_SETTLEMENT_SPENDER_ADDRESS=<keeper/executor spender address>
 VITE_CKES_SWAP_CONTRACT_ADDRESS=<ChocoGateway address printed by deploy:gateway>
 VITE_CKES_SWAP_DEPLOY_BLOCK=<earliest block among configured ChocoGateway addresses>
 VITE_CKES_SWAP_CONTRACT_ADDRESSES=<active gateway>,<legacy gateway if any>
+VITE_DEFAULT_SCHEDULE_TIME=04:00
 
 # Supabase (from step 2, optional — leave blank to disable contact persistence)
 VITE_SUPABASE_URL=https://xxxxx.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJhbGciOi...
+
+# Automatic schedule worker (server-only secrets)
+KEEPER_KEY=<private key for the current ChocoLedger keeper>
+CRON_SECRET=<random long secret for /api/run-due-schedules>
 
 # App metadata
 VITE_APP_TITLE=Choco MiniPay
@@ -115,7 +120,37 @@ VITE_INITIAL_SCREEN=splash
 VITE_SHOW_DEMO_PROMPT=false
 ```
 
-### 4. Register ERC-8004 agent
+`VITE_DEFAULT_SCHEDULE_TIME` accepts `HH:mm` in the user's local time. Production should stay
+`04:00`. For a fast manual test, set it to the next local minute, redeploy, create a schedule
+for today's date, then call `/api/run-due-schedules` with the cron secret.
+
+### 4. Automatic schedule worker
+
+Vercel runs `/api/run-due-schedules` from `vercel.json` at `5 9 * * *`, which is 4:05 AM
+in Colombia/Bogota. The endpoint executes due plans through ChocoGateway and records the
+`SettlementReceipt` in ChocoLedger, so History can rebuild plan runs from chain events.
+
+Manual production test:
+
+```powershell
+$headers = @{ Authorization = "Bearer $env:CRON_SECRET" }
+Invoke-WebRequest -Uri "https://choco-minipay.vercel.app/api/run-due-schedules" -Headers $headers
+```
+
+Local dry run still works without private-key execution:
+
+```powershell
+npm run settle:due
+```
+
+To execute locally against mainnet:
+
+```powershell
+$env:KEEPER_KEY = "0x..."
+npm run settle:due -- --send
+```
+
+### 5. Register ERC-8004 agent
 
 After the production site is live at `choco-minipay.vercel.app` and serves `/agent.json`:
 
@@ -136,7 +171,7 @@ VITE_AGENT_OWNER_ADDRESS=<your deployer address>
 
 Redeploy.
 
-### 5. (Optional) IPFS compliance
+### 6. (Optional) IPFS compliance
 
 For content-addressed `agentURI`:
 
@@ -144,7 +179,7 @@ For content-addressed `agentURI`:
 2. Call `setAgentURI(agentId, "ipfs://QmXXX...")` from the owner wallet
 3. Update Vercel: `VITE_AGENT_URI=ipfs://QmXXX...`
 
-### 6. Verify
+### 7. Verify
 
 1. Open `https://choco-minipay.vercel.app` in MiniPay on Android
 2. Connect wallet

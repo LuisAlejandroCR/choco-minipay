@@ -29,6 +29,9 @@ export async function createScheduleViaRegistry({ account, recipient, intent }) 
     amount,
   });
 
+  const receiptLabel = String(intent.receiptLabel || "").trim().toLowerCase();
+  const receiptLabelHash = receiptLabel ? keccak256(toHex(receiptLabel)) : `0x${"0".repeat(64)}`;
+
   const hash = await walletClient.writeContract({
     address: ledgerOrRegistry,
     abi: REGISTRY_ABI,
@@ -42,6 +45,7 @@ export async function createScheduleViaRegistry({ account, recipient, intent }) 
       intent.dayOfMonth,
       BigInt(intent.firstRunAt),
       keccak256(toHex(intent.rawCommand)),
+      receiptLabelHash,
     ],
     feeCurrency: ADDRESSES.usdm, // pay gas in USDm so USDC balance stays unchanged
   });

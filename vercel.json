@@ -1,4 +1,10 @@
 {
+  "crons": [
+    {
+      "path": "/api/run-due-schedules",
+      "schedule": "5 9 * * *"
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",

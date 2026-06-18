@@ -53,6 +53,7 @@ export const REGISTRY_ABI = [
       { name: "dayOfMonth", type: "uint8" },
       { name: "firstRunAt", type: "uint64" },
       { name: "commandHash", type: "bytes32" },
+      { name: "receiptLabelHash", type: "bytes32" },
     ],
     outputs: [{ name: "id", type: "uint256" }],
   },
