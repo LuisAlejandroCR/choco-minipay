@@ -42,33 +42,35 @@ export function ReceiptDetailScreen({ transaction }) {
 
   return (
     <div className="screen receipt-detail-screen">
-      <div className="rds-hero">
-        <div className="rds-hero-top">
-          <span className="rds-hero-kicker">Choco receipt</span>
-          <span className="sheet-chip">{transaction.status}</span>
-        </div>
-        <div className="rds-hero-recipient">{transaction.recipient || "Recipient"}</div>
-        <div className="rds-hero-amount">
-          {transaction.amount} <small>{transaction.asset}</small>
-        </div>
-        {transaction.date && <div className="rds-hero-date">{transaction.date}</div>}
-      </div>
-
-      <div className="rds-qr">
-        {hasHash ? (
-          <>
-            <div className="rds-qr-wrapper">
-              <QrCanvas data={verifyUrl} size={152} />
-            </div>
-            <a className="rds-qr-link" href={verifyUrl} target="_blank" rel="noreferrer">
-              Verify on-chain <ExternalLink size={13} />
-            </a>
-          </>
-        ) : (
-          <div className="rds-qr-notice">
-            Verification QR appears after the wallet signs and the transaction is mined.
+      <div className="rds-header">
+        <div className="rds-hero">
+          <div className="rds-hero-top">
+            <span className="rds-hero-kicker">Choco receipt</span>
+            <span className="sheet-chip">{transaction.status}</span>
           </div>
-        )}
+          <div className="rds-hero-recipient">{transaction.recipient || "Recipient"}</div>
+          <div className="rds-hero-amount">
+            {transaction.amount} <small>{transaction.asset}</small>
+          </div>
+          {transaction.date && <div className="rds-hero-date">{transaction.date}</div>}
+        </div>
+
+        <div className="rds-qr">
+          {hasHash ? (
+            <>
+              <div className="rds-qr-wrapper">
+                <QrCanvas data={verifyUrl} size={152} />
+              </div>
+              <a className="rds-qr-link" href={verifyUrl} target="_blank" rel="noreferrer">
+                Verify on-chain <ExternalLink size={13} />
+              </a>
+            </>
+          ) : (
+            <div className="rds-qr-notice">
+              Verification QR appears after the wallet signs and the transaction is mined.
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="rds-fields">
