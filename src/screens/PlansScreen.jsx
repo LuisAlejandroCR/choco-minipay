@@ -38,6 +38,7 @@ export function PlansScreen({ plans, loading = false, onSelectPlan, onNewPlan, o
 
   return (
     <div className="screen plans-screen">
+      <div className="screen-header">
       <div className="screen-hero">
         <span className="screen-hero-label">Manage</span>
         <div className="screen-hero-row">
@@ -72,6 +73,7 @@ export function PlansScreen({ plans, loading = false, onSelectPlan, onNewPlan, o
             aria-label="Search plans"
           />
         </div>
+      </div>
       </div>
 
       {loading && plans.length === 0 ? (

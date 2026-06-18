@@ -11,7 +11,7 @@ import {
   getScheduleLabelForIntent,
 } from "../data/chocoScenario.js";
 
-export const SPLASH_DURATION_MS = 2000;
+export const SPLASH_DURATION_MS = 4000;
 
 export function formatLocalTimestamp(date = new Date()) {
   const timestamp = new Intl.DateTimeFormat("en-US", {

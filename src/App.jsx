@@ -573,17 +573,19 @@ export default function App() {
             />
           )}
         </div>
-        <BottomNav
-          active={
-            ["history", "receiptDetail"].includes(visibleScreen) ? "history"
-            : ["plans", "planDetail", "deletePlan"].includes(visibleScreen) ? "plans"
-            : ["plan", "walletGate"].includes(visibleScreen) ? "home"
-            : ""
-          }
-          onHome={() => setScreen("plan")}
-          onPlans={() => goTo("plans")}
-          onHistory={() => goTo("history")}
-        />
+        {!["splash", "pitch"].includes(visibleScreen) && (
+          <BottomNav
+            active={
+              ["history", "receiptDetail"].includes(visibleScreen) ? "history"
+              : ["plans", "planDetail", "deletePlan"].includes(visibleScreen) ? "plans"
+              : ["plan", "walletGate"].includes(visibleScreen) ? "home"
+              : ""
+            }
+            onHome={() => setScreen("plan")}
+            onPlans={() => goTo("plans")}
+            onHistory={() => goTo("history")}
+          />
+        )}
       </section>
     </main>
   );
