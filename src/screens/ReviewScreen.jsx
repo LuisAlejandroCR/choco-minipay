@@ -1,9 +1,8 @@
-import { CalendarDays, Check, CircleDollarSign, Pencil, Trash2, Wallet } from "lucide-react";
+import { CalendarDays, CalendarCheck2, Check, CircleDollarSign, CreditCard, MessageSquare, Pencil, Trash2, User, Wallet, Zap } from "lucide-react";
 import { isAddress } from "viem";
 import { useEffect, useState } from "react";
 import { ContactCapture } from "../components/ContactCapture.jsx";
 import { ContactPicker } from "../components/ContactPicker.jsx";
-import { DetailLine } from "../components/SheetPrimitives.jsx";
 import { APP_CONFIG } from "../lib/app-config.js";
 import { shortAddress } from "../lib/celo.js";
 import { summariseTransfer } from "../lib/cepolia.js";
@@ -91,31 +90,93 @@ export function ReviewScreen({
   const contactErrorNeedsWallet = !walletReady || /wallet/i.test(contactLookupMessage);
   const contactErrorActionLabel = contactErrorNeedsWallet ? "Connect wallet" : "Retry saved contacts";
   const onContactErrorAction = contactErrorNeedsWallet ? onConnect : onPickContact;
+
+  const noticeText = !walletReady
+    ? "Connect and verify your wallet to continue."
+    : isSendNow
+      ? supabaseReady
+        ? "Wallet signs after confirmation. Saved contacts are visible only to your connected wallet."
+        : "Wallet signs after confirmation. Choco reads your wallet balance only — no contact data is stored."
+      : "Wallet authorizes this plan once. Funds stay in your wallet until the scheduled execution.";
+
   return (
     <div className="screen review-screen">
-      <div className="screen-hero">
-        <span className="screen-hero-label">{isSendNow ? "Send now" : "Schedule"}</span>
-        <div className="screen-hero-row">
-          <div>
-            <h2 className="screen-hero-title">{isSendNow ? "Confirm send" : "Authorize plan"}</h2>
-            <p className="screen-hero-detail">{receiptLabel}</p>
-          </div>
+      <div className="rds-hero">
+        <div className="rds-hero-top">
+          <span className="rds-hero-kicker">{isSendNow ? "Send now" : "Schedule"}</span>
           <span className="sheet-chip">{APP_CONFIG.network.badge}</span>
+        </div>
+        <div className="rds-hero-recipient">{receiptLabel}</div>
+        <div className="rds-hero-amount">
+          {cepoliaSummary?.recipientReceives
+            ? <>{cepoliaSummary.recipientReceives.toLocaleString("en-US", { maximumFractionDigits: 2 })} <small>KESm</small></>
+            : recipientGets || "—"
+          }
         </div>
       </div>
 
-      <div className="detail-list">
-        <DetailLine label="Recipient gets" value={recipientGets} />
-        <DetailLine label="Wallet pays" value={walletPays} />
-        <DetailLine label="Timing" value={timingLabel} />
-        <DetailLine label="Fees" value={feeLabel} />
-        {totalCostLabel && <DetailLine label="Total cost" value={totalCostLabel} />}
+      <div className="rds-fields">
+        {resolvedContact?.address && (
+          <div className="rds-field">
+            <div className="rds-field-label">
+              <span className="rds-field-icon"><User size={15} /></span>
+              <span className="rds-field-key">To</span>
+            </div>
+            <span className="rds-field-value">
+              {receiptLabel}
+              <span style={{ color: "var(--muted)", fontWeight: 600 }}> — {shortAddr(resolvedContact.address)}</span>
+            </span>
+          </div>
+        )}
+
+        <div className="rds-field">
+          <div className="rds-field-label">
+            <span className="rds-field-icon"><Wallet size={15} /></span>
+            <span className="rds-field-key">Pays</span>
+          </div>
+          <span className="rds-field-value">{walletPays}</span>
+        </div>
+
+        <div className="rds-field">
+          <div className="rds-field-label">
+            <span className="rds-field-icon"><CalendarDays size={15} /></span>
+            <span className="rds-field-key">Timing</span>
+          </div>
+          <span className="rds-field-value">{timingLabel}</span>
+        </div>
+
+        <div className="rds-field">
+          <div className="rds-field-label">
+            <span className="rds-field-icon"><Zap size={15} /></span>
+            <span className="rds-field-key">Fees</span>
+          </div>
+          <span className="rds-field-value">{feeLabel}</span>
+        </div>
+
+        {totalCostLabel && (
+          <div className="rds-field">
+            <div className="rds-field-label">
+              <span className="rds-field-icon"><CreditCard size={15} /></span>
+              <span className="rds-field-key">Total</span>
+            </div>
+            <span className="rds-field-value">{totalCostLabel}</span>
+          </div>
+        )}
+
+        <div className="rds-field">
+          <div className="rds-field-label">
+            <span className="rds-field-icon"><MessageSquare size={15} /></span>
+            <span className="rds-field-key">Note</span>
+          </div>
+          <span className="rds-field-value" style={{ color: "var(--muted)", fontWeight: 500, fontStyle: "italic" }}>
+            {reference}
+          </span>
+        </div>
       </div>
 
       {contactResolutionRequired && (
         <section className="contact-resolution-card" aria-label="One-time recipient contact">
           {resolvedContact?.address ? (
-            /* ── Resolved: show label + address with edit / change / delete ── */
             <>
               {showEdit ? (
                 <div>
@@ -174,7 +235,6 @@ export function ReviewScreen({
               </button>
             </>
           ) : contactLookupStatus === "checking" ? (
-            /* ── Checking: brief loading state ── */
             <div>
               <span>Contact</span>
               <b>Looking up {receiptLabel}…</b>
@@ -191,7 +251,6 @@ export function ReviewScreen({
               </button>
             </>
           ) : (
-            /* ── Not resolved: inline list + address fallback ── */
             <>
               <div>
                 <span>Contact</span>
@@ -218,28 +277,22 @@ export function ReviewScreen({
         </section>
       )}
 
-      <div className="reference-card">
-        <span>Reference</span>
-        <b>{reference}</b>
-      </div>
-
-      <div className="notice compact">
-        {!walletReady
-          ? "Connect and verify your wallet to continue."
-          : isSendNow
-            ? supabaseReady
-              ? "Wallet signs after confirmation. Saved contacts are visible only to your connected wallet."
-              : "Wallet signs after confirmation. Choco reads your wallet balance only — no contact data is stored."
-            : "Wallet authorizes this plan once. Funds stay in your wallet until the scheduled execution."}
-      </div>
       {status === "error" && message && <div className="notice danger compact">{message}</div>}
       {setupNotice && <div className="notice compact">{setupNotice}</div>}
-            
-      <button className="primary-cta" type="button" disabled={walletReady ? !actionReady || status === "pending" : status === "pending"} onClick={walletReady ? onConfirm : onConnect}>
-        {isSendNow ? <CircleDollarSign size={18} /> : walletReady ? <CalendarDays size={18} /> : <Wallet size={18} />}
-        {primaryLabel}
-      </button>
-      <button className="secondary-dark" type="button" onClick={onEdit}>Edit instruction</button>
+
+      <div className="rds-actions">
+        <div className="notice compact" style={{ marginBottom: 0 }}>{noticeText}</div>
+        <button
+          className="primary-cta"
+          type="button"
+          disabled={walletReady ? !actionReady || status === "pending" : status === "pending"}
+          onClick={walletReady ? onConfirm : onConnect}
+        >
+          {isSendNow ? <CircleDollarSign size={18} /> : walletReady ? <CalendarCheck2 size={18} /> : <Wallet size={18} />}
+          {primaryLabel}
+        </button>
+        <button className="secondary-dark" type="button" onClick={onEdit}>Edit instruction</button>
+      </div>
     </div>
   );
 }
