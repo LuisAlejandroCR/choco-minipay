@@ -1,4 +1,4 @@
-import { decodeEventLog, formatUnits, isAddress } from "viem";
+import { decodeEventLog, formatUnits, isAddress, toEventHash } from "viem";
 import { APP_CONFIG } from "../lib/app-config.js";
 import { ADDRESSES, makePublicClient } from "./client.js";
 import { ATTEMPT_EVENT_ABI, REGISTRY_EVENTS_ABI, SWAP_EVENT_ABI, TRANSFER_EVENT_ABI } from "./abis.js";
@@ -68,6 +68,72 @@ async function getContractEventsChunked(publicClient, params) {
     }));
   }
   return logs;
+}
+
+function hexToBigInt(value) {
+  if (typeof value === "bigint") return value;
+  if (typeof value === "number") return BigInt(value);
+  if (typeof value === "string" && value.startsWith("0x")) return BigInt(value);
+  return BigInt(Number(value || 0));
+}
+
+function hexToNumber(value) {
+  if (typeof value === "number") return value;
+  if (typeof value === "string" && value.startsWith("0x")) return parseInt(value, 16);
+  return Number(value || 0);
+}
+
+function eventAbiByName(eventName) {
+  return REGISTRY_EVENTS_ABI.find((item) => item.type === "event" && item.name === eventName);
+}
+
+async function fetchExplorerLogs(contractAddress, fromBlock, eventName) {
+  if (!APP_CONFIG.network.explorerApiUrl) return null;
+  const eventAbi = eventAbiByName(eventName);
+  if (!eventAbi) return null;
+
+  try {
+    const url = new URL(APP_CONFIG.network.explorerApiUrl);
+    url.searchParams.set("module", "logs");
+    url.searchParams.set("action", "getLogs");
+    url.searchParams.set("address", contractAddress);
+    url.searchParams.set("fromBlock", String(fromBlock || 0n));
+    url.searchParams.set("toBlock", "latest");
+    url.searchParams.set("topic0", toEventHash(eventAbi));
+    url.searchParams.set("sort", "asc");
+    if (APP_CONFIG.network.explorerApiKey) {
+      url.searchParams.set("apikey", APP_CONFIG.network.explorerApiKey);
+    }
+
+    const response = await fetch(url.toString());
+    if (!response.ok) return null;
+    const json = await response.json();
+    if (json.status === "0") return [];
+    if (!Array.isArray(json.result)) return null;
+
+    return json.result.map((raw) => {
+      try {
+        const decoded = decodeEventLog({
+          abi: [eventAbi],
+          data: raw.data,
+          topics: raw.topics,
+          strict: false,
+        });
+        if (decoded.eventName !== eventName) return null;
+        return {
+          address: contractAddress,
+          transactionHash: raw.transactionHash,
+          blockNumber: hexToBigInt(raw.blockNumber),
+          logIndex: hexToNumber(raw.logIndex || 0),
+          args: decoded.args,
+        };
+      } catch {
+        return null;
+      }
+    }).filter(Boolean);
+  } catch {
+    return null;
+  }
 }
 
 function sameAddress(a, b) {
@@ -429,6 +495,32 @@ async function readScheduleData(publicClient, owner, fromBlock, contractAddress)
   return { created, cancelled, paused, resumed, settlements };
 }
 
+async function readScheduleDataFromExplorerLogs(owner, fromBlock, contractAddress) {
+  const [created, cancelled, paused, resumed] = await Promise.all([
+    fetchExplorerLogs(contractAddress, fromBlock, "MonthlyScheduleCreated"),
+    fetchExplorerLogs(contractAddress, fromBlock, "ScheduleCancelled"),
+    fetchExplorerLogs(contractAddress, fromBlock, "SchedulePaused"),
+    fetchExplorerLogs(contractAddress, fromBlock, "ScheduleResumed"),
+  ]);
+
+  if ([created, cancelled, paused, resumed].some((logs) => logs === null)) return null;
+
+  const ownerCreated = created.filter((log) => sameAddress(log.args.owner, owner));
+  const ownerIds = new Set(ownerCreated.map((log) => String(log.args.id)));
+  const settlements = ownerIds.size
+    ? await fetchExplorerLogs(contractAddress, fromBlock, "SettlementReceipt")
+    : [];
+  if (settlements === null) return null;
+
+  return {
+    created: ownerCreated,
+    cancelled: cancelled.filter((log) => ownerIds.has(String(log.args.id)) || sameAddress(log.args.by, owner)),
+    paused: paused.filter((log) => ownerIds.has(String(log.args.id)) || sameAddress(log.args.by, owner)),
+    resumed: resumed.filter((log) => ownerIds.has(String(log.args.id)) || sameAddress(log.args.by, owner)),
+    settlements: settlements.filter((log) => ownerIds.has(String(log.args.id))),
+  };
+}
+
 async function readScheduleDataFromReceipts(publicClient, owner, fromBlock, contractAddress) {
   const scheduleSelectors = [
     SELECTORS.createSchedule,
@@ -474,6 +566,11 @@ async function readScheduleDataFromReceipts(publicClient, owner, fromBlock, cont
 }
 
 async function readScheduleDataWithFallback(publicClient, owner, fromBlock, contractAddress) {
+  const explorerLogs = await readScheduleDataFromExplorerLogs(owner, fromBlock, contractAddress);
+  if (explorerLogs && (explorerLogs.created.length || explorerLogs.settlements.length)) {
+    return explorerLogs;
+  }
+
   try {
     const scheduleData = await withTimeout(
       readScheduleData(publicClient, owner, fromBlock, contractAddress),
