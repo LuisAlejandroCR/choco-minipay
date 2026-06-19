@@ -1,4 +1,4 @@
-import { isAddress, parseUnits } from "viem";
+import { formatUnits, isAddress, parseUnits } from "viem";
 import { APP_CONFIG } from "../lib/app-config.js";
 import { ADDRESSES, assertAddress, makePublicClient, makeWalletClient } from "./client.js";
 import { CKES_SWAP_ABI, ERC20_ABI, MENTO_BROKER_ABI } from "./abis.js";
@@ -6,6 +6,19 @@ import { approveTokenIfNeeded, usdcAmountForIntent, sourceAmountForIntent } from
 
 function readErc20Balance(publicClient, token, account) {
   return publicClient.readContract({ address: token, abi: ERC20_ABI, functionName: "balanceOf", args: [account] });
+}
+
+function readErc20Allowance(publicClient, token, owner, spender) {
+  return publicClient.readContract({ address: token, abi: ERC20_ABI, functionName: "allowance", args: [owner, spender] });
+}
+
+function formatUsdc(amount) {
+  return `${Number(formatUnits(amount, 6)).toLocaleString("en-US", { maximumFractionDigits: 6 })} USDC`;
+}
+
+function routeError(error) {
+  const reason = error?.shortMessage || error?.details || error?.message || "gateway route reverted";
+  return new Error(`Choco route could not execute before wallet signing: ${reason}`);
 }
 
 // Send now. cKES transfers go wallet → recipient directly. USDC routes USDC → USDm → cKES through
@@ -46,12 +59,35 @@ export async function sendNow({ account, recipient, intent }) {
         functionName: "quoteExactOut",
         args: [ckesExact],
       });
+      const usdcBalance = await readErc20Balance(publicClient, ADDRESSES.usdc, account);
+      if (usdcBalance < usdcNeeded) {
+        throw new Error(`Insufficient USDC balance. Choco needs ${formatUsdc(usdcNeeded)} for this route, but your wallet has ${formatUsdc(usdcBalance)}.`);
+      }
+
       const approveHash = await approveTokenIfNeeded({
         account,
         tokenAddress: ADDRESSES.usdc,
         spender: ADDRESSES.ckesSwap,
         amount: usdcNeeded,
       });
+
+      const allowance = await readErc20Allowance(publicClient, ADDRESSES.usdc, account, ADDRESSES.ckesSwap);
+      if (allowance < usdcNeeded) {
+        throw new Error(`USDC approval is lower than the route cost. Approved ${formatUsdc(allowance)}, needed ${formatUsdc(usdcNeeded)}.`);
+      }
+
+      try {
+        await publicClient.simulateContract({
+          account,
+          address: ADDRESSES.ckesSwap,
+          abi: CKES_SWAP_ABI,
+          functionName: "swapAndSendExact",
+          args: [recipient, usdcNeeded, ckesExact],
+        });
+      } catch (error) {
+        throw routeError(error);
+      }
+
       const hash = await walletClient.writeContract({
         address: ADDRESSES.ckesSwap,
         abi: CKES_SWAP_ABI,
@@ -72,6 +108,11 @@ export async function sendNow({ account, recipient, intent }) {
     });
     const ckesMinOut = (ckesQuoted * 985n) / 1000n;
 
+    const usdcBalance = await readErc20Balance(publicClient, ADDRESSES.usdc, account);
+    if (usdcBalance < usdcAmount) {
+      throw new Error(`Insufficient USDC balance. Choco needs ${formatUsdc(usdcAmount)} for this route, but your wallet has ${formatUsdc(usdcBalance)}.`);
+    }
+
     const ckesBefore = await readErc20Balance(publicClient, ADDRESSES.kesm, recipient);
     const approveHash = await approveTokenIfNeeded({
       account,
@@ -79,6 +120,23 @@ export async function sendNow({ account, recipient, intent }) {
       spender: ADDRESSES.ckesSwap,
       amount: usdcAmount,
     });
+    const allowance = await readErc20Allowance(publicClient, ADDRESSES.usdc, account, ADDRESSES.ckesSwap);
+    if (allowance < usdcAmount) {
+      throw new Error(`USDC approval is lower than the route cost. Approved ${formatUsdc(allowance)}, needed ${formatUsdc(usdcAmount)}.`);
+    }
+
+    try {
+      await publicClient.simulateContract({
+        account,
+        address: ADDRESSES.ckesSwap,
+        abi: CKES_SWAP_ABI,
+        functionName: "swapAndSend",
+        args: [recipient, usdcAmount, ckesMinOut],
+      });
+    } catch (error) {
+      throw routeError(error);
+    }
+
     const hash = await walletClient.writeContract({
       address: ADDRESSES.ckesSwap,
       abi: CKES_SWAP_ABI,
