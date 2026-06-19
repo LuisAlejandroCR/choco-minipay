@@ -14,10 +14,13 @@ function humaniseTransferError(error) {
     return "The permit signature was rejected or expired. Please try again.";
   }
   if (/insufficient.*funds|insufficient.*balance/i.test(msg)) {
-    return "Insufficient balance for this transfer.";
+    return "Insufficient balance for this transfer or network fee.";
   }
-  if (/reverted|execution reverted/i.test(msg)) {
-    return "Transfer failed — the transaction was reverted. Check your balance and try again.";
+  if (/allowance|approval|approve/i.test(msg)) {
+    return "Approval failed. Confirm the wallet approval and try again.";
+  }
+  if (/gateway|route|quote|swap|mento|reverted|execution reverted/i.test(msg)) {
+    return "Transfer failed because the route could not execute. Refresh the quote and try again.";
   }
   if (/network|fetch|timeout/i.test(msg)) {
     return "Network error. Check your connection and try again.";
