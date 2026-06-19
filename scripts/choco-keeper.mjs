@@ -236,9 +236,14 @@ export async function runDueSchedules({
   out.log(`Due now: ${due.length}`);
 
   const executed = [];
+  const gatewayLower = String(gatewayAddress || "").toLowerCase();
   for (const schedule of due) {
     const route = `${formatToken(schedule.sourceAmount, 6)} USDC -> ${formatToken(schedule.destinationAmount, 18)} KESm`;
-    out.log(`#${schedule.id} ${formatAddress(schedule.owner)} -> ${formatAddress(schedule.recipient)} | ${route} | ${formatLocal(schedule.runAt)}`);
+    const spenderMatches = gatewayLower && schedule.settlementSpender.toLowerCase() === gatewayLower;
+    const spenderStatus = spenderMatches
+      ? "gateway ready"
+      : `gateway mismatch: ${formatAddress(schedule.settlementSpender)}`;
+    out.log(`#${schedule.id} ${formatAddress(schedule.owner)} -> ${formatAddress(schedule.recipient)} | ${route} | ${formatLocal(schedule.runAt)} | ${spenderStatus}`);
   }
 
   if (!shouldSend) {

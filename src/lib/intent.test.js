@@ -122,3 +122,38 @@ test("Agent Choco blocks transfers without a currency", () => {
   assert.equal(agent.isReady, false);
   assert.deepEqual(agent.missing, ["currency"]);
 });
+
+test("Agent Choco treats today with a clock time as a schedule", () => {
+  const intent = parseTransferIntent("Mom 2 today 3:20 PM", {
+    deliveryMode: "schedule",
+    now: new Date("2026-06-19T15:18:00"),
+    kesPerUsdc: 100,
+  });
+
+  const firstRun = new Date(intent.firstRunAt * 1000);
+
+  assert.equal(intent.isReady, true);
+  assert.equal(intent.deliveryMode, "schedule");
+  assert.equal(intent.recipientAlias, "Mom");
+  assert.equal(intent.amountKes, 2);
+  assert.equal(intent.currencyInferred, true);
+  assert.equal(intent.dayOfMonth, 19);
+  assert.equal(firstRun.getHours(), 15);
+  assert.equal(firstRun.getMinutes(), 20);
+});
+
+test("Agent Choco keeps recurring day when a clock time is present", () => {
+  const intent = parseTransferIntent("Mom 2 cKES every 5th at 3:20 PM", {
+    deliveryMode: "schedule",
+    now: new Date("2026-06-19T15:18:00"),
+    kesPerUsdc: 100,
+  });
+
+  const firstRun = new Date(intent.firstRunAt * 1000);
+
+  assert.equal(intent.isReady, true);
+  assert.equal(intent.deliveryMode, "schedule");
+  assert.equal(intent.dayOfMonth, 5);
+  assert.equal(firstRun.getHours(), 15);
+  assert.equal(firstRun.getMinutes(), 20);
+});

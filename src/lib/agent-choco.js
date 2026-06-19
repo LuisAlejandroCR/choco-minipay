@@ -102,19 +102,65 @@ export function detectCurrency(text) {
   return { code: "", confidence: 0 };
 }
 
-export function detectTiming(text, selectedDeliveryMode = "") {
+function clampScheduleDay(day) {
+  return Math.min(28, Math.max(1, Math.trunc(Number(day) || 1)));
+}
+
+function detectClockTime(command) {
+  const twelveHour = command.match(/\b(?:at\s*)?(\d{1,2})(?::([0-5]\d))?\s*(am|pm)\b/i);
+  if (twelveHour) {
+    let hour = Number(twelveHour[1]);
+    const minute = Number(twelveHour[2] || 0);
+    const meridiem = twelveHour[3].toLowerCase();
+    if (hour < 1 || hour > 12) return null;
+    if (meridiem === "pm" && hour !== 12) hour += 12;
+    if (meridiem === "am" && hour === 12) hour = 0;
+    return { hour, minute };
+  }
+
+  const twentyFourHour = command.match(/\b(?:at\s*)?([01]?\d|2[0-3]):([0-5]\d)\b/i);
+  if (twentyFourHour) {
+    return { hour: Number(twentyFourHour[1]), minute: Number(twentyFourHour[2]) };
+  }
+
+  return null;
+}
+
+function buildExplicitFirstRunAt({ dayOffset = 0, clock = null, now = new Date() } = {}) {
+  const runAt = new Date(now);
+  runAt.setDate(runAt.getDate() + dayOffset);
+  if (clock) runAt.setHours(clock.hour, clock.minute, 0, 0);
+  return Math.floor(runAt.getTime() / 1000);
+}
+
+function buildMonthlyFirstRunAt(dayOfMonth, clock, now = new Date()) {
+  const runAt = new Date(now);
+  runAt.setDate(clampScheduleDay(dayOfMonth));
+  runAt.setHours(clock.hour, clock.minute, 0, 0);
+  if (runAt.getTime() <= new Date(now).getTime()) runAt.setMonth(runAt.getMonth() + 1);
+  return Math.floor(runAt.getTime() / 1000);
+}
+
+export function detectTiming(text, selectedDeliveryMode = "", now = new Date()) {
   const command = normalizeCommand(text).toLowerCase();
   if (!command) return { deliveryMode: selectedDeliveryMode || "now", dayOfMonth: 1, label: "", confidence: 0 };
-  if (/\b(now|today|immediately|right away)\b/.test(command)) {
+
+  const clock = detectClockTime(command);
+  const hasToday = /\btoday\b/.test(command);
+  const hasTomorrow = /\btomorrow\b/.test(command);
+  const explicitNow = /\b(now|immediately|right away)\b/.test(command);
+
+  if (explicitNow || (hasToday && selectedDeliveryMode !== "schedule" && !clock)) {
     return { deliveryMode: "now", dayOfMonth: 1, label: "Now", confidence: 0.95 };
   }
 
-  if (/\btomorrow\b/.test(command)) {
-    const tomorrow = new Date();
-    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+  if (hasTomorrow) {
+    const firstRunAt = buildExplicitFirstRunAt({ dayOffset: 1, clock, now });
+    const tomorrow = new Date(firstRunAt * 1000);
     return {
       deliveryMode: "schedule",
-      dayOfMonth: Math.min(28, Math.max(1, tomorrow.getUTCDate())),
+      dayOfMonth: clampScheduleDay(tomorrow.getDate()),
+      firstRunAt,
       label: "Tomorrow",
       confidence: 0.9,
     };
@@ -122,8 +168,27 @@ export function detectTiming(text, selectedDeliveryMode = "") {
 
   const ordinal = command.match(/\bevery\s+(\d{1,2})(?:st|nd|rd|th)?\b/i);
   if (ordinal) {
-    const day = Math.min(28, Math.max(1, Math.trunc(Number(ordinal[1]))));
-    return { deliveryMode: "schedule", dayOfMonth: day, label: `Every ${formatDay(day)}`, confidence: Number.isFinite(day) ? 0.95 : 0 };
+    const day = clampScheduleDay(ordinal[1]);
+    return {
+      deliveryMode: "schedule",
+      dayOfMonth: day,
+      firstRunAt: clock ? buildMonthlyFirstRunAt(day, clock, now) : undefined,
+      label: `Every ${formatDay(day)}`,
+      confidence: Number.isFinite(day) ? 0.95 : 0,
+    };
+  }
+
+  if ((hasToday || clock) && (selectedDeliveryMode === "schedule" || clock)) {
+    const firstRunAt = clock ? buildExplicitFirstRunAt({ clock, now }) : undefined;
+    const runAt = firstRunAt ? new Date(firstRunAt * 1000) : new Date(now);
+    const day = clampScheduleDay(runAt.getDate());
+    return {
+      deliveryMode: "schedule",
+      dayOfMonth: day,
+      firstRunAt,
+      label: hasToday ? "Today" : `Every ${formatDay(day)}`,
+      confidence: clock ? 0.95 : 0.82,
+    };
   }
 
   if (selectedDeliveryMode === "now") return { deliveryMode: "now", dayOfMonth: 1, label: "Now", confidence: 0.7 };
@@ -145,7 +210,7 @@ export function buildAgentChocoIntent(text, options = {}) {
   const recipient = detectRecipient(rawCommand);
   const amount = detectAmount(rawCommand);
   const currency = detectCurrency(rawCommand);
-  const timing = detectTiming(rawCommand, options.deliveryMode);
+  const timing = detectTiming(rawCommand, options.deliveryMode, options.now || new Date());
   const signals = [recipient.confidence, amount.confidence, currency.confidence, timing.confidence];
   const confidence = Math.round((signals.reduce((sum, value) => sum + value, 0) / signals.length) * 100) / 100;
   const missing = [
@@ -167,3 +232,4 @@ export function buildAgentChocoIntent(text, options = {}) {
     isReady: missing.length === 0 && confidence >= APP_CONFIG.transfer.minimumConfidence,
   };
 }
+
