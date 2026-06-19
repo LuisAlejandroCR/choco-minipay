@@ -266,7 +266,7 @@ export function ReviewScreen({
         <button
           className="primary-cta"
           type="button"
-          disabled={walletReady ? !actionReady || status === "pending" : status === "pending"}
+          disabled={walletReady ? !actionReady || status === "pending" || status === "success" : status === "pending"}
           onClick={walletReady ? onConfirm : onConnect}
         >
           {isSendNow ? <CircleDollarSign size={18} /> : walletReady ? <CalendarCheck2 size={18} /> : <Wallet size={18} />}

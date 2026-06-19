@@ -385,6 +385,13 @@
   gap: 12px;
 }
 
+/* rds-hero is sticky (for ReceiptDetailScreen scroll), but in ReviewScreen
+   there is no scroll-driven pinning needed — the contact card below would
+   appear under the sticky z-index-5 layer otherwise. */
+.review-screen .rds-hero {
+  position: relative;
+}
+
 .review-screen .contact-capture {
   border-color: var(--line-soft);
   background: rgba(16, 9, 6, 0.4);
