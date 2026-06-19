@@ -5,7 +5,7 @@ import { getPlanExecutionState } from "../utils/planUtils.js";
 const basePlan = {
   deliveryMode: "schedule",
   dayOfMonth: 17,
-  firstRunAt: 0,
+  firstRunAt: Math.floor(new Date(2026, 5, 17, 4, 0).getTime() / 1000),
   lastSettlementAt: 0,
 };
 
