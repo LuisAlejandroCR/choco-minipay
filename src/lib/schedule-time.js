@@ -10,21 +10,30 @@ export function getDefaultScheduleMinute() {
   return Number.isFinite(minute) && minute >= 0 && minute <= 59 ? minute : 0;
 }
 
+// Builds a UTC-anchored Date for the given dayOfMonth at the configured default HH:MM.
+// Using Date.UTC ensures VITE_DEFAULT_SCHEDULE_TIME is always interpreted as UTC hours,
+// so a device in CDT (UTC-5) setting hour=9 produces 09:00 UTC, not 14:00 UTC.
+// The keeper's cron (09:05 UTC) and scheduleWindowForCurrentMonth both work in UTC,
+// so this alignment ensures same-day execution for morning windows.
 export function buildLocalScheduleDate(dayOfMonth, from = new Date()) {
   const day = Math.min(28, Math.max(1, Number(dayOfMonth) || 1));
-  const next = new Date(from);
-  next.setSeconds(0, 0);
-  next.setHours(getDefaultScheduleHour(), getDefaultScheduleMinute(), 0, 0);
-  next.setDate(day);
-  return next;
+  return new Date(Date.UTC(
+    from.getUTCFullYear(),
+    from.getUTCMonth(),
+    day,
+    getDefaultScheduleHour(),
+    getDefaultScheduleMinute(),
+    0,
+    0,
+  ));
 }
 
 export function nextLocalMonthlyRun(dayOfMonth, from = new Date()) {
   const now = new Date(from);
   const next = buildLocalScheduleDate(dayOfMonth, now);
   if (next.getTime() <= now.getTime()) {
-    next.setMonth(next.getMonth() + 1);
-    next.setDate(Math.min(28, Math.max(1, Number(dayOfMonth) || 1)));
+    next.setUTCMonth(next.getUTCMonth() + 1);
+    next.setUTCDate(Math.min(28, Math.max(1, Number(dayOfMonth) || 1)));
   }
   return Math.floor(next.getTime() / 1000);
 }
