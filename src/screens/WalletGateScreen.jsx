@@ -102,6 +102,47 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
             <button className="secondary-dark" type="button" disabled={isVerifyingWallet} onClick={onVerifyWallet}>
               {isVerifyingWallet ? "Checking wallet…" : "I enabled it, check again"}
             </button>
+
+            <div className="wallet-manual-input">
+              <label className="wallet-manual-label">Or paste your address</label>
+              <div className={`wallet-manual-row${isValidAddr ? " row-validated" : ""}`}>
+                <input
+                  type="text"
+                  className="wallet-manual-field"
+                  inputMode="text"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck="false"
+                  placeholder="0x…"
+                  value={manualAddr}
+                  readOnly={isValidAddr}
+                  onChange={(e) => setManualAddr(e.target.value)}
+                  aria-label="Paste wallet address"
+                />
+                {isValidAddr && (
+                  <button
+                    className="wallet-clear-btn"
+                    type="button"
+                    aria-label="Clear address"
+                    onClick={() => setManualAddr("")}
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+              {isValidAddr && (
+                <>
+                  <small className="wallet-addr-preview">Read-only · {shortAddress(trimmedAddr)}</small>
+                  <button
+                    className="primary-cta"
+                    type="button"
+                    onClick={handleConnect}
+                  >
+                    Connect {shortAddress(trimmedAddr)}
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         ) : (
           <button className="primary-cta" type="button" disabled={isVerifyingWallet} onClick={onVerifyWallet}>
