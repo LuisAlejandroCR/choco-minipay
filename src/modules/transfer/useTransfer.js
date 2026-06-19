@@ -113,7 +113,7 @@ export function useTransfer({
       onNavigate("plans");
     } else {
       onTransactionCreated(transaction.id);
-      onNavigate("history");
+      onNavigate("receiptDetail");
     }
   }
 
