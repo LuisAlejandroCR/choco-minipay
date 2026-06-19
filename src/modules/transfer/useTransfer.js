@@ -56,7 +56,7 @@ export function useTransfer({
       return;
     }
 
-    if (wallet.address) {
+    if (wallet.address && deliveryMode === "now") {
       const readiness = await verifyReadiness({ account: wallet.address, intent: plan.intent });
       if (!readiness.ok) {
         setStatus("error");
@@ -143,12 +143,13 @@ export function useTransfer({
         ? "Money sent from your wallet. Receipt filed."
         : "Monthly plan authorized. Choco can auto-run it on the scheduled day.");
 
-      if (reviewPlan.deliveryMode === "schedule") {
-        setMessage("Plan authorized. Syncing it from chain...");
-        await onRefreshLedger();
-      }
-
+      // Navigate first so the user doesn't stay on the review screen while the
+      // ledger sync runs (which could take 5-10 s and leaves the button re-enabled).
       commitReceipt(reviewPlan, result.hash, result.approveHash || "", recipientAddress, reviewMode);
+
+      if (reviewPlan.deliveryMode === "schedule") {
+        onRefreshLedger().catch(() => {});
+      }
       onRefreshBalances(address).catch(() => {});
       window.setTimeout(() => { onRefreshLedger().catch(() => {}); }, 3000);
       window.setTimeout(() => { onRefreshLedger().catch(() => {}); }, 8000);
