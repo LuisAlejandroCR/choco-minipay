@@ -66,10 +66,17 @@ export function useContactResolution({
 
     (async () => {
       try {
-        // Best-effort auth — stored JWT from a prior MiniPay session is enough.
-        // If no wallet is present (browser context) we still attempt the query;
-        // the Supabase client auto-restores the JWT from localStorage.
-        await ensureSupabaseAuth(wallet.address);
+        // In MiniPay personal_sign is handled natively by the wallet — full auth is fine.
+        // In browsers (MetaMask) we avoid triggering an unexpected popup on review-screen
+        // open by using the cached session only. If there's no session, show the address
+        // input immediately; the user can sign in explicitly via "Save contact".
+        const session = wallet.isMiniPay
+          ? await ensureSupabaseAuth(wallet.address)
+          : await getCachedSession();
+        if (!session) {
+          if (active) setContactLookup({ key: contactKey, status: "missing", message: "" });
+          return;
+        }
         const contact = await findContactByLabel({ ownerWallet: wallet.address, label: receiptLabel });
         if (!active) return;
         if (contact?.wallet_address) {
@@ -125,6 +132,11 @@ export function useContactResolution({
       },
     }));
     onMessage?.(`${label} selected for this transfer.`);
+
+    // Persist address→label locally so history can show names without Supabase.
+    if (address && label) {
+      try { localStorage.setItem(`choco-label-${String(address).toLowerCase()}`, label); } catch {}
+    }
 
     if (SUPABASE_READY && wallet.address && !wallet.isReadOnly && saveContact && details.source !== "contacts") {
       try {
