@@ -81,7 +81,7 @@ export function detectRecipient(text) {
 
 export function detectAmount(text) {
   const command = normalizeCommand(text).replace(/,/g, "");
-  const explicit = command.match(/(\d+(?:\.\d+)?)(?!\s*(?:st|nd|rd|th|am|pm)\b)\s*(k|cke|cKES|c-kes|KES|KESm|USDC|shillings?)?/i);
+  const explicit = command.match(/(\d+(?:\.\d+)?)(?!\s*(?:st|nd|rd|th|am|pm)\b)\s*(cke|cKES|c-kes|KESm|KES|USDC|shillings?|k)?/i);
   if (!explicit) return { value: 0, raw: "", confidence: 0 };
 
   const amount = Number(explicit[1]);
