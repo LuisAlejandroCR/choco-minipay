@@ -100,6 +100,7 @@ export default function App() {
   const [command, setCommand] = useState(DEFAULT_COMMANDS.schedule);
   const [selectedPlanId, setSelectedPlanId] = useState("");
   const [selectedTransactionId, setSelectedTransactionId] = useState("");
+  const [selectedTransactionFallback, setSelectedTransactionFallback] = useState(null);
   const [reviewMode, setReviewMode] = useState("create");
   const [deliveryMode, setDeliveryMode] = useState("schedule");
   const [activeInfoPanel, setActiveInfoPanel] = useState(null);
@@ -160,7 +161,15 @@ export default function App() {
     onPlanBuilt: setResolvedPreviewPlan,
     onContactResolved: (key, contact) =>
       contacts.setResolvedContacts((prev) => ({ ...prev, [key]: contact })),
-    onTransactionCreated: setSelectedTransactionId,
+    onTransactionCreated: (transaction) => {
+      if (!transaction) {
+        setSelectedTransactionId("");
+        setSelectedTransactionFallback(null);
+        return;
+      }
+      setSelectedTransactionId(transaction.id);
+      setSelectedTransactionFallback(transaction);
+    },
     onNavigate: goTo,
     onRefreshLedger: refreshLedgerFresh,
     onRefreshBalances: refreshBalances,
@@ -183,8 +192,9 @@ export default function App() {
   const activeTransaction = useMemo(
     () =>
       transactions.find((item) => item.id === selectedTransactionId) ||
+      (selectedTransactionFallback?.id === selectedTransactionId ? selectedTransactionFallback : null) ||
       (transfer.lastReceipt?.id === selectedTransactionId ? transfer.lastReceipt : null),
-    [transfer.lastReceipt, selectedTransactionId, transactions],
+    [selectedTransactionFallback, transfer.lastReceipt, selectedTransactionId, transactions],
   );
   const actionReady = Boolean(
     walletCanSign &&
@@ -473,6 +483,7 @@ export default function App() {
               onPlans={() => goTo("plans")}
               onSelectTransaction={(transactionId) => {
                 setSelectedTransactionId(transactionId);
+                setSelectedTransactionFallback(null);
                 goTo("receiptDetail");
               }}
             />
@@ -480,7 +491,14 @@ export default function App() {
           {transfer.showSuccessModal && transfer.lastReceipt && (
             <TransactionSuccessScreen
               transaction={transfer.lastReceipt}
-              onViewDetails={() => transfer.setShowSuccessModal(false)}
+              onViewDetails={() => {
+                transfer.setShowSuccessModal(false);
+                if (transfer.lastReceipt) {
+                  setSelectedTransactionId(transfer.lastReceipt.id);
+                  setSelectedTransactionFallback(transfer.lastReceipt);
+                  goTo("receiptDetail");
+                }
+              }}
               onDismiss={() => transfer.setShowSuccessModal(false)}
             />
           )}
