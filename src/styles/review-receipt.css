@@ -1001,14 +1001,12 @@
   overflow: visible;
 }
 
-.primary-cta,
-.demo-actions button:first-child {
+.primary-cta {
   background: linear-gradient(180deg, var(--vanilla-strong), #f4dfc4);
   color: var(--cocoa-950);
 }
 
-.secondary-dark,
-.demo-actions button:last-child {
+.secondary-dark {
   border-color: rgba(255, 246, 232, 0.2);
   background: rgba(255, 246, 232, 0.035);
   color: var(--cream);
