@@ -47,9 +47,8 @@ export function PlanScreen({
   const [hideBalance, setHideBalance] = useState(false);
 
   const isVerifyingWallet = wallet.status === "loading" || wallet.status === "opening-wallet";
-  const visibleBalances = balances.filter((item) => item.raw && item.raw !== 0n);
-  const usdcBalance = visibleBalances.find((b) => b.key === "usdc");
-  const primaryAmount = usdcBalance?.formatted ?? visibleBalances[0]?.formatted ?? "0.00";
+  const usdcBalance = balances.find((b) => b.key === "usdc");
+  const primaryAmount = usdcBalance?.formatted ?? "0.00";
   const walletShort = formatWalletAddress(wallet.address);
   const activePlans = plans.filter((plan) => getPlanExecutionState(plan).status !== "Paused");
   const nextPlan = activePlans[0] || null;
