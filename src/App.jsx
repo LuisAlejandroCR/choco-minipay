@@ -110,8 +110,11 @@ export default function App() {
   // --- Platform hooks ---
   const wallet = useMiniPayWallet();
   const walletCanSign = wallet.canSign;
+  // walletHasAddress unlocks read-only views (home, plans, history) for pasted/read-only addresses.
+  // walletCanSign is reserved for operations that require signing (review confirm button, actionReady).
+  const walletHasAddress = wallet.isReady;
   const { plans, transactions, loading: ledgerLoading, error: ledgerError, refresh: refreshLedger, refreshFresh: refreshLedgerFresh, patchPlan, removePlan } = useChocoLedger(wallet.address);
-  const visibleScreen = resolveVisibleScreen(screen, walletCanSign);
+  const visibleScreen = resolveVisibleScreen(screen, walletHasAddress);
 
   // --- Helpers (defined before feature hooks; closures capture hook values at call time) ---
   async function refreshBalances(address = wallet.address) {
@@ -120,7 +123,7 @@ export default function App() {
   }
 
   function goTo(nextScreen) {
-    setScreen(resolveVisibleScreen(nextScreen, walletCanSign));
+    setScreen(resolveVisibleScreen(nextScreen, walletHasAddress));
   }
 
   // --- Derived plan values (must be computed before feature hooks that consume them) ---
@@ -399,10 +402,10 @@ export default function App() {
           {visibleScreen === "plan" && (
             <PlanScreen
               plans={plans}
-              isWalletVerified={walletCanSign}
+              isWalletVerified={walletHasAddress}
               wallet={wallet}
               balances={balances}
-              walletStatusLabel={getWalletStatusLabel(walletCanSign)}
+              walletStatusLabel={getWalletStatusLabel(walletHasAddress)}
               onVerifyWallet={() => setScreen("walletGate")}
               onPlans={() => goTo("plans")}
               onHistory={() => goTo("history")}
@@ -411,7 +414,7 @@ export default function App() {
                 setSelectedPlanId(planId);
                 goTo("planDetail");
               }}
-              showDemoPrompt={showDemoPrompt && !walletCanSign}
+              showDemoPrompt={showDemoPrompt && !walletHasAddress}
               liveDemoUrl={APP_CONFIG.ui.liveDemoUrl}
               onDismissDemo={() => setShowDemoPrompt(false)}
               onRunDemo={runDemo}
