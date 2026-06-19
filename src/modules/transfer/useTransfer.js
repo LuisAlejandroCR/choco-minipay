@@ -45,6 +45,8 @@ export function useTransfer({
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   async function buildPlan(commandText, basePlan, deliveryMode) {
+    setStatus("idle");
+    setMessage("");
     const plan = buildSafePreviewPlan(commandText, basePlan, deliveryMode);
     onPlanBuilt(plan);
     setApprovalHash("");
