@@ -44,6 +44,19 @@ export function useChocoLedger(address) {
       const ledger = await readOwnerLedger(address);
       const contacts = SUPABASE_READY ? await listContacts(address).catch(() => []) : [];
       const contactsByAddress = new Map(contacts.map((contact) => [String(contact.wallet_address).toLowerCase(), contact]));
+
+      // Merge locally-cached address→label entries (set in useContactResolution on every resolve).
+      // These survive page reloads, require no sign, and fill gaps when Supabase has no contact.
+      try {
+        for (const key of Object.keys(localStorage)) {
+          if (!key.startsWith("choco-label-")) continue;
+          const addr = key.slice("choco-label-".length);
+          if (!contactsByAddress.has(addr)) {
+            contactsByAddress.set(addr, { label: localStorage.getItem(key), wallet_address: addr });
+          }
+        }
+      } catch {}
+
       setPlans(attachContactLabels(ledger.plans, contactsByAddress));
       setTransactions(attachContactLabels(ledger.history, contactsByAddress));
       setError(ledger.error || "");
