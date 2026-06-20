@@ -4,9 +4,8 @@
 // Pure functions where possible; on-chain reads use the public client.
 
 import { formatUnits, isAddress, parseUnits } from "viem";
-import { ADDRESSES, ERC20_ABI, MENTO_BROKER_ABI, getApprovalTarget, makePublicClient, readUsdcBalance } from "./celo.js";
+import { ADDRESSES, ERC20_ABI, MENTO_BROKER_ABI, getApprovalTarget, makePublicClient, readUsdcBalance, routeQuoteMessage, selectTransferRouteExactOut } from "./celo.js";
 import { APP_CONFIG } from "./app-config.js";
-import { applyExactOutputBuffer } from "../chain/tokens.js";
 
 
 // Readiness verdicts (UX-only — never written on-chain). The audit contract is for events that
@@ -21,19 +20,6 @@ export const READINESS_REASON = {
   BALANCE_READ_FAILED: "BALANCE_READ_FAILED",
   ROUTE_UNAVAILABLE: "ROUTE_UNAVAILABLE",
 };
-
-function routeQuoteMessage(error) {
-  const msg = [
-    error?.message,
-    error?.shortMessage,
-    error?.cause?.message,
-    error?.cause?.shortMessage,
-  ].filter(Boolean).join(" ");
-  if (/no valid median/i.test(msg)) {
-    return "KESm route is temporarily unavailable. Choco cannot quote this transfer right now.";
-  }
-  return `Could not quote this transfer: ${error.shortMessage || error.message}`;
-}
 
 // Cepolia Skill — readiness check before Review. Returns { ok, reason, message, required, available }.
 // Never signs or logs anything; this is pure validation. Failures are surfaced as UX messages
@@ -91,16 +77,9 @@ const SWAP_ABI = [
 ];
 
 async function quoteExactOutputUsdc(ckesAmountRaw) {
-  const swapAddress = APP_CONFIG.contracts.ckesSwap;
-  if (!isAddress(swapAddress || "") || !(ckesAmountRaw > 0n)) return 0n;
-  const publicClient = makePublicClient();
-  const quoted = await publicClient.readContract({
-    address: swapAddress,
-    abi: SWAP_ABI,
-    functionName: "quoteExactOut",
-    args: [ckesAmountRaw],
-  });
-  return applyExactOutputBuffer(quoted);
+  const selectedRoute = await selectTransferRouteExactOut({ ckesAmountRaw });
+  if (!selectedRoute.ok) throw new Error(selectedRoute.message);
+  return selectedRoute.usdcAmountIn;
 }
 
 // Returns the cKES output for a given USDC amount, going through the deployed Choco swap
