@@ -37,18 +37,69 @@ The included Vercel worker at `/api/run-due-schedules` runs the same keeper logi
 `npm run settle:due -- --send`. It should hold only the keeper key, never user funds or user
 private keys.
 
-## On-chain contracts
+## Blockchain contracts
 
-| Contract | Purpose |
-|---|---|
-| **ChocoGateway** | Fee (0.25%), USDC→cKES swap, on-chain TxRecord storage, ChocoLedger.logAttemptFor |
-| **ChocoLedger** | Schedule source of truth plus settlement/send-now audit events |
+Choco uses Celo Mainnet contracts as the source of truth for sends, schedules, and receipts.
+The app remains non-custodial: user funds stay in the connected wallet until a send-now action
+or scheduled run is executed.
 
-Env var `VITE_CKES_SWAP_CONTRACT_ADDRESS` points to the active ChocoGateway for new sends.
-If multiple gateways were deployed during testing, set `VITE_CKES_SWAP_CONTRACT_ADDRESSES`
-to the comma-separated active + legacy gateway list so History can rebuild every send-now
-movement from chain events. See `contracts/README.md`.
+| Contract | Current address | Role | Verification status |
+|---|---|---|---|
+| ChocoLedger | `0xd8F54CCbc314014443DEbAA8558B09D4ccC57A9E` | Plan registry and unified event log for send-now attempts, schedule creation, and executed plan receipts | Not verified on Blockscout/Celoscan at last check |
+| ChocoGateway | `0xBB1ebeDf01C6Df335aA186748d9B08Df8fB6F8c8` | USDC to USDm to KESm settlement route, protocol fee collection, recipient delivery, and ledger logging | Not verified on Blockscout/Celoscan at last check |
 
+### Contract responsibilities
+
+`ChocoLedger` does not move funds. It records wallet-authorized plans and emits the events the
+frontend reads for Plans and Movements. It also controls which gateway contracts are allowed to
+write send-now attempts through `setSwapContract(address,bool)`.
+
+`ChocoGateway` is the settlement entry point. For send-now it pulls approved USDC from the user,
+collects the protocol fee, routes USDC through Mento as `USDC -> USDm -> KESm`, sends KESm to the
+recipient, and logs the movement to `ChocoLedger`. For scheduled plans, the keeper calls the same
+gateway route only when a plan is due.
+
+### Funds flow
+
+```text
+User wallet
+  -> approve ChocoGateway for the quoted USDC amount
+  -> send now or wait for scheduled execution
+  -> ChocoGateway pulls USDC only at execution time
+  -> fee recipient receives the protocol fee
+  -> Mento routes USDC -> USDm -> KESm
+  -> recipient receives KESm directly
+  -> ChocoLedger records the movement event
+```
+
+For schedules, the approval and plan creation happen first, but the remittance amount is not moved
+until the scheduled run. Only the wallet network fee is paid when the user authorizes the plan.
+
+### Distribution model
+
+The initial distribution surface is a MiniPay Mini App for one narrow corridor: USDC to KESm. The
+public repo and Vercel deployment are the developer/auditor entry points, while MiniPay is the user
+entry point. New corridors should be added only after this flow is stable: wallet connection,
+intent parsing, contact resolution, wallet confirmation, settlement, and on-chain receipts.
+
+Required production env vars:
+
+```bash
+VITE_LEDGER_ADDRESS=0xd8F54CCbc314014443DEbAA8558B09D4ccC57A9E
+VITE_LEDGER_DEPLOY_BLOCK=<ledger deployment block>
+VITE_CKES_SWAP_CONTRACT_ADDRESS=0xBB1ebeDf01C6Df335aA186748d9B08Df8fB6F8c8
+VITE_CKES_SWAP_DEPLOY_BLOCK=<gateway deployment block>
+VITE_CKES_SWAP_CONTRACT_ADDRESSES=0xBB1ebeDf01C6Df335aA186748d9B08Df8fB6F8c8
+VITE_SETTLEMENT_SPENDER_ADDRESS=0xBB1ebeDf01C6Df335aA186748d9B08Df8fB6F8c8
+VITE_FEE_CURRENCY_ADDRESS=0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B
+```
+
+### Verification note
+
+The active contracts must be source-verified before final hackathon submission. At the time this
+README was updated, Blockscout returned no published source code for the active `ChocoLedger` and
+`ChocoGateway` addresses above, so they should be treated as not verified until the explorer shows
+the Solidity source and compiler metadata.
 ## Frontend architecture
 
 ```
