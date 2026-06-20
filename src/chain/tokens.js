@@ -9,6 +9,14 @@ export function usdcAmountForIntent(intent) {
   return parseUnits(Number(intent.sourceAmount || intent.estimatedUsdc).toFixed(6), 6);
 }
 
+export function applyExactOutputBuffer(usdcAmount) {
+  const bufferBps = BigInt(Math.max(0, Math.round(Number(APP_CONFIG.transfer.exactOutputBufferBps || 0))));
+  const bpsBuffer = (usdcAmount * bufferBps) / 10000n;
+  const minBuffer = parseUnits(Number(APP_CONFIG.transfer.minExactOutputBufferUsdc || 0).toFixed(6), 6);
+  const buffer = bpsBuffer > minBuffer ? bpsBuffer : minBuffer;
+  return usdcAmount + buffer;
+}
+
 export function sourceAmountForIntent(intent) {
   const decimals = intent.sourceAsset === APP_CONFIG.assets.source ? 6 : 18;
   const amount = intent.sourceAsset === APP_CONFIG.assets.source

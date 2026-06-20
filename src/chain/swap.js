@@ -2,7 +2,7 @@ import { formatUnits, isAddress, parseUnits } from "viem";
 import { APP_CONFIG } from "../lib/app-config.js";
 import { ADDRESSES, assertAddress, makePublicClient, makeWalletClient } from "./client.js";
 import { CKES_SWAP_ABI, ERC20_ABI, MENTO_BROKER_ABI } from "./abis.js";
-import { approveTokenIfNeeded, usdcAmountForIntent, sourceAmountForIntent } from "./tokens.js";
+import { applyExactOutputBuffer, approveTokenIfNeeded, usdcAmountForIntent, sourceAmountForIntent } from "./tokens.js";
 
 function readErc20Balance(publicClient, token, account) {
   return publicClient.readContract({ address: token, abi: ERC20_ABI, functionName: "balanceOf", args: [account] });
@@ -53,12 +53,13 @@ export async function sendNow({ account, recipient, intent }) {
     // Exact-output path: user typed a cKES amount — deliver it precisely, return surplus.
     if (intent.amountKes) {
       const ckesExact = parseUnits(String(Number(intent.amountKes)), 18);
-      const usdcNeeded = await publicClient.readContract({
+      const quotedUsdcNeeded = await publicClient.readContract({
         address: ADDRESSES.ckesSwap,
         abi: CKES_SWAP_ABI,
         functionName: "quoteExactOut",
         args: [ckesExact],
       });
+      const usdcNeeded = applyExactOutputBuffer(quotedUsdcNeeded);
       const usdcBalance = await readErc20Balance(publicClient, ADDRESSES.usdc, account);
       if (usdcBalance < usdcNeeded) {
         throw new Error(`Insufficient USDC balance. Choco needs ${formatUsdc(usdcNeeded)} for this route, but your wallet has ${formatUsdc(usdcBalance)}.`);

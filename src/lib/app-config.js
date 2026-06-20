@@ -81,6 +81,8 @@ export const APP_CONFIG = {
     corridor: env.VITE_CORRIDOR_LABEL || "US to Kenya",
     destinationCountry: env.VITE_DESTINATION_COUNTRY || "Kenya",
     kesPerUsdc: Number(env.VITE_KES_PER_USDC || 129.39),
+    exactOutputBufferBps: Number(env.VITE_EXACT_OUTPUT_BUFFER_BPS || 500),
+    minExactOutputBufferUsdc: Number(env.VITE_MIN_EXACT_OUTPUT_BUFFER_USDC || 0.005),
     defaultScheduleHour: defaultScheduleTime?.hour ?? 4,
     defaultScheduleMinute: defaultScheduleTime?.minute ?? Number(env.VITE_DEFAULT_SCHEDULE_MINUTE || 0),
     minimumConfidence: Number(env.VITE_AGENT_MIN_CONFIDENCE || 0.75),
