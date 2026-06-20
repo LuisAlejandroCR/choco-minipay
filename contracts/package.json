@@ -12,7 +12,8 @@
     "deploy:audit": "node scripts/deploy-audit.mjs",
     "deploy:swap": "node scripts/deploy-swap.mjs",
     "deploy:ledger": "node scripts/deploy-ledger.mjs",
-    "deploy:gateway": "node scripts/deploy-gateway.mjs"
+    "deploy:gateway": "node scripts/deploy-gateway.mjs",
+    "deploy:univ3-swap": "node scripts/deploy-univ3-swap.mjs"
   },
   "dependencies": {
     "dotenv": "^16.4.5",

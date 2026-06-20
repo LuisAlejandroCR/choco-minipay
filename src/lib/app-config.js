@@ -57,6 +57,7 @@ export const APP_CONFIG = {
     registryDeployBlock: env.VITE_REGISTRY_DEPLOY_BLOCK || "",
     audit: env.VITE_AUDIT_CONTRACT_ADDRESS || "",
     ckesSwap: env.VITE_CKES_SWAP_CONTRACT_ADDRESS || "",
+    ckesSwapUniV3: env.VITE_CKES_SWAP_UNIV3_ADDRESS || "",
     ckesSwapDeployBlock: env.VITE_CKES_SWAP_DEPLOY_BLOCK || "",
     ckesSwapAddresses: parseAddressList(env.VITE_CKES_SWAP_CONTRACT_ADDRESSES || env.VITE_CKES_SWAP_CONTRACT_ADDRESS),
   },

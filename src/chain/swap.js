@@ -59,6 +59,9 @@ export async function sendNow({ account, recipient, intent }) {
         throw new Error(selectedRoute.message);
       }
       const usdcNeeded = selectedRoute.usdcAmountIn;
+      // Use the contract selected by the route system — may be the primary (Mento) or
+      // the backup (Uniswap V3) depending on which route succeeded the quote.
+      const swapContract = selectedRoute.contractAddress;
       const usdcBalance = await readErc20Balance(publicClient, ADDRESSES.usdc, account);
       if (usdcBalance < usdcNeeded) {
         throw new Error(`Insufficient USDC balance. Choco needs ${formatUsdc(usdcNeeded)} for this route, but your wallet has ${formatUsdc(usdcBalance)}.`);
@@ -67,11 +70,11 @@ export async function sendNow({ account, recipient, intent }) {
       const approveHash = await approveTokenIfNeeded({
         account,
         tokenAddress: ADDRESSES.usdc,
-        spender: ADDRESSES.ckesSwap,
+        spender: swapContract,
         amount: usdcNeeded,
       });
 
-      const allowance = await readErc20Allowance(publicClient, ADDRESSES.usdc, account, ADDRESSES.ckesSwap);
+      const allowance = await readErc20Allowance(publicClient, ADDRESSES.usdc, account, swapContract);
       if (allowance < usdcNeeded) {
         throw new Error(`USDC approval is lower than the route cost. Approved ${formatUsdc(allowance)}, needed ${formatUsdc(usdcNeeded)}.`);
       }
@@ -79,7 +82,7 @@ export async function sendNow({ account, recipient, intent }) {
       try {
         await publicClient.simulateContract({
           account,
-          address: ADDRESSES.ckesSwap,
+          address: swapContract,
           abi: CKES_SWAP_ABI,
           functionName: "swapAndSendExact",
           args: [recipient, usdcNeeded, ckesExact],
@@ -89,7 +92,7 @@ export async function sendNow({ account, recipient, intent }) {
       }
 
       const hash = await walletClient.writeContract({
-        address: ADDRESSES.ckesSwap,
+        address: swapContract,
         abi: CKES_SWAP_ABI,
         functionName: "swapAndSendExact",
         args: [recipient, usdcNeeded, ckesExact],
