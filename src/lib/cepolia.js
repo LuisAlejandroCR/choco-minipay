@@ -6,6 +6,7 @@
 import { formatUnits, isAddress, parseUnits } from "viem";
 import { ADDRESSES, ERC20_ABI, MENTO_BROKER_ABI, getApprovalTarget, makePublicClient, readUsdcBalance } from "./celo.js";
 import { APP_CONFIG } from "./app-config.js";
+import { applyExactOutputBuffer } from "../chain/tokens.js";
 
 
 // Readiness verdicts (UX-only — never written on-chain). The audit contract is for events that
@@ -37,7 +38,13 @@ export async function verifyReadiness({ account, intent }) {
   }
 
   try {
-    const required = parseUnits(Number(intent.sourceAmount).toFixed(6), 6);
+    let required = parseUnits(Number(intent.sourceAmount).toFixed(6), 6);
+    if (Number(intent.amountKes) > 0) {
+      try {
+        const exactRequired = await quoteExactOutputUsdc(parseUnits(String(Number(intent.amountKes)), 18));
+        if (exactRequired > 0n) required = exactRequired;
+      } catch {}
+    }
     const available = await readUsdcBalance(account);
     if (available < required) {
       return {
@@ -60,7 +67,21 @@ export async function verifyReadiness({ account, intent }) {
 
 const SWAP_ABI = [
   { type: "function", name: "quote", stateMutability: "view", inputs: [{ name: "usdcAmountIn", type: "uint256" }], outputs: [{ name: "ckesAmountOut", type: "uint256" }] },
+  { type: "function", name: "quoteExactOut", stateMutability: "view", inputs: [{ name: "ckesExactOut", type: "uint256" }], outputs: [{ name: "usdcAmountIn", type: "uint256" }] },
 ];
+
+async function quoteExactOutputUsdc(ckesAmountRaw) {
+  const swapAddress = APP_CONFIG.contracts.ckesSwap;
+  if (!isAddress(swapAddress || "") || !(ckesAmountRaw > 0n)) return 0n;
+  const publicClient = makePublicClient();
+  const quoted = await publicClient.readContract({
+    address: swapAddress,
+    abi: SWAP_ABI,
+    functionName: "quoteExactOut",
+    args: [ckesAmountRaw],
+  });
+  return applyExactOutputBuffer(quoted);
+}
 
 // Returns the cKES output for a given USDC amount, going through the deployed Choco swap
 // wrapper if configured; otherwise through Mento Broker's two-hop quote.
@@ -194,7 +215,14 @@ export async function summariseTransfer({ account, recipient, intent, walletRead
   }
   const ckesFloat = Number(formatUnits(ckesRaw, 18));
 
-  const usdcRaw = usdcRequested > 0 ? parseUnits(Number(usdcRequested).toFixed(6), 6) : 0n;
+  let usdcRaw = usdcRequested > 0 ? parseUnits(Number(usdcRequested).toFixed(6), 6) : 0n;
+  if (ckesRequested > 0) {
+    try {
+      const exactRequired = await quoteExactOutputUsdc(ckesRaw);
+      if (exactRequired > 0n) usdcRaw = exactRequired;
+    } catch {}
+  }
+  const walletPaysFloat = Number(formatUnits(usdcRaw, 6));
   const gasUsdcFloat = isAddress(ADDRESSES.feeCurrency || "")
     ? await estimateTransferFeeUsdc(account, usdcRaw)
     : 0.003;
@@ -204,16 +232,16 @@ export async function summariseTransfer({ account, recipient, intent, walletRead
     ? `~${gasUsdcFloat.toFixed(4)} USDC`
     : APP_CONFIG.transfer.networkFeeLabel;
 
-  const totalCost = gasUsdcFloat > 0 ? usdcRequested + gasUsdcFloat : usdcRequested;
+  const totalCost = gasUsdcFloat > 0 ? walletPaysFloat + gasUsdcFloat : walletPaysFloat;
   const totalCostLabel = totalCost > 0
     ? `${totalCost.toLocaleString("en-US", { maximumFractionDigits: 4 })} USDC`
-    : `${usdcRequested.toLocaleString("en-US", { maximumFractionDigits: 2 })} USDC + fees`;
+    : `${walletPaysFloat.toLocaleString("en-US", { maximumFractionDigits: 4 })} USDC + fees`;
 
   return {
     recipientReceives: ckesFloat,
     recipientReceivesLabel: ckesFloat ? `${ckesFloat.toLocaleString("en-US", { maximumFractionDigits: 2 })} KESm` : "",
-    walletPays: usdcRequested,
-    walletPaysLabel: `${usdcRequested.toLocaleString("en-US", { maximumFractionDigits: 2 })} USDC`,
+    walletPays: walletPaysFloat,
+    walletPaysLabel: `${walletPaysFloat.toLocaleString("en-US", { maximumFractionDigits: 4 })} USDC`,
     networkFeeLabel: feeLabel,
     totalCostLabel,
     liveQuote,
