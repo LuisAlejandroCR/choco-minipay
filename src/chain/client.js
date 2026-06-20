@@ -23,6 +23,7 @@ export const ADDRESSES = {
   registry: APP_CONFIG.contracts.registry,
   settlementSpender: APP_CONFIG.contracts.settlementSpender,
   ckesSwap: APP_CONFIG.contracts.ckesSwap,
+  ckesSwapUniV3: APP_CONFIG.contracts.ckesSwapUniV3,
   demoRecipient: APP_CONFIG.recipients.demoRecipientAddress,
   usdc: APP_CONFIG.assets.usdc,
   usdm: APP_CONFIG.assets.usdm,
