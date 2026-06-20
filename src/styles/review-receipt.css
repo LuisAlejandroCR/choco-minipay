@@ -383,6 +383,8 @@
 /* ── ReviewScreen — dark overrides (replaces LightSheet cream context) ── */
 .review-screen {
   gap: 12px;
+  min-height: auto;
+  padding-bottom: 108px;
 }
 
 /* rds-hero is sticky (for ReceiptDetailScreen scroll), but in ReviewScreen
@@ -641,10 +643,19 @@
 }
 
 .rds-actions {
-  margin-top: auto;
+  margin-top: 4px;
   padding-top: 8px;
   display: grid;
   gap: 10px;
+}
+
+.review-screen .rds-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  margin-top: 8px;
+  padding: 10px 0 0;
+  background: linear-gradient(180deg, transparent, var(--surface-1) 18%);
 }
 
 .rds-actions .primary-cta {
