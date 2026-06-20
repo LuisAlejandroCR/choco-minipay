@@ -19,7 +19,21 @@ export const READINESS_REASON = {
   NO_RECIPIENT: "NO_RECIPIENT",
   INSUFFICIENT_USDC: "INSUFFICIENT_USDC",
   BALANCE_READ_FAILED: "BALANCE_READ_FAILED",
+  ROUTE_UNAVAILABLE: "ROUTE_UNAVAILABLE",
 };
+
+function routeQuoteMessage(error) {
+  const msg = [
+    error?.message,
+    error?.shortMessage,
+    error?.cause?.message,
+    error?.cause?.shortMessage,
+  ].filter(Boolean).join(" ");
+  if (/no valid median/i.test(msg)) {
+    return "KESm route is temporarily unavailable. Choco cannot quote this transfer right now.";
+  }
+  return `Could not quote this transfer: ${error.shortMessage || error.message}`;
+}
 
 // Cepolia Skill — readiness check before Review. Returns { ok, reason, message, required, available }.
 // Never signs or logs anything; this is pure validation. Failures are surfaced as UX messages
@@ -43,7 +57,13 @@ export async function verifyReadiness({ account, intent }) {
       try {
         const exactRequired = await quoteExactOutputUsdc(parseUnits(String(Number(intent.amountKes)), 18));
         if (exactRequired > 0n) required = exactRequired;
-      } catch {}
+      } catch (error) {
+        return {
+          ok: false,
+          reason: READINESS_REASON.ROUTE_UNAVAILABLE,
+          message: routeQuoteMessage(error),
+        };
+      }
     }
     const available = await readUsdcBalance(account);
     if (available < required) {
@@ -214,13 +234,18 @@ export async function summariseTransfer({ account, recipient, intent, walletRead
     }
   }
   const ckesFloat = Number(formatUnits(ckesRaw, 18));
+  let routeUnavailable = false;
+  let routeUnavailableMessage = "";
 
   let usdcRaw = usdcRequested > 0 ? parseUnits(Number(usdcRequested).toFixed(6), 6) : 0n;
   if (ckesRequested > 0) {
     try {
       const exactRequired = await quoteExactOutputUsdc(ckesRaw);
       if (exactRequired > 0n) usdcRaw = exactRequired;
-    } catch {}
+    } catch (error) {
+      routeUnavailable = true;
+      routeUnavailableMessage = routeQuoteMessage(error);
+    }
   }
   const walletPaysFloat = Number(formatUnits(usdcRaw, 6));
   const gasUsdcFloat = isAddress(ADDRESSES.feeCurrency || "")
@@ -245,6 +270,8 @@ export async function summariseTransfer({ account, recipient, intent, walletRead
     networkFeeLabel: feeLabel,
     totalCostLabel,
     liveQuote,
-    readyToConfirm: walletReady && isAddress(recipient || "") && usdcRequested > 0,
+    routeUnavailable,
+    routeUnavailableMessage,
+    readyToConfirm: !routeUnavailable && walletReady && isAddress(recipient || "") && usdcRequested > 0,
   };
 }
