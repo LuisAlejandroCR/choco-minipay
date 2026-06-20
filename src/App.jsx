@@ -587,7 +587,7 @@ export default function App() {
             />
           )}
         </div>
-        {!["splash", "pitch"].includes(visibleScreen) && (
+        {!["splash", "pitch", "review"].includes(visibleScreen) && (
           <BottomNav
             active={
               ["history", "receiptDetail"].includes(visibleScreen) ? "history"

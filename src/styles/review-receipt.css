@@ -382,9 +382,9 @@
 
 /* ── ReviewScreen — dark overrides (replaces LightSheet cream context) ── */
 .review-screen {
-  gap: 12px;
+  gap: 14px;
   min-height: auto;
-  padding-bottom: 108px;
+  padding-bottom: 0;
 }
 
 /* rds-hero is sticky (for ReceiptDetailScreen scroll), but in ReviewScreen
@@ -642,6 +642,45 @@
   color: var(--muted);
 }
 
+.review-screen .rds-fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 2px 0 14px;
+}
+
+.review-screen .rds-field {
+  min-height: 82px;
+  padding: 12px;
+  display: grid;
+  align-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--line-soft);
+  border-radius: 18px;
+  background: rgba(18, 9, 6, 0.44);
+}
+
+.review-screen .rds-field:last-child {
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.review-screen .rds-field-label {
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.review-screen .rds-field-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.review-screen .rds-field-value {
+  font-size: 14px;
+  line-height: 1.2;
+  text-align: left;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
 .rds-actions {
   margin-top: 4px;
   padding-top: 8px;
@@ -650,12 +689,10 @@
 }
 
 .review-screen .rds-actions {
-  position: sticky;
-  bottom: 0;
-  z-index: 4;
-  margin-top: 8px;
-  padding: 10px 0 0;
-  background: linear-gradient(180deg, transparent, var(--surface-1) 18%);
+  position: static;
+  margin-top: auto;
+  padding-top: 8px;
+  background: transparent;
 }
 
 .rds-actions .primary-cta {
