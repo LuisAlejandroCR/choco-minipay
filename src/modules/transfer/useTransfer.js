@@ -20,7 +20,7 @@ function humaniseTransferError(error) {
     return "Approval failed. Confirm the wallet approval and try again.";
   }
   if (/gateway|route|quote|swap|mento|reverted|execution reverted/i.test(msg)) {
-    return "Transfer failed because the route could not execute. Refresh the quote and try again.";
+    return "Route failed before completion. Refresh the quote and try again.";
   }
   if (/network|fetch|timeout/i.test(msg)) {
     return "Network error. Check your connection and try again.";
