@@ -15,18 +15,18 @@ off-chain except contacts the user explicitly saves.
 |---|---|
 | Network | Celo Mainnet (chainId 42220) |
 | Source asset | USDC |
-| Destination asset | cKES (Kenyan Shilling stablecoin) |
+| Destination asset | KESm (Kenyan Shilling stablecoin) |
 | Actions | Send now (exact-output) · Monthly schedule |
 | Contacts | Optional Supabase persistence; ODIS/SocialConnect path documented |
 
 ## How the flow works
 
 1. User opens Choco in MiniPay or a Celo wallet browser.
-2. Choco reads on-chain balances (USDC, cKES, CELO) via `readStablecoinBalances`.
-3. User types a plain-language instruction — `20k mom every 1st` → 20,000 cKES to Mum.
+2. Choco reads on-chain balances (USDC, KESm, CELO) via `readStablecoinBalances`.
+3. User types a plain-language instruction — `20k mom every 1st` → 20,000 KESm to Mum.
 4. `parseTransferIntent` (intent.js) extracts recipient, amount, currency, timing.
 5. `verifyReadiness` (cepolia.js) gates on wallet + USDC balance before reaching Review.
-6. **Send now** — `swapAndSendExact` on ChocoGateway: caller approves `quoteExactOut(ckesExact)` USDC, gateway deducts fee, swaps USDC → USDm → cKES via Mento, delivers exactly `ckesExact` to recipient, returns surplus to sender.
+6. **Send now** — `swapAndSendExact` on ChocoGateway: caller approves `quoteExactOut(ckesExact)` USDC, gateway deducts fee, swaps USDC → USDm → KESm via Mento, delivers exactly `ckesExact` to recipient, returns surplus to sender.
 7. **Schedule** — wallet approves the keeper settlement spender and `createMonthlySchedule` writes the authorized plan to ChocoLedger.
 8. Plans and movement history are re-read from ChocoLedger events — never cached off-chain.
    Authorized schedules stay in Plans; History shows send-now movements and executed schedule runs.

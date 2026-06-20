@@ -21,17 +21,17 @@ explicitly saves. All transaction history is derived from blockchain events.
    on Review asks the user to paste an address. On submit the user is asked whether to save —
    Choco only writes to Supabase if the user authorizes it.
 5. **Review screen** — `summariseTransfer` (cepolia.js) supplies:
-   - **Recipient receives** — exactly the cKES amount the user typed (via `quoteExactOut` when
+   - **Recipient receives** — exactly the KESm amount the user typed (via `quoteExactOut` when
      `intent.amountKes` is set, or a live Mento quote for USDC-only intents)
    - **Wallet pays** — USDC input including fee
    - **Network fee** — gas estimate in CELO
 6. **User confirms** → `transfer.confirmAction` runs:
-   - **cKES source** → direct ERC-20 transfer to recipient.
+   - **KESm source** → direct ERC-20 transfer to recipient.
    - **USDC source (default)** → `quoteExactOut(ckesExact)` → approve → `swapAndSendExact`
-     on ChocoGateway → recipient gets exactly the typed cKES; surplus returned to sender.
+     on ChocoGateway → recipient gets exactly the typed KESm; surplus returned to sender.
      ChocoGateway deducts the protocol fee (0.25%) before swapping.
-   - **Fallback (no ChocoGateway)** → direct Mento two-hop: USDC → USDm → cKES, each hop
-     wallet-signed, then cKES transferred to recipient.
+   - **Fallback (no ChocoGateway)** → direct Mento two-hop: USDC → USDm → KESm, each hop
+     wallet-signed, then KESm transferred to recipient.
    - **Schedule** → wallet approves the settlement spender and writes the authorized plan to
      `ChocoLedger`. The keeper/executor later runs the due transfer automatically.
 7. **On-chain audit** — ChocoGateway calls `ChocoLedger.logAttemptFor(payer, ...)` after every
@@ -39,7 +39,7 @@ explicitly saves. All transaction history is derived from blockchain events.
    Scheduled executions must emit `SettlementReceipt`; otherwise they remain authorized plans,
    not completed movements.
 8. **History** — `useChocoLedger` calls `readOwnerLedger`, which reads `UsdcToCkesSwap` +
-   cKES `Transfer` events for send-now movements and `SettlementReceipt` events for executed
+   KESm `Transfer` events for send-now movements and `SettlementReceipt` events for executed
    schedule runs. `MonthlyScheduleCreated` builds Plans only; it is not a movement receipt.
 
 ## Component responsibilities
@@ -52,16 +52,16 @@ explicitly saves. All transaction history is derived from blockchain events.
 | **useContactResolution** (`modules/contacts/`) | Supabase lookup, contact picker, save flow |
 | **useChocoLedger** (`modules/ledger/`) | Reads plans + executed movement history from chain on every wallet change |
 | **Supabase** (`lib/contacts.js`) | Contact label → address cache (user-authorized only) |
-| **ChocoGateway** | Fee deduction, USDC→USDm→cKES swap, TxRecord storage, `logAttemptFor` |
+| **ChocoGateway** | Fee deduction, USDC→USDm→KESm swap, TxRecord storage, `logAttemptFor` |
 | **ChocoLedger** | `MonthlyScheduleCreated`, `SettlementReceipt`, `AttemptLogged` events |
 | USDC `0xcebA93…118C` | Source funds + balance check |
-| cKES `0x456a3D…B0d0` | Destination token |
+| KESm `0x456a3D…B0d0` | Destination token |
 | Mento Broker `0x777A…CaD` | Swap pool (called by ChocoGateway internally) |
 
 ## Exact-output swap (default send-now path)
 
 ```
-User types: "5 cKES to dad"
+User types: "5 KESm to dad"
      │
      ▼
 quoteExactOut(5e18)          → usdcNeeded (covers fee + 1% slippage buffer)
@@ -69,9 +69,9 @@ approveTokenIfNeeded(usdc, ckesSwap, usdcNeeded)
 swapAndSendExact(dad, usdcNeeded, 5e18)
      │
      ├─ fee (0.25%) → feeWallet
-     ├─ USDC → USDm → cKES (Mento Broker)
-     ├─ exactly 5 cKES → dad
-     └─ surplus cKES → sender
+     ├─ USDC → USDm → KESm (Mento Broker)
+     ├─ exactly 5 KESm → dad
+     └─ surplus KESm → sender
 ```
 
 Recipient always receives exactly the typed amount. No rounding surprises.
@@ -83,9 +83,9 @@ to avoid asking the user to sign just to record a non-event.
 
 | Kind | When |
 |---|---|
-| `SUCCESS` (0) | cKES delivered — logged by ChocoGateway via `logAttemptFor` |
+| `SUCCESS` (0) | KESm delivered — logged by ChocoGateway via `logAttemptFor` |
 | `FAILED_SWAP` (1) | Mento swap reverted |
-| `FAILED_TRANSFER` (2) | cKES transfer reverted |
+| `FAILED_TRANSFER` (2) | KESm transfer reverted |
 | `INSUFFICIENT_FUNDS` (3) | Enum only — surfaced as Cepolia UX message, never logged |
 | `REJECTED` (4) | Enum only — surfaced as Cepolia UX message, never logged |
 
@@ -105,7 +105,7 @@ to avoid asking the user to sign just to record a non-event.
 |---|---|
 | Contact labels (`dad` → `0x…`) | Supabase `contacts` (user-authorized only) |
 | Plans (authorized scheduled transfers) | ChocoLedger: `MonthlyScheduleCreated`, `SchedulePaused`, `ScheduleResumed`, `ScheduleCancelled` events |
-| Send-now movements | Active + legacy ChocoGateway contracts: `UsdcToCkesSwap` + cKES `Transfer` events |
+| Send-now movements | Active + legacy ChocoGateway contracts: `UsdcToCkesSwap` + KESm `Transfer` events |
 | Executed plan runs | ChocoLedger: `SettlementReceipt` events |
 | Audit trail | ChocoLedger: `AttemptLogged` events |
 | User session / receipts | Nowhere — all state derived from wallet + chain |

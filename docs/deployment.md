@@ -29,7 +29,7 @@ $env:KEEPER_ADDRESS       = "0x..."
 npm --prefix contracts run deploy:ledger
 # Prints: VITE_LEDGER_ADDRESS, VITE_LEDGER_DEPLOY_BLOCK, VITE_SETTLEMENT_SPENDER_ADDRESS
 
-# Step 1b — ChocoGateway (fee, USDC→cKES swap, TxRecord storage)
+# Step 1b — ChocoGateway (fee, USDC→KESm swap, TxRecord storage)
 $env:VITE_LEDGER_ADDRESS = "<from step 1a>"
 npm --prefix contracts run deploy:gateway
 # Prints: VITE_CKES_SWAP_CONTRACT_ADDRESS, VITE_CKES_SWAP_DEPLOY_BLOCK
@@ -115,7 +115,7 @@ CRON_SECRET=<random long secret for /api/run-due-schedules>
 
 # App metadata
 VITE_APP_TITLE=Choco MiniPay
-VITE_APP_DESCRIPTION=Send cKES remittances from MiniPay
+VITE_APP_DESCRIPTION=Send KESm remittances from MiniPay
 VITE_INITIAL_SCREEN=splash
 VITE_SHOW_DEMO_PROMPT=false
 ```
@@ -183,9 +183,9 @@ For content-addressed `agentURI`:
 
 1. Open `https://choco-minipay.vercel.app` in MiniPay on Android
 2. Connect wallet
-3. Test send-now: type `send <address> 5 cKES now` → Build → Review → Confirm
-   - Verify recipient receives **exactly 5 cKES** (exact-output path)
-4. Test schedule: `send <address> 1000 cKES monthly` → Build → Authorize plan
+3. Test send-now: type `send <address> 5 KESm now` → Build → Review → Confirm
+   - Verify recipient receives **exactly 5 KESm** (exact-output path)
+4. Test schedule: `send <address> 1000 KESm monthly` → Build → Authorize plan
    - Verify the authorized plan stays in Plans and does not appear in History yet
    - Open the plan detail and verify Edit/Delete signs against ChocoLedger
 5. Run the keeper/executor for a due plan. It must execute the route and call `recordSettlement`.

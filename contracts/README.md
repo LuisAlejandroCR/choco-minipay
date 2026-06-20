@@ -13,8 +13,8 @@ User wallet
 ┌─────────────────────────────────────────────────────┐
 │  ChocoGateway                                       │
 │  · Deducts protocol fee (default 0.25%) → feeWallet │
-│  · Swaps USDC → USDm → cKES via Mento Broker        │
-│  · Delivers cKES directly to recipient              │
+│  · Swaps USDC → USDm → KESm via Mento Broker        │
+│  · Delivers KESm directly to recipient              │
 │  · Stores TxRecord on-chain (queryable)             │
 │  · Calls ChocoLedger.logAttemptFor()                │
 └──────────────┬──────────────────────────────────────┘
@@ -34,7 +34,7 @@ User wallet
 
 | Contract | Purpose | Deploy script |
 |---|---|---|
-| **ChocoGateway** | Fee collection, USDC→cKES swap, on-chain tx storage | `deploy:gateway` |
+| **ChocoGateway** | Fee collection, USDC→KESm swap, on-chain tx storage | `deploy:gateway` |
 | **ChocoLedger** | Unified history: schedules + settlements + send-now audit | `deploy:ledger` |
 
 ### Legacy contracts (do not redeploy)
@@ -137,10 +137,10 @@ FEE_BPS=25
 ### Key functions
 
 ```solidity
-// Quote cKES output after fee deduction (use for ckesMinOut calculation)
+// Quote KESm output after fee deduction (use for ckesMinOut calculation)
 function quote(uint256 usdcAmountIn) external view returns (uint256 ckesAmountOut);
 
-// Full breakdown: cKES out + fee in USDC + net USDC entering the swap
+// Full breakdown: KESm out + fee in USDC + net USDC entering the swap
 function quoteWithFee(uint256 usdcAmountIn) external view
     returns (uint256 ckesAmountOut, uint256 feeUsdc, uint256 swapUsdc);
 
@@ -148,7 +148,7 @@ function quoteWithFee(uint256 usdcAmountIn) external view
 // Includes the protocol fee and 1% slippage buffer; pair with swapAndSendExact
 function quoteExactOut(uint256 ckesExactOut) external view returns (uint256 usdcAmountIn);
 
-// Fixed-input entry point (legacy) — delivers whatever cKES the swap produces
+// Fixed-input entry point (legacy) — delivers whatever KESm the swap produces
 function swapAndSend(address recipient, uint256 usdcAmountIn, uint256 ckesMinOut)
     external returns (uint256 ckesAmountOut);
 
@@ -178,10 +178,10 @@ function transferAdmin(address newAdmin) external;
 ```solidity
 struct TxRecord {
     address payer;       // wallet that called swapAndSend
-    address recipient;   // cKES destination
+    address recipient;   // KESm destination
     uint256 usdcIn;      // full USDC pulled from payer (6 decimals)
     uint256 feeUsdc;     // protocol fee deducted before swap (6 decimals)
-    uint256 ckesOut;     // cKES delivered to recipient (18 decimals)
+    uint256 ckesOut;     // KESm delivered to recipient (18 decimals)
     uint64  timestamp;   // block.timestamp at execution
 }
 ```
@@ -290,7 +290,7 @@ const ids = await publicClient.readContract({
 ## Security notes
 
 - `.env` is gitignored — never commit private keys
-- `ChocoGateway` holds no funds between calls; any USDC/cKES balance after a tx is a bug
+- `ChocoGateway` holds no funds between calls; any USDC/KESm balance after a tx is a bug
 - `logAttemptFor` is gated by `authorizedSwapContracts` — only registered Gateway addresses can write on behalf of payers
 - `setFee` is capped at 100 bps (1%) in the contract; no admin can set a higher fee without redeploying
 - Verify deployed bytecode on [Celoscan](https://celoscan.io/) after every deploy
