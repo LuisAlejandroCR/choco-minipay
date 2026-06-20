@@ -4,5 +4,6 @@ export * from "../chain/client.js";
 export * from "../chain/abis.js";
 export * from "../chain/tokens.js";
 export * from "../chain/swap.js";
+export * from "../chain/routes.js";
 export * from "../chain/schedule.js";
 export * from "../chain/history.js";

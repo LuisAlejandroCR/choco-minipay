@@ -17,13 +17,13 @@ function humaniseTransferError(error) {
     return "Insufficient balance for this transfer or network fee.";
   }
   if (/no valid median/i.test(msg)) {
-    return "KESm route is temporarily unavailable. Choco cannot quote this transfer right now.";
+    return "This transfer is temporarily unavailable. Try again later.";
   }
   if (/allowance|approval|approve/i.test(msg)) {
     return "Approval failed. Confirm the wallet approval and try again.";
   }
   if (/gateway|route|quote|swap|mento|reverted|execution reverted/i.test(msg)) {
-    return "Route failed before completion. Refresh the quote and try again.";
+    return "This transfer is temporarily unavailable. Try again later.";
   }
   if (/network|fetch|timeout/i.test(msg)) {
     return "Network error. Check your connection and try again.";
@@ -144,7 +144,7 @@ export function useTransfer({
         const readiness = await verifyReadiness({ account: address, intent: reviewPlan.intent });
         if (!readiness.ok) {
           setStatus("error");
-          setMessage(readiness.message || "Choco could not verify this route.");
+          setMessage(readiness.message || "This transfer is temporarily unavailable. Try again later.");
           return;
         }
       }
