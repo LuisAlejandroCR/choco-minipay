@@ -89,6 +89,8 @@ export function ReviewScreen({
   const contactErrorNeedsWallet = !walletReady || /wallet/i.test(contactLookupMessage);
   const contactErrorActionLabel = contactErrorNeedsWallet ? "Connect wallet" : "Retry saved contacts";
   const onContactErrorAction = contactErrorNeedsWallet ? onConnect : onPickContact;
+  const quoteReady = cepoliaSummary?.readyToConfirm !== false;
+  const actionBlocked = !actionReady || !quoteReady;
 
   const noticeText = !walletReady
     ? "Connect and verify your wallet to continue."
@@ -258,6 +260,7 @@ export function ReviewScreen({
         )}
       </div>
 
+      {cepoliaSummary?.routeUnavailable && <div className="notice danger compact">{cepoliaSummary.routeUnavailableMessage}</div>}
       {status === "error" && message && <div className="notice danger compact">{message}</div>}
       {setupNotice && <div className="notice compact">{setupNotice}</div>}
 
@@ -266,7 +269,7 @@ export function ReviewScreen({
         <button
           className="primary-cta"
           type="button"
-          disabled={walletReady ? !actionReady || status === "pending" || status === "success" : status === "pending"}
+          disabled={walletReady ? actionBlocked || status === "pending" || status === "success" : status === "pending"}
           onClick={walletReady ? onConfirm : onConnect}
         >
           {isSendNow ? <CircleDollarSign size={18} /> : walletReady ? <CalendarCheck2 size={18} /> : <Wallet size={18} />}

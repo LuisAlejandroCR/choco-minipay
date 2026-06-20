@@ -16,6 +16,9 @@ function humaniseTransferError(error) {
   if (/insufficient.*funds|insufficient.*balance/i.test(msg)) {
     return "Insufficient balance for this transfer or network fee.";
   }
+  if (/no valid median/i.test(msg)) {
+    return "KESm route is temporarily unavailable. Choco cannot quote this transfer right now.";
+  }
   if (/allowance|approval|approve/i.test(msg)) {
     return "Approval failed. Confirm the wallet approval and try again.";
   }
@@ -136,6 +139,15 @@ export function useTransfer({
       setMessage(reviewPlan.deliveryMode === "now"
         ? "Preparing wallet-signed send now..."
         : "Preparing wallet-signed monthly action...");
+
+      if (reviewPlan.deliveryMode === "now") {
+        const readiness = await verifyReadiness({ account: address, intent: reviewPlan.intent });
+        if (!readiness.ok) {
+          setStatus("error");
+          setMessage(readiness.message || "Choco could not verify this route.");
+          return;
+        }
+      }
 
       const result = reviewPlan.deliveryMode === "now"
         ? await sendNow({ account: address, recipient: recipientAddress, intent: reviewPlan.intent })
