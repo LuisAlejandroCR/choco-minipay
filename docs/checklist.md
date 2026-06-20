@@ -54,8 +54,8 @@ Decisions taken for this pass:
 
 - The only Choco contract is `contracts/src/ChocoScheduleRegistry.sol`. The phantom `swapAndSend`
   router (source lived only in the reference repo) is removed from the frontend.
-- `src/lib/celo.js`: USDC settles **USDC → USDm → cKES through the Mento Broker** (`getAmountOut` quote
-  + two `swapIn` hops + cKES transfer to recipient), each hop wallet-signed. cKES sends go direct.
+- `src/lib/celo.js`: USDC settles **USDC → USDm → KESm through the Mento Broker** (`getAmountOut` quote
+  + two `swapIn` hops + KESm transfer to recipient), each hop wallet-signed. KESm sends go direct.
 - Flow preserved end to end: reads wallet funds → Agent Choco detects intent → transfer summary
   (`ReviewScreen`) → recipient address pasted (`ContactCapture`) → wallet signs.
 - Scheduling approves the **keeper/executor spender** (`VITE_SETTLEMENT_SPENDER_ADDRESS`) and records
@@ -120,7 +120,7 @@ Keep this as the single deployment source of truth; never blind-merge the refere
 ## BLOCK 9 — MiniPay readiness
 
 - **PASS (code)**: MiniPay detection, forced mainnet, USDC fee-currency adapter, wallet-only signing,
-  no backend/custody, cKES + USDC (via Mento) supported, real QR, chain-derived history.
+  no backend/custody, KESm + USDC (via Mento) supported, real QR, chain-derived history.
 - **Config gate**: deploy the registry + set `VITE_REGISTRY_ADDRESS`, `VITE_REGISTRY_DEPLOY_BLOCK`,
   `VITE_SETTLEMENT_SPENDER_ADDRESS`. Run `npm install` (qrcode). Test at 360×640 in MiniPay.
 
@@ -139,7 +139,7 @@ flow. Pay Receipt button + dedicated screen + 9-step orchestrator are removed. S
 - **Supabase**: contacts-only (`supabase/schema.sql`, table `contacts`), **stored only with prior user authorization**. Choco does not store user data — contacts are saved only when the user explicitly grants permission. The previous `receipts` and `transactions` tables are dropped.
 - **Audit contract**: `ChocoAuditLog.sol` records only on-chain attempts (`SUCCESS`, `FAILED_SWAP`, `FAILED_TRANSFER`). Pre-flight UX states like insufficient funds or user rejection are NOT logged — they live as Cepolia Skill messages, no extra signatures. The contract enum still supports `INSUFFICIENT_FUNDS` and `REJECTED` for forward-compatibility, but the frontend never calls those kinds.
 - **Swap contract**: `ChocoCkesSwap.sol` is used by Cepolia Skill for the live quote; `sendNow` in the frontend still runs Mento directly (1 contract, no custody).
-- **History**: derived from `ChocoCkesSwap.UsdcToCkesSwap` + cKES `Transfer` events with contact labels joined in.
+- **History**: derived from `ChocoCkesSwap.UsdcToCkesSwap` + KESm `Transfer` events with contact labels joined in.
 - **Cepolia Skill**: `src/lib/cepolia.js` supplies Recipient receives / Wallet pays / Network fee / Total cost on the Confirm Send screen.
 
 The original BLOCK 10 "one contract / no backend / blockchain is source of truth" rules are now
@@ -156,4 +156,4 @@ and history. The audit contract is intentionally additive, not the source of tru
 - [ ] (Compliance) pin `agent.json` to IPFS + `setAgentURI`
 - [ ] Verify a real send-now + a real authorized schedule on a phone in MiniPay
 - [ ] Verify the keeper/executor runs a due plan and emits `SettlementReceipt`
-- [ ] Choco Agent flow: deploy `ChocoCkesSwap` + `ChocoAuditLog`; apply `supabase/schema.sql`; set `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_CKES_SWAP_CONTRACT_ADDRESS`, `VITE_AUDIT_CONTRACT_ADDRESS`; end-to-end test New Transfer (USDC and cKES paths) on a phone in MiniPay
+- [ ] Choco Agent flow: deploy `ChocoCkesSwap` + `ChocoAuditLog`; apply `supabase/schema.sql`; set `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_CKES_SWAP_CONTRACT_ADDRESS`, `VITE_AUDIT_CONTRACT_ADDRESS`; end-to-end test New Transfer (USDC and KESm paths) on a phone in MiniPay
