@@ -8,15 +8,15 @@ export const ROUTE_IDS = {
   CHOCO_UNIV3:         "choco-univ3-usdc-usdm-kesm",
 };
 
-// Routes are evaluated at module load time from env-derived ADDRESSES constants.
-// Primary route (Mento BiPool) is tried first; backup (Uniswap V3) is tried automatically
-// when the primary fails - e.g. when the Mento KESm oracle has no valid median.
-// The backup route is only active when VITE_CKES_SWAP_UNIV3_ADDRESS is set in the environment.
+// Routes are tried in order. The first route whose quote call succeeds is selected.
+// No human intervention needed — if the Mento KESm oracle goes down, the app
+// automatically falls to the Uniswap V3 backup. When Mento recovers, it's used again.
+// Both contracts must be deployed once; after that switching is fully automatic.
 export const TRANSFER_ROUTES = [
   {
     id:              ROUTE_IDS.CHOCO_GATEWAY_MENTO,
     label:           "Mento USDC -> USDm -> KESm",
-    executable:      true,
+    executable:      isAddress(ADDRESSES.ckesSwap || ""),
     contractAddress: ADDRESSES.ckesSwap,
     description:     "Primary route via Mento BiPool. Wallet pays USDC; recipient receives KESm.",
   },
@@ -28,6 +28,12 @@ export const TRANSFER_ROUTES = [
     description:     "Backup route: USDC->USDm via Mento, USDm->KESm via Uniswap V3 (no KESm oracle needed).",
   },
 ];
+
+// True when at least one swap contract address is configured in env vars.
+// Used by swap.js to decide whether to use the route system or fall back to the 5-step direct path.
+export function hasAnyExecutableRoute() {
+  return TRANSFER_ROUTES.some(r => r.executable);
+}
 
 export function routeQuoteMessage(error) {
   const msg = [
@@ -48,7 +54,7 @@ export function routeQuoteMessage(error) {
 
 async function quoteRouteExactOut(publicClient, route, ckesAmountRaw) {
   if (!isAddress(route.contractAddress || "")) {
-    throw new Error("VITE_CKES_SWAP_CONTRACT_ADDRESS is not configured.");
+    throw new Error("Swap contract is not configured.");
   }
   const quoted = await publicClient.readContract({
     address: route.contractAddress,
@@ -59,6 +65,20 @@ async function quoteRouteExactOut(publicClient, route, ckesAmountRaw) {
   return applyExactOutputBuffer(quoted);
 }
 
+async function quoteRouteForwardIn(publicClient, route, usdcAmountRaw) {
+  if (!isAddress(route.contractAddress || "")) {
+    throw new Error("Swap contract is not configured.");
+  }
+  return publicClient.readContract({
+    address: route.contractAddress,
+    abi:     CKES_SWAP_ABI,
+    functionName: "quote",
+    args:    [usdcAmountRaw],
+  });
+}
+
+// Inverse quote: given a cKES target, find the cheapest available route and return the USDC cost.
+// Tries each route in TRANSFER_ROUTES order; skips disabled routes; catches quote failures silently.
 export async function selectTransferRouteExactOut({ ckesAmountRaw, publicClient = makePublicClient() }) {
   if (!(ckesAmountRaw > 0n)) {
     return { ok: false, reason: "NO_AMOUNT", message: "Enter a KESm amount before sending.", failures: [] };
@@ -71,6 +91,33 @@ export async function selectTransferRouteExactOut({ ckesAmountRaw, publicClient 
       const usdcAmountIn = await quoteRouteExactOut(publicClient, route, ckesAmountRaw);
       if (!(usdcAmountIn > 0n)) throw new Error("Route returned an empty quote.");
       return { ok: true, route, usdcAmountIn, contractAddress: route.contractAddress, failures };
+    } catch (error) {
+      failures.push({ route, error, message: routeQuoteMessage(error) });
+    }
+  }
+
+  return {
+    ok: false,
+    reason: "ROUTE_UNAVAILABLE",
+    message: failures[0]?.message || "This transfer is temporarily unavailable. Try again later.",
+    failures,
+  };
+}
+
+// Forward quote: given a fixed USDC input, find the route that can execute it and return cKES out.
+// Used by the fixed-input swap path (when the user specifies USDC amount instead of a cKES target).
+export async function selectTransferRouteForwardIn({ usdcAmountRaw, publicClient = makePublicClient() }) {
+  if (!(usdcAmountRaw > 0n)) {
+    return { ok: false, reason: "NO_AMOUNT", message: "Enter a USDC amount before sending.", failures: [] };
+  }
+
+  const failures = [];
+  for (const route of TRANSFER_ROUTES) {
+    if (!route.executable) continue;
+    try {
+      const ckesAmountOut = await quoteRouteForwardIn(publicClient, route, usdcAmountRaw);
+      if (!(ckesAmountOut > 0n)) throw new Error("Route returned an empty quote.");
+      return { ok: true, route, ckesAmountOut, contractAddress: route.contractAddress, failures };
     } catch (error) {
       failures.push({ route, error, message: routeQuoteMessage(error) });
     }

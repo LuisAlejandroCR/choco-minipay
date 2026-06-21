@@ -1,9 +1,9 @@
-import { formatUnits, isAddress, parseUnits } from "viem";
+import { formatUnits, parseUnits } from "viem";
 import { APP_CONFIG } from "../lib/app-config.js";
 import { ADDRESSES, assertAddress, makePublicClient, makeWalletClient } from "./client.js";
 import { CKES_SWAP_ABI, ERC20_ABI, MENTO_BROKER_ABI } from "./abis.js";
 import { approveTokenIfNeeded, usdcAmountForIntent, sourceAmountForIntent } from "./tokens.js";
-import { selectTransferRouteExactOut } from "./routes.js";
+import { hasAnyExecutableRoute, selectTransferRouteExactOut, selectTransferRouteForwardIn } from "./routes.js";
 
 function readErc20Balance(publicClient, token, account) {
   return publicClient.readContract({ address: token, abi: ERC20_ABI, functionName: "balanceOf", args: [account] });
@@ -48,9 +48,10 @@ export async function sendNow({ account, recipient, intent }) {
   const usdcAmount = usdcAmountForIntent(intent);
   const MENTO = APP_CONFIG.mento;
 
-  // 2-confirmation fast path via ChocoGateway (approve + swapAndSend[Exact]).
-  // Falls back to the 5-step direct Mento path when ckesSwap is not configured.
-  if (isAddress(ADDRESSES.ckesSwap || "")) {
+  // 2-confirmation fast path via swap contract (approve + swapAndSend[Exact]).
+  // Route system tries Mento first, falls back to Uniswap V3 automatically if oracle is down.
+  // Falls back to the 5-step direct Mento path only when NO swap contract is configured at all.
+  if (hasAnyExecutableRoute()) {
     // Exact-output path: user typed a cKES amount — deliver it precisely, return surplus.
     if (intent.amountKes) {
       const ckesExact = parseUnits(String(Number(intent.amountKes)), 18);
@@ -103,13 +104,11 @@ export async function sendNow({ account, recipient, intent }) {
     }
 
     // Fixed-input fallback: used when only a USDC amount is specified (no cKES target).
-    const ckesQuoted = await publicClient.readContract({
-      address: ADDRESSES.ckesSwap,
-      abi: CKES_SWAP_ABI,
-      functionName: "quote",
-      args: [usdcAmount],
-    });
-    const ckesMinOut = (ckesQuoted * 985n) / 1000n;
+    // Uses the same route system as the exact-output path — Mento first, UniV3 backup.
+    const selectedRouteIn = await selectTransferRouteForwardIn({ usdcAmountRaw: usdcAmount, publicClient });
+    if (!selectedRouteIn.ok) throw new Error(selectedRouteIn.message);
+    const ckesMinOut = (selectedRouteIn.ckesAmountOut * 985n) / 1000n;
+    const swapContractIn = selectedRouteIn.contractAddress;
 
     const usdcBalance = await readErc20Balance(publicClient, ADDRESSES.usdc, account);
     if (usdcBalance < usdcAmount) {
@@ -120,10 +119,10 @@ export async function sendNow({ account, recipient, intent }) {
     const approveHash = await approveTokenIfNeeded({
       account,
       tokenAddress: ADDRESSES.usdc,
-      spender: ADDRESSES.ckesSwap,
+      spender: swapContractIn,
       amount: usdcAmount,
     });
-    const allowance = await readErc20Allowance(publicClient, ADDRESSES.usdc, account, ADDRESSES.ckesSwap);
+    const allowance = await readErc20Allowance(publicClient, ADDRESSES.usdc, account, swapContractIn);
     if (allowance < usdcAmount) {
       throw new Error(`USDC approval is lower than the route cost. Approved ${formatUsdc(allowance)}, needed ${formatUsdc(usdcAmount)}.`);
     }
@@ -131,7 +130,7 @@ export async function sendNow({ account, recipient, intent }) {
     try {
       await publicClient.simulateContract({
         account,
-        address: ADDRESSES.ckesSwap,
+        address: swapContractIn,
         abi: CKES_SWAP_ABI,
         functionName: "swapAndSend",
         args: [recipient, usdcAmount, ckesMinOut],
@@ -141,7 +140,7 @@ export async function sendNow({ account, recipient, intent }) {
     }
 
     const hash = await walletClient.writeContract({
-      address: ADDRESSES.ckesSwap,
+      address: swapContractIn,
       abi: CKES_SWAP_ABI,
       functionName: "swapAndSend",
       args: [recipient, usdcAmount, ckesMinOut],
