@@ -68,6 +68,8 @@ export function mapScheduleToPlan(log, lastSettlementAt = 0, active = true) {
     amountKes,
     asset: APP_CONFIG.assets.destination,
     payAsset: isCkesAsset(a.sourceAsset) ? APP_CONFIG.assets.destination : APP_CONFIG.assets.source,
+    // Per-run USDC the escrow locks/settles (0 for cKES-source plans). Used by the bell notices.
+    usdcPerRun: isCkesAsset(a.sourceAsset) ? 0 : Number(formatUnits(a.sourceAmount, 6)),
     corridor: APP_CONFIG.transfer.corridor,
     schedule: formatScheduleLabel(dayLabel, a.firstRunAt),
     dayLabel,

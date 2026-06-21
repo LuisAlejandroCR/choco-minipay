@@ -73,7 +73,7 @@ function SupportAboutContent() {
   );
 }
 
-export function QuickInfoPanel({ type, onClose, reportHash = "" }) {
+export function QuickInfoPanel({ type, onClose, reportHash = "", notices = [] }) {
   const panel = infoPanels[type] || infoPanels.support;
   const Icon = infoPanelIcons[panel.icon] || MessageCircleQuestionMark;
 
@@ -89,6 +89,17 @@ export function QuickInfoPanel({ type, onClose, reportHash = "" }) {
           <button type="button" aria-label="Close" onClick={onClose}><X size={18} strokeWidth={3} /></button>
         </div>
         <p>{panel.copy}</p>
+        {/* Live plan alerts (funded / lock next run / top up) — derived from chain, newest concerns first. */}
+        {type === "future" && notices.length > 0 && (
+          <div className="bell-notices">
+            {notices.map((n) => (
+              <div key={n.id} className={`bell-notice tone-${n.tone}`}>
+                <strong>{n.title}</strong>
+                <span>{n.body}</span>
+              </div>
+            ))}
+          </div>
+        )}
         {/* On the report panel the copy action is the first, primary instruction. */}
         {type === "report" && <ReportIssueAction reportHash={reportHash} />}
         {panel.items.length > 0 && (

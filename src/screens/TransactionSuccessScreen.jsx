@@ -8,7 +8,7 @@ const CHOCO_COLORS = [
   "#E8B96A", "#F5E6C8", "#EDD9A3",
 ];
 
-function runConfetti(canvas, onDone) {
+function runConfetti(canvas) {
   const ctx = canvas.getContext("2d");
   canvas.width = canvas.offsetWidth;
   canvas.height = canvas.offsetHeight;
@@ -64,8 +64,6 @@ function runConfetti(canvas, onDone) {
 
     if (elapsed < TOTAL) {
       raf = requestAnimationFrame(frame);
-    } else {
-      onDone?.();
     }
   }
 
@@ -76,9 +74,6 @@ function runConfetti(canvas, onDone) {
 export function TransactionSuccessScreen({ transaction, onViewDetails, onDismiss }) {
   const [shareState, setShareState] = useState("");
   const canvasRef = useRef(null);
-  const onDismissRef = useRef(onDismiss);
-  onDismissRef.current = onDismiss;
-
   const isSendNow = transaction.deliveryMode === "now";
   const amountLabel = `${transaction.amount} ${transaction.asset}`;
   const toLabel = transaction.recipient || "Recipient";
@@ -88,7 +83,7 @@ export function TransactionSuccessScreen({ transaction, onViewDetails, onDismiss
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    return runConfetti(canvas, () => onDismissRef.current?.());
+    return runConfetti(canvas);
   }, []);
 
   async function share() {
@@ -150,7 +145,7 @@ export function TransactionSuccessScreen({ transaction, onViewDetails, onDismiss
         <div className="success-actions">
           <button className="primary-cta" type="button" onClick={onViewDetails}>
             <Check size={18} />
-            {isSendNow ? "View movement details" : "View plans"}
+            {isSendNow ? "View movement details" : "View plan details"}
           </button>
           <button className="secondary-dark" type="button" onClick={share}>
             <Share2 size={18} />

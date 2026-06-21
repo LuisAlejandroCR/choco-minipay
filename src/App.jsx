@@ -39,6 +39,7 @@ import { PlanDetailScreen } from "./screens/PlanDetailScreen.jsx";
 import { PlanEditorScreen } from "./screens/PlanEditorScreen.jsx";
 import { DeletePlanScreen } from "./screens/DeletePlanScreen.jsx";
 import { isEscrowConfigured, readLockedRun, refundScheduleRun } from "./chain/escrow.js";
+import { useScheduleNotices } from "./modules/notifications/useScheduleNotices.js";
 import { ProcessingScreen } from "./screens/ProcessingScreen.jsx";
 import { DuplicateGuardScreen } from "./screens/DuplicateGuardScreen.jsx";
 import { ReviewScreen } from "./screens/ReviewScreen.jsx";
@@ -100,6 +101,7 @@ export default function App() {
   const [screen, setScreen] = useState(INITIAL_SCREEN);
   const [command, setCommand] = useState(DEFAULT_COMMANDS.schedule);
   const [selectedPlanId, setSelectedPlanId] = useState("");
+  const [selectedPlanFallback, setSelectedPlanFallback] = useState(null);
   const [selectedTransactionId, setSelectedTransactionId] = useState("");
   const [selectedTransactionFallback, setSelectedTransactionFallback] = useState(null);
   const [reviewMode, setReviewMode] = useState("create");
@@ -133,8 +135,11 @@ export default function App() {
   const registryReady = Boolean(ADDRESSES.ledger || ADDRESSES.registry);
   const settlementReady = Boolean(ADDRESSES.settlementSpender);
   const activePlan = useMemo(
-    () => plans.find((item) => item.id === selectedPlanId) || plans[0] || null,
-    [plans, selectedPlanId],
+    () => plans.find((item) => item.id === selectedPlanId)
+      || (selectedPlanFallback?.id === selectedPlanId ? selectedPlanFallback : null)
+      || plans[0]
+      || null,
+    [plans, selectedPlanFallback, selectedPlanId],
   );
   const previewPlan = useMemo(
     () => buildSafePreviewPlan(command, activePlan || defaultPlan, deliveryMode),
@@ -162,6 +167,10 @@ export default function App() {
     onPlanBuilt: setResolvedPreviewPlan,
     onContactResolved: (key, contact) =>
       contacts.setResolvedContacts((prev) => ({ ...prev, [key]: contact })),
+    onPlanCreated: (plan) => {
+      setSelectedPlanId(plan.id);
+      setSelectedPlanFallback(plan);
+    },
     onTransactionCreated: (transaction) => {
       if (!transaction) {
         setSelectedTransactionId("");
@@ -210,6 +219,7 @@ export default function App() {
     },
     [selectedTransactionFallback, transfer.lastReceipt, selectedTransactionId, transactions],
   );
+  const scheduleNotices = useScheduleNotices(plans, wallet.address);
   const actionReady = Boolean(
     walletCanSign &&
     contacts.recipientAddress &&
@@ -281,6 +291,7 @@ export default function App() {
 
   function openNewPlan() {
     setResolvedPreviewPlan(null);
+    setSelectedPlanFallback(null);
     setReviewMode("create");
     setDeliveryMode("schedule");
     setCommand(DEFAULT_COMMANDS.schedule);
@@ -289,6 +300,7 @@ export default function App() {
 
   function openImmediateSend() {
     setResolvedPreviewPlan(null);
+    setSelectedPlanFallback(null);
     setReviewMode("create");
     setDeliveryMode("now");
     setCommand(DEFAULT_COMMANDS.now);
@@ -327,6 +339,7 @@ export default function App() {
     const targetId = existingPlanId || similarPlan?.id;
     if (targetId) {
       setSelectedPlanId(targetId);
+      setSelectedPlanFallback(null);
       goTo("planDetail");
       return;
     }
@@ -359,6 +372,7 @@ export default function App() {
       // Optimistic remove: plan disappears immediately, background refresh confirms on-chain state.
       removePlan(planToDelete.onchainId);
       setSelectedPlanId("");
+      setSelectedPlanFallback(null);
       goTo("plans");
       window.setTimeout(() => { void refreshLedgerFresh(); }, 2000);
     } catch (error) {
@@ -414,6 +428,14 @@ export default function App() {
             <button className="header-back" type="button" aria-label="Back to Home" onClick={() => setScreen("plan")}>
               <ArrowLeft size={22} strokeWidth={2.6} />
             </button>
+          ) : visibleScreen === "planDetail" ? (
+            <button className="header-back" type="button" aria-label="Back to Plans" onClick={() => goTo("plans")}>
+              <ArrowLeft size={22} strokeWidth={2.6} />
+            </button>
+          ) : visibleScreen === "deletePlan" ? (
+            <button className="header-back" type="button" aria-label="Back to plan details" onClick={() => goTo("planDetail")}>
+              <ArrowLeft size={22} strokeWidth={2.6} />
+            </button>
           ) : visibleScreen === "receiptDetail" ? (
             <button className="header-back" type="button" aria-label="Back to Movements" onClick={() => goTo("history")}>
               <ArrowLeft size={22} strokeWidth={2.6} />
@@ -434,7 +456,7 @@ export default function App() {
               >
                 <Flag size={20} strokeWidth={2.4} />
               </button>
-            ) : visibleScreen === "planEditor" ? null : (
+            ) : ["planEditor", "planDetail", "deletePlan"].includes(visibleScreen) ? null : (
               <>
                 <button
                   className="header-icon"
@@ -475,6 +497,7 @@ export default function App() {
               onSendNow={openImmediateSend}
               onSelectPlan={(planId) => {
                 setSelectedPlanId(planId);
+                setSelectedPlanFallback(null);
                 goTo("planDetail");
               }}
               showDemoPrompt={showDemoPrompt && !walletHasAddress}
@@ -508,6 +531,7 @@ export default function App() {
               onNewPlan={openNewPlan}
               onSelectPlan={(planId) => {
                 setSelectedPlanId(planId);
+                setSelectedPlanFallback(null);
                 goTo("planDetail");
               }}
             />
@@ -631,6 +655,7 @@ export default function App() {
             <QuickInfoPanel
               type={activeInfoPanel}
               reportHash={activeInfoPanel === "report" ? (activeTransaction?.hash || "") : ""}
+              notices={scheduleNotices}
               onClose={() => setActiveInfoPanel(null)}
             />
           )}
@@ -644,7 +669,7 @@ export default function App() {
             />
           )}
         </div>
-        {!["splash", "pitch", "review", "planEditor", "receiptDetail"].includes(visibleScreen) && (
+        {!["splash", "pitch", "review", "planEditor", "receiptDetail", "planDetail", "deletePlan"].includes(visibleScreen) && (
           <BottomNav
             active={
               ["history", "receiptDetail"].includes(visibleScreen) ? "history"

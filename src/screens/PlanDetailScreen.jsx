@@ -3,7 +3,7 @@ import { CalendarDays, Pencil, Trash2 } from "lucide-react";
 import { DetailLine } from "../components/SheetPrimitives.jsx";
 import { getPlanExecutionState, getTimingLabel } from "../utils/planUtils.js";
 
-export function PlanDetailScreen({ plan, onHome, onHistory, onEdit, onDelete, operationStatus = "", operationMessage = "", onClearError }) {
+export function PlanDetailScreen({ plan, onEdit, onDelete, operationStatus = "", operationMessage = "", onClearError }) {
   const execution = getPlanExecutionState(plan);
   const isPaused = execution.status === "Paused";
   const isPending = operationStatus === "pending";
@@ -73,7 +73,7 @@ export function PlanDetailScreen({ plan, onHome, onHistory, onEdit, onDelete, op
           : "Your wallet authorized this plan once. Funds stay in your wallet until Choco runs the scheduled transfer. Delete the plan to stop future runs."}
       </div>
 
-      <div className="plan-actions">
+      <div className="plan-actions detail-bottom-actions">
         <button type="button" disabled={isPending} onClick={onEdit}><Pencil size={18} />Edit</button>
         <button className="danger-action" type="button" disabled={isPending} onClick={onDelete}><Trash2 size={18} />Delete</button>
       </div>
