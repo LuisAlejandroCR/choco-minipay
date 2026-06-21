@@ -229,13 +229,24 @@ export async function runDueSchedules({
 
   const [schedules, settledIds] = await Promise.all([readSchedules(), currentMonthSettlementIds()]);
   const nowSec = Math.floor(Date.now() / 1000);
+  // Testing aid: FORCE_SCHEDULE_ID settles that one plan immediately, bypassing only the time
+  // window (still requires it to be funded and not already settled this month). Lets you create +
+  // fund a plan and exercise the keeper in a close window without waiting for the real run time.
+  const forceId = String(env.FORCE_SCHEDULE_ID || "").trim();
   const due = schedules
     .map((schedule) => ({
       ...schedule,
       runAt: scheduleWindowForCurrentMonth(schedule),
       alreadySettled: settledIds.has(String(schedule.id)),
     }))
-    .filter((schedule) => isDueThisMonth(schedule, nowSec) && !schedule.alreadySettled);
+    .filter((schedule) => {
+      if (schedule.alreadySettled) return false;
+      if (forceId && String(schedule.id) === forceId) {
+        out.log(`#${schedule.id} forced (FORCE_SCHEDULE_ID) — bypassing the run-time window.`);
+        return true;
+      }
+      return isDueThisMonth(schedule, nowSec);
+    });
 
   out.log(`Schedules: ${schedules.length}`);
   out.log(`Due now: ${due.length}`);
