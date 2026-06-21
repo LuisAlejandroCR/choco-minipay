@@ -1,10 +1,33 @@
-import { Bell, Check, ExternalLink, ListChecks, MessageCircleQuestionMark, ReceiptText, ShieldCheck, X } from "lucide-react";
+import { Bell, Check, Copy, ExternalLink, ListChecks, MessageCircleQuestionMark, ReceiptText, ShieldCheck, X } from "lucide-react";
+import { useState } from "react";
 import {
   infoPanels,
   publicReviewLinks,
   supportAboutContent,
 } from "../content/reviewLinks.js";
 import { LIVE_DEMO_URL } from "../config/runtime.js";
+import { getTransactionExplorerUrl, isTransactionHash } from "../lib/transactions.js";
+
+function ReportIssueAction({ reportHash }) {
+  const [copied, setCopied] = useState(false);
+  if (!isTransactionHash(reportHash)) return null;
+
+  const details = `Choco transfer issue\nTransaction: ${reportHash}\nExplorer: ${getTransactionExplorerUrl(reportHash)}`;
+  async function copyDetails() {
+    try {
+      await navigator.clipboard?.writeText(details);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  }
+  return (
+    <button type="button" className="quick-info-copy" onClick={copyDetails}>
+      <Copy size={15} /> {copied ? "Copied — paste it to support" : "Copy issue details (with tx hash)"}
+    </button>
+  );
+}
 
 const infoPanelIcons = {
   future: Bell,
@@ -50,7 +73,7 @@ function SupportAboutContent() {
   );
 }
 
-export function QuickInfoPanel({ type, onClose }) {
+export function QuickInfoPanel({ type, onClose, reportHash = "" }) {
   const panel = infoPanels[type] || infoPanels.support;
   const Icon = infoPanelIcons[panel.icon] || MessageCircleQuestionMark;
 
@@ -76,6 +99,7 @@ export function QuickInfoPanel({ type, onClose }) {
             ))}
           </div>
         )}
+        {type === "report" && <ReportIssueAction reportHash={reportHash} />}
         {(type === "support" || type === "report") && <SupportAboutContent />}
       </section>
     </div>

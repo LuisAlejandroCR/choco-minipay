@@ -615,7 +615,11 @@ export default function App() {
             />
           )}
           {activeInfoPanel && (
-            <QuickInfoPanel type={activeInfoPanel} onClose={() => setActiveInfoPanel(null)} />
+            <QuickInfoPanel
+              type={activeInfoPanel}
+              reportHash={activeInfoPanel === "report" ? (activeTransaction?.hash || "") : ""}
+              onClose={() => setActiveInfoPanel(null)}
+            />
           )}
           {contacts.showContactPicker && (
             <ContactPicker

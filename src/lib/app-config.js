@@ -58,6 +58,7 @@ export const APP_CONFIG = {
     audit: env.VITE_AUDIT_CONTRACT_ADDRESS || "",
     ckesSwap: env.VITE_CKES_SWAP_CONTRACT_ADDRESS || "",
     ckesSwapUniV3: env.VITE_CKES_SWAP_UNIV3_ADDRESS || "",
+    scheduleEscrow: env.VITE_SCHEDULE_ESCROW_ADDRESS || "",
     ckesSwapDeployBlock: env.VITE_CKES_SWAP_DEPLOY_BLOCK || "",
     ckesSwapAddresses: parseAddressList(env.VITE_CKES_SWAP_CONTRACT_ADDRESSES || env.VITE_CKES_SWAP_CONTRACT_ADDRESS),
   },
