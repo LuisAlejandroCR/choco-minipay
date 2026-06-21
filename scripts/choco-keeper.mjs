@@ -11,11 +11,12 @@ const LEDGER_ABI = [
   "event SettlementReceipt(uint256 indexed id,bool success,address sourceAsset,uint256 sourceAmount,uint256 destinationAmount,bytes32 settlementRef,string note)",
 ];
 
-// Settlement runs through ChocoScheduleEscrow: the owner pre-locks one run's USDC, the keeper
-// settles from that lock (via the live UniV3 swap inside the escrow) and auto-locks the next run.
+// Settlement runs through ChocoGateway: the owner pre-locks one run's USDC, the keeper settles it
+// with only the scheduleId (the gateway reads recipient + amount from the ChocoLedger schedule, so
+// the keeper can't redirect funds) and auto-locks the next run.
 const ESCROW_ABI = [
   "function lockedOf(address owner,uint256 scheduleId) view returns (uint256)",
-  "function settleRun(address owner,uint256 scheduleId,address recipient,uint256 ckesExactOut) external returns (uint256)",
+  "function settleScheduledRun(uint256 scheduleId) external returns (uint256)",
   "function lockFor(address owner,uint256 scheduleId,uint256 usdcAmount) external",
 ];
 
@@ -279,13 +280,9 @@ export async function runDueSchedules({
         executed.push({ id: schedule.id, skipped: true, reason: "not funded" });
         continue;
       }
-      out.log(`#${schedule.id} settling from escrow lock (${formatToken(locked, 6)} USDC)...`);
-      const settleTx = await escrowWriter.settleRun(
-        schedule.owner,
-        schedule.id,
-        schedule.recipient,
-        schedule.destinationAmount,
-      );
+      out.log(`#${schedule.id} settling held run (${formatToken(locked, 6)} USDC) via gateway...`);
+      // Only the scheduleId — the gateway reads recipient + destination amount from the ledger.
+      const settleTx = await escrowWriter.settleScheduledRun(schedule.id);
       escrowTxHash = settleTx.hash;
       out.log(`#${schedule.id} escrow tx: ${escrowTxHash}`);
       await settleTx.wait();
