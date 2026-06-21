@@ -1210,3 +1210,40 @@
   min-height: 58px;
   border-radius: 22px;
 }
+.details-screen .screen-hero {
+  background: rgba(18, 9, 6, 0.42);
+}
+
+.plan-status-label {
+  align-self: start;
+  padding-top: 8px;
+  color: var(--latte-300);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.plan-status-label.success {
+  color: #d9f5d7;
+}
+
+.plan-status-label.due,
+.plan-status-label.warning {
+  color: #ffe0a8;
+}
+
+.plan-status-label.paused {
+  color: var(--muted);
+}
+
+.qr-preview-copy {
+  margin: 0;
+  max-width: 220px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.35;
+  text-align: center;
+}

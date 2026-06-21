@@ -35,7 +35,7 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
             {needsMobileWallet
               ? "Open Choco in MiniPay or another injected mobile wallet to sign actions."
               : needsDesktopWallet
-                ? "Install or enable a browser wallet, then connect on Celo Mainnet."
+                ? "Install or enable a browser wallet, then connect."
                 : "Choco reads balances and prepares wallet-signed actions. It never custodies funds."}
           </p>
           {wallet.error && <p className="wallet-error">{wallet.error}</p>}

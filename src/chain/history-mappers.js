@@ -86,26 +86,57 @@ export function mapScheduleToPlan(log, lastSettlementAt = 0, active = true) {
   };
 }
 
+function readScheduleAddress(schedule, primary, fallback = "") {
+  return schedule?.[primary] || (fallback ? schedule?.[fallback] : "") || "";
+}
+
+function readScheduleSourceAmount(schedule) {
+  if (!schedule) return 0;
+  if (schedule.sourceAmount !== undefined && schedule.sourceAmount !== null && schedule.sourceAmount !== "") {
+    try {
+      return unitsToNumber(schedule.sourceAmount, 6);
+    } catch {
+      return Number(schedule.sourceAmount) || 0;
+    }
+  }
+  return Number(schedule.payAmount || schedule.usdcPerRun || 0);
+}
 export function mapSettlementToMovement(log, schedule, timestamp) {
   const a = log.args;
   const amountKes = Math.round(unitsToNumber(a.destinationAmount, 18));
+  const recipientAddress = readScheduleAddress(schedule, "recipient", "recipientAddress");
+  const ownerAddress = readScheduleAddress(schedule, "owner", "from");
+  const sourceAsset = schedule?.sourceAsset || "";
+  const payAsset = sourceAsset
+    ? isCkesAsset(sourceAsset) ? APP_CONFIG.assets.destination : APP_CONFIG.assets.source
+    : schedule?.payAsset || APP_CONFIG.assets.source;
+  const payAmount = readScheduleSourceAmount(schedule);
+  const scheduleLabel = schedule?.schedule
+    || (schedule ? formatScheduleLabel(formatDay(schedule.dayOfMonth), schedule.firstRunAt) : "Scheduled");
+  const routeEstimate = payAmount
+    ? `${Number(payAmount.toFixed(4))} ${payAsset} -> ${amountKes} ${APP_CONFIG.assets.destination} - ${routeCorridorLabel()}`
+    : routeCorridorLabel();
+
   return {
     id: `settle-${log.transactionHash}-${log.logIndex}`,
     planId: `schedule-${a.id}`,
-    recipient: schedule ? tailAddress(schedule.recipient) : "Recipient",
+    recipient: recipientAddress ? tailAddress(recipientAddress) : "Recipient",
+    recipientAddress,
     amount: amountKes.toLocaleString("en-US"),
+    amountMinor: amountKes,
     asset: APP_CONFIG.assets.destination,
-    payAsset: schedule && isCkesAsset(schedule.sourceAsset) ? APP_CONFIG.assets.destination : APP_CONFIG.assets.source,
-    schedule: schedule ? formatScheduleLabel(formatDay(schedule.dayOfMonth), schedule.firstRunAt) : "Scheduled",
+    payAsset,
+    payAmount,
+    schedule: scheduleLabel,
     date: formatChainDate(timestamp),
     status: a.success ? "Sent" : "Failed",
     hash: log.transactionHash,
     type: a.success ? "Settlement sent" : "Settlement failed",
     deliveryMode: "schedule",
-    from: schedule ? schedule.owner : "",
-    to: schedule ? tailAddress(schedule.recipient) : "Recipient",
-    toAddress: schedule ? schedule.recipient : "",
-    routeEstimate: "",
+    from: ownerAddress,
+    to: recipientAddress ? tailAddress(recipientAddress) : "Recipient",
+    toAddress: recipientAddress,
+    routeEstimate,
     sortKey: timestamp || 0,
   };
 }

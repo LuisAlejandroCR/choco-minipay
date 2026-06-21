@@ -48,7 +48,7 @@ export function useMiniPayWallet() {
     function handleChainChanged() {
       setAddress("");
       setStatus("idle");
-      setError("Reconnect on Celo Mainnet.");
+      setError("Reconnect your wallet.");
     }
 
     window.ethereum.on?.("accountsChanged", handleAccountsChanged);
@@ -79,10 +79,10 @@ export function useMiniPayWallet() {
     },
     status,
     statusLabel: address
-      ? `${shortAddress(address)} - Celo Mainnet`
+      ? `${shortAddress(address)}`
       : status === "loading" || status === "opening-wallet"
         ? "Opening wallet"
-        : error || "Connect wallet on Celo Mainnet",
+        : error || "Connect wallet",
   }), [address, error, hasProvider, isReadOnly, canSign, miniPay, mobile, status]);
 
   async function verifyWallet() {

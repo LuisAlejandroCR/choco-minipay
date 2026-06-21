@@ -76,7 +76,7 @@ export function PlansScreen({ plans, loading = false, onSelectPlan, onNewPlan, o
         <div className="empty-plans">
           <div className="loading-sync"><ChocoMark size="small" /></div>
           <h2>Loading plans…</h2>
-          <p>Syncing with Celo Mainnet.</p>
+          <p>Syncing with your wallet.</p>
         </div>
       ) : visible.length > 0 ? (
         <>
