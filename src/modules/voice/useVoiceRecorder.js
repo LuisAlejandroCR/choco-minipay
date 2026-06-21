@@ -15,7 +15,7 @@ import { useEffect, useRef, useState } from "react";
 import { isMiniPay } from "../../lib/celo.js";
 import { normalizeVoiceTranscript } from "./voiceNormalize.js";
 
-export function useVoiceRecorder({ onTranscript }) {
+export function useVoiceRecorder({ onTranscript, maxSeconds = 6 }) {
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
@@ -51,6 +51,14 @@ export function useVoiceRecorder({ onTranscript }) {
     }, 1000);
     return () => window.clearInterval(timer);
   }, [isPaused, isRecording]);
+
+  // Hard cap on recording length so Agent Choco receives a concise instruction instead of a
+  // rambling transcript that is slow/expensive to parse. Auto-stops at maxSeconds; the captured
+  // text stays in the input for the user to review and send.
+  useEffect(() => {
+    if (!isRecording || isPaused) return;
+    if (recordingSeconds >= maxSeconds) stopRecording();
+  }, [recordingSeconds, isRecording, isPaused, maxSeconds]);
 
   function startRecording() {
     setRecordingSeconds(0);

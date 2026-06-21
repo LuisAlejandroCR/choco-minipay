@@ -1,9 +1,13 @@
 export const infoPanels = {
   future: {
-    eyebrow: "Future development",
-    title: "More corridors, more channels",
-    copy: "Choco lives in Mini Apps now. The next layer is social chat access and another remittance corridor.",
-    items: ["UK to NGN corridor", "WhatsApp, Telegram, Messenger", "Recipient status alerts"],
+    eyebrow: "Notifications & roadmap",
+    title: "Alerts, more corridors & channels",
+    copy: "Plan reminders and run alerts show here in the app by default. Proactive WhatsApp/SMS messages are coming — you'll authorize your MiniPay number first so we only message you when you opt in.",
+    items: [
+      "In-app alerts: live (next-run reminders, top-up notices)",
+      "WhatsApp / SMS alerts: coming — opt in with your number",
+      "UK to NGN corridor",
+    ],
     icon: "future",
   },
   support: {
@@ -11,6 +15,17 @@ export const infoPanels = {
     title: "Support and about",
     copy: "Start here for help, review pages, and the short Choco story.",
     items: [],
+    icon: "support",
+  },
+  report: {
+    eyebrow: "Report an issue",
+    title: "Something wrong with this transfer?",
+    copy: "Tap “Verify on-chain” on the receipt to open the transaction, copy its hash, and send it to us through any support link below. Every transfer is on-chain, so we can trace exactly what happened.",
+    items: [
+      "Open the receipt's “Verify on-chain” link",
+      "Copy the transaction hash",
+      "Share it with support below — we'll trace it",
+    ],
     icon: "support",
   },
 };
