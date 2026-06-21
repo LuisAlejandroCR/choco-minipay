@@ -50,13 +50,12 @@ interface IUniswapV3Pool {
     );
 }
 
-interface ISwapRouter {
+interface ISwapRouter02 {
     struct ExactInputSingleParams {
         address tokenIn;
         address tokenOut;
         uint24  fee;
         address recipient;
-        uint256 deadline;
         uint256 amountIn;
         uint256 amountOutMinimum;
         uint160 sqrtPriceLimitX96;
@@ -77,7 +76,7 @@ contract ChocoUniV3CkesSwap {
     bytes32      public immutable usdcToUsdmId;
 
     // --- Uniswap V3 (hop 2: USDm -> KESm) ------------------------------------
-    ISwapRouter    public immutable router;
+    ISwapRouter02  public immutable router;
     IUniswapV3Pool public immutable pool;    // USDm/KESm pool: token0=KESm, token1=USDm
     uint24         public immutable poolFee; // 100 = 0.01%
 
@@ -122,7 +121,7 @@ contract ChocoUniV3CkesSwap {
         broker           = IMentoBroker(brokerAddress);
         exchangeProvider = exchangeProviderAddress;
         usdcToUsdmId     = usdcToUsdmExchangeId;
-        router           = ISwapRouter(routerAddress);
+        router           = ISwapRouter02(routerAddress);
         pool             = IUniswapV3Pool(poolAddress);
         poolFee          = poolFeeValue;
         usdc             = IERC20(usdcAddress);
@@ -252,12 +251,11 @@ contract ChocoUniV3CkesSwap {
 
         require(usdm.approve(address(router), usdmReceived), "usdm approve");
         ckesAmountOut = router.exactInputSingle(
-            ISwapRouter.ExactInputSingleParams({
+            ISwapRouter02.ExactInputSingleParams({
                 tokenIn:           address(usdm),
                 tokenOut:          address(ckes),
                 fee:               poolFee,
                 recipient:         recipient,
-                deadline:          block.timestamp + 300,
                 amountIn:          usdmReceived,
                 amountOutMinimum:  ckesMinOut,
                 sqrtPriceLimitX96: 0
