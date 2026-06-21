@@ -375,24 +375,44 @@ async function readSendNowHistoryFromReceipts(publicClient, owner, fromBlock) {
   if (!txs.length) return [];
 
   const receipts = await readReceipts(publicClient, txs);
-  const movements = [];
+  const movements = [];     // legacy cKES-Transfer pairs (routes that don't log to the ledger)
+  const attemptLogs = [];   // canonical ChocoLedger AttemptLogged events (preferred)
 
   for (let i = 0; i < receipts.length; i += 1) {
     const receipt = receipts[i];
     const swapAddress = txs[i].swapAddress;
     const swapLog = decodeReceiptEvents(receipt, swapAddress, SWAP_EVENT_ABI, "UsdcToCkesSwap")[0] || null;
+
+    // Canonical source: ChocoLedger AttemptLogged carries recipient + exact USDC/cKES for EVERY
+    // route, including the UniV3 backup where cKES is delivered pool->recipient and never leaves
+    // the swap contract (so the cKES-Transfer-from-swap heuristic below can't observe it).
+    const attemptLog = isAddress(ADDRESSES.ledger || "")
+      ? decodeReceiptEvents(receipt, ADDRESSES.ledger, ATTEMPT_EVENT_ABI, "AttemptLogged")
+        .find((log) => sameAddress(log.args.senderWallet, owner) && isSendNowAttempt(log))
+      : null;
+    if (attemptLog) {
+      attemptLogs.push(attemptLog);
+      continue;
+    }
+
+    // Fallback for routes that don't log to the ledger: find the cKES delivery to the recipient.
+    // Don't require from==swapAddress — only that it lands on someone other than payer/contract.
     const transferLog = decodeReceiptEvents(receipt, ADDRESSES.kesm, TRANSFER_EVENT_ABI, "Transfer")
-      .find((log) => sameAddress(log.args.from, swapAddress) && !sameAddress(log.args.to, owner));
+      .find((log) => !sameAddress(log.args.to, owner) && !sameAddress(log.args.to, swapAddress));
     if (!transferLog) continue;
 
     movements.push({ transferLog, swapLog });
   }
 
-  const blockNumbers = [...new Set(movements.map((entry) => entry.transferLog.blockNumber))];
+  const blockNumbers = [...new Set([
+    ...movements.map((entry) => entry.transferLog.blockNumber),
+    ...attemptLogs.map((log) => log.blockNumber),
+  ])];
   const blocks = await Promise.all(blockNumbers.map((blockNumber) => publicClient.getBlock({ blockNumber })));
   const timeByBlock = new Map(blocks.map((block) => [block.number, Number(block.timestamp)]));
 
-  return movements
+  const attemptMovements = attemptLogs.map((log) => mapAttemptToMovement(log, timeByBlock.get(log.blockNumber)));
+  const transferMovements = movements
     .map(({ transferLog, swapLog }) => {
       const amountKes = Math.round(unitsToNumber(transferLog.args.value, 18));
       const usdcIn = swapLog ? unitsToNumber(swapLog.args.usdcIn, 6) : 0;
@@ -419,8 +439,9 @@ async function readSendNowHistoryFromReceipts(publicClient, owner, fromBlock) {
         routeEstimate: swapLog ? `${usdcIn} USDC -> ${amountKes} KESm via Mento` : "",
         sortKey: timestamp || 0,
       };
-    })
-    .sort((a, b) => b.sortKey - a.sortKey);
+    });
+
+  return mergeSendNowHistory(attemptMovements, transferMovements);
 }
 
 async function readAttemptHistory(publicClient, owner, fromBlock, contractAddress) {
@@ -616,7 +637,12 @@ export async function readOwnerLedger(owner) {
       ? readScheduleDataWithFallback(publicClient, owner, fromBlock, ledgerOrRegistry).catch(() => null)
       : Promise.resolve(null),
     hasLedger
-      ? withTimeout(readAttemptHistory(publicClient, owner, fromBlock, ledgerOrRegistry), []).catch(() => [])
+      // Send-now attempts are scanned from the swap-contract deploy block, not the ledger deploy
+      // block. The ledger predates the current swap by hundreds of thousands of blocks, and the
+      // sequential 900-block chunking would blow past the 4.5s timeout (returning empty) as the
+      // gap grows. Send-now movements only exist from the swap deploy onward, so this is both
+      // correct and bounded. Schedule settlements still scan from the full ledger range below.
+      ? withTimeout(readAttemptHistory(publicClient, owner, sendNowFromBlock, ledgerOrRegistry), []).catch(() => [])
       : Promise.resolve([]),
   ]);
   const sendNowHistory = mergeSendNowHistory(
