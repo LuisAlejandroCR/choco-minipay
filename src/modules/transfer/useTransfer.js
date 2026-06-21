@@ -36,6 +36,7 @@ export function useTransfer({
   onPlanBuilt,          // (plan) => void  — calls setResolvedPreviewPlan
   onContactResolved,    // (key, contact) => void  — merges into resolvedContacts
   onTransactionCreated, // (transactionId) => void  — sets selectedTransactionId
+  onPlanCreated,        // (plan) => void  — selects the just-created schedule detail
   onNavigate,           // (screen) => void  — calls goTo
   onRefreshLedger,      // () => Promise<void>
   onRefreshBalances,    // (address) => Promise<void>
@@ -99,11 +100,14 @@ export function useTransfer({
     onNavigate("review");
   }
 
-  function commitReceipt(plan, hash, approveHash, recipientAddress, reviewMode) {
+  function commitReceipt(plan, result, recipientAddress, reviewMode) {
+    const scheduleId = result.scheduleId !== undefined && result.scheduleId !== null && result.scheduleId !== ""
+      ? Number(result.scheduleId)
+      : null;
     const committedPlan = {
       ...plan,
-      hash,
-      approveHash,
+      hash: result.hash,
+      approveHash: result.approveHash || "",
       status: plan.deliveryMode === "now" ? "Sent" : "Active",
     };
     const type = plan.deliveryMode === "now"
@@ -112,8 +116,17 @@ export function useTransfer({
     const transaction = buildTransactionFromPlan(committedPlan, type, wallet.address, recipientAddress);
     setLastReceipt(transaction);
     if (plan.deliveryMode === "schedule") {
+      const fallbackId = scheduleId ? `schedule-${scheduleId}` : `schedule-${Date.now()}`;
+      onPlanCreated?.({
+        ...committedPlan,
+        id: fallbackId,
+        onchainId: scheduleId || 0,
+        recipientAddress,
+        active: true,
+        deliveryMode: "schedule",
+      });
       onTransactionCreated("");
-      onNavigate("plans");
+      onNavigate("planDetail");
     } else {
       onTransactionCreated(transaction.id);
       onNavigate("receiptDetail");
@@ -159,7 +172,7 @@ export function useTransfer({
 
       // Navigate first so the user doesn't stay on the review screen while the
       // ledger sync runs (which could take 5-10 s and leaves the button re-enabled).
-      commitReceipt(reviewPlan, result.hash, result.approveHash || "", recipientAddress, reviewMode);
+      commitReceipt(reviewPlan, result, recipientAddress, reviewMode);
 
       if (reviewPlan.deliveryMode === "schedule") {
         onRefreshLedger().catch(() => {});

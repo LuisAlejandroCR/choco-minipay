@@ -77,17 +77,17 @@ export async function createScheduleViaRegistry({ account, recipient, intent }) 
   });
   const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
+  // Keep the created schedule id so the UI can open the exact plan immediately.
+  const scheduleId = extractScheduleId(receipt, ledgerOrRegistry, account);
+
   // Lock the first run's USDC immediately so the plan is funded and the keeper can settle it.
   let fundHash = null;
-  if (escrowMode) {
-    const scheduleId = extractScheduleId(receipt, ledgerOrRegistry, account);
-    if (scheduleId !== null) {
-      const funded = await fundScheduleRun({ account, scheduleId, usdcPerRun: amount });
-      fundHash = funded.hash;
-    }
+  if (escrowMode && scheduleId !== null) {
+    const funded = await fundScheduleRun({ account, scheduleId, usdcPerRun: amount });
+    fundHash = funded.hash;
   }
 
-  return { approveHash, hash, fundHash };
+  return { approveHash, hash, fundHash, scheduleId: scheduleId === null ? null : scheduleId.toString() };
 }
 
 export async function cancelScheduleViaRegistry({ account, id }) {

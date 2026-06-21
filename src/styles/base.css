@@ -236,6 +236,37 @@ textarea {
   line-height: 1.4;
 }
 
+.bell-notices {
+  display: grid;
+  gap: 8px;
+  margin: 4px 0 12px;
+}
+
+.bell-notice {
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(246, 232, 212, 0.14);
+  background: rgba(246, 232, 212, 0.05);
+}
+
+.bell-notice strong {
+  color: var(--cream);
+  font-size: 13px;
+}
+
+.bell-notice span {
+  color: var(--latte-300);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.bell-notice.tone-warning {
+  border-color: rgba(245, 191, 108, 0.4);
+  background: rgba(245, 191, 108, 0.1);
+}
+
 .app-panel {
   flex: 1;
   min-height: 0;

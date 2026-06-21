@@ -18,10 +18,8 @@ export function planCreationReminder() {
     id: "plan-funding-explainer",
     kind: "explainer",
     tone: "info",
-    title: "How scheduled plans stay funded",
-    body:
-      "When you authorize a plan, the next run's USDC is locked so it can't be spent and the run can't fail. "
-      + `After each run, next month's amount is locked automatically. ${CANCEL_HINT}`,
+    title: "How plans stay funded",
+    body: `The next run's USDC is locked so it can't be spent and never fails. After each run, the next month locks automatically. ${CANCEL_HINT}`,
   };
 }
 

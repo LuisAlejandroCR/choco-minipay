@@ -1,4 +1,4 @@
-import { CalendarDays, Check, ExternalLink, GitBranch, Share2, User } from "lucide-react";
+import { CalendarDays, Check, ExternalLink, GitBranch, Share2, User, X } from "lucide-react";
 import { useState } from "react";
 import { QrCanvas } from "../components/QrCode.jsx";
 import { shortAddress } from "../lib/celo.js";
@@ -7,6 +7,7 @@ import { getTimingLabel } from "../utils/planUtils.js";
 
 export function ReceiptDetailScreen({ transaction }) {
   const [shareState, setShareState] = useState("");
+  const [showQrPreview, setShowQrPreview] = useState(false);
   const hasHash = isTransactionHash(transaction.hash);
   const verifyUrl = getTransactionExplorerUrl(transaction.hash);
   const timingLabel = getTimingLabel(transaction);
@@ -58,15 +59,14 @@ export function ReceiptDetailScreen({ transaction }) {
         <div className="rds-qr">
           {hasHash ? (
             <>
-              <a
+              <button
                 className="rds-qr-wrapper"
-                href={verifyUrl}
-                target="_blank"
-                rel="noreferrer"
-                aria-label="Open this transaction on the block explorer"
+                type="button"
+                aria-label="Preview transaction QR"
+                onClick={() => setShowQrPreview(true)}
               >
                 <QrCanvas data={verifyUrl} size={116} />
-              </a>
+              </button>
               <a className="rds-qr-link" href={verifyUrl} target="_blank" rel="noreferrer">
                 Verify on-chain <ExternalLink size={13} />
               </a>
@@ -127,6 +127,20 @@ export function ReceiptDetailScreen({ transaction }) {
         )}
       </div>
 
+
+      {showQrPreview && hasHash && (
+        <div className="qr-preview-backdrop" role="dialog" aria-modal="true" aria-label="Transaction QR preview" onClick={() => setShowQrPreview(false)}>
+          <div className="qr-preview-sheet" onClick={(event) => event.stopPropagation()}>
+            <button className="qr-preview-close" type="button" aria-label="Close QR preview" onClick={() => setShowQrPreview(false)}>
+              <X size={18} strokeWidth={2.6} />
+            </button>
+            <QrCanvas data={verifyUrl} size={220} />
+            <a className="rds-qr-link" href={verifyUrl} target="_blank" rel="noreferrer">
+              Open on explorer <ExternalLink size={13} />
+            </a>
+          </div>
+        </div>
+      )}
       <div className="rds-actions">
         <button className="primary-cta" type="button" onClick={shareMovement}>
           <Share2 size={18} />

@@ -7,6 +7,14 @@ import { planCreationReminder } from "../lib/scheduleNotices.js";
 
 const FUNDING_REMINDER = planCreationReminder();
 
+function ordinalDay(value) {
+  const day = Number(value) || 1;
+  if (day === 1) return "1st";
+  if (day === 2) return "2nd";
+  if (day === 3) return "3rd";
+  return `${day}th`;
+}
+
 export function PlanEditorScreen({
   mode,
   command,
@@ -49,7 +57,11 @@ export function PlanEditorScreen({
   const currencyCode = agentIntent?.transferAsset || agentIntent?.destinationAsset || agentDetection.currency?.code || "";
   const timingMode = agentIntent?.deliveryMode || agentDetection.timing?.deliveryMode || deliveryMode;
   const timingDay = agentIntent?.dayOfMonth || agentDetection.timing?.dayOfMonth || 1;
-  const readySummary = `${recipientLabel || "Recipient"} - ${Number(amountValue || 0).toLocaleString("en-US")} ${currencyCode || "asset"} - ${timingMode === "now" ? "now" : `every ${timingDay}`}`;
+  const timingSummary = timingMode === "now" ? "now" : `every ${ordinalDay(timingDay)}`;
+  const readySummary = `${recipientLabel || "Recipient"} - ${Number(amountValue || 0).toLocaleString("en-US")} ${currencyCode || "asset"} - ${timingSummary}`;
+  const composerPlaceholder = deliveryMode === "schedule"
+    ? 'Say or type "Send 5 to mom every 1st"'
+    : 'Say or type "Send 5 to mom"';
 
   // Auto-advance to review when Agent Choco has everything and is confident (>80%), so the user
   // doesn't have to tap again. Debounced, fires once per instruction, and never while recording.
@@ -149,7 +161,7 @@ export function PlanEditorScreen({
               onKeyDown={(event) => {
                 if (event.key === "Enter" && hasText) void onBuild();
               }}
-              placeholder={'e.g. "Send 5 to mom now"'}
+              placeholder={composerPlaceholder}
               aria-label="Transfer instruction"
             />
             {hasText && (

@@ -1150,3 +1150,63 @@
 .transaction-row b {
   color: var(--vanilla-strong);
 }
+
+.qr-preview-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  background: rgba(5, 3, 2, 0.66);
+}
+
+.qr-preview-sheet {
+  position: relative;
+  width: min(100%, 300px);
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  padding: 24px 18px 18px;
+  border: 1px solid var(--line-soft);
+  border-radius: 24px;
+  background: var(--surface-1);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
+}
+
+.qr-preview-sheet canvas {
+  padding: 12px;
+  border-radius: 18px;
+  background: var(--paper);
+}
+
+.qr-preview-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-soft);
+  border-radius: 50%;
+  background: rgba(255, 241, 220, 0.08);
+  color: var(--cream);
+}
+.rds-qr-wrapper {
+  display: grid;
+  place-items: center;
+  border: 0;
+  cursor: pointer;
+}
+
+.receipt-detail-screen .rds-actions {
+  margin-top: auto;
+  padding-top: 16px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
+}
+
+.receipt-detail-screen .rds-actions .primary-cta {
+  min-height: 58px;
+  border-radius: 22px;
+}
