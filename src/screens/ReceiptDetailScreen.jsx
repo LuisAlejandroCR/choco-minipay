@@ -58,9 +58,15 @@ export function ReceiptDetailScreen({ transaction }) {
         <div className="rds-qr">
           {hasHash ? (
             <>
-              <div className="rds-qr-wrapper">
+              <a
+                className="rds-qr-wrapper"
+                href={verifyUrl}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Open this transaction on the block explorer"
+              >
                 <QrCanvas data={verifyUrl} size={116} />
-              </div>
+              </a>
               <a className="rds-qr-link" href={verifyUrl} target="_blank" rel="noreferrer">
                 Verify on-chain <ExternalLink size={13} />
               </a>

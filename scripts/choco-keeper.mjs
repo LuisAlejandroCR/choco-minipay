@@ -11,8 +11,12 @@ const LEDGER_ABI = [
   "event SettlementReceipt(uint256 indexed id,bool success,address sourceAsset,uint256 sourceAmount,uint256 destinationAmount,bytes32 settlementRef,string note)",
 ];
 
-const GATEWAY_ABI = [
-  "function executeScheduledExact(uint256 scheduleId,address payer,address recipient,uint256 usdcAmountIn,uint256 ckesExactOut) external returns (uint256)",
+// Settlement runs through ChocoScheduleEscrow: the owner pre-locks one run's USDC, the keeper
+// settles from that lock (via the live UniV3 swap inside the escrow) and auto-locks the next run.
+const ESCROW_ABI = [
+  "function lockedOf(address owner,uint256 scheduleId) view returns (uint256)",
+  "function settleRun(address owner,uint256 scheduleId,address recipient,uint256 ckesExactOut) external returns (uint256)",
+  "function lockFor(address owner,uint256 scheduleId,uint256 usdcAmount) external",
 ];
 
 function requiredAddress(value, label) {
@@ -62,7 +66,7 @@ export async function runDueSchedules({
 } = {}) {
   const out = makeLogger(logger);
   const ledgerAddress = requiredAddress(env.VITE_LEDGER_ADDRESS || "", "VITE_LEDGER_ADDRESS");
-  const gatewayAddress = env.VITE_SETTLEMENT_SPENDER_ADDRESS || env.VITE_CKES_SWAP_CONTRACT_ADDRESS || "";
+  const escrowAddress = env.VITE_SCHEDULE_ESCROW_ADDRESS || "";
   const deployBlock = Number(env.VITE_LEDGER_DEPLOY_BLOCK || 0);
   const owner = String(ownerFilter || "").toLowerCase();
   const rpcUrl = env.RPC_URL || env.CELO_RPC_URL || env.VITE_CELO_RPC_URL || "https://forno.celo.org";
@@ -72,13 +76,14 @@ export async function runDueSchedules({
 
   if (!deployBlock) throw new Error("Set VITE_LEDGER_DEPLOY_BLOCK.");
   if (shouldSend && !keeperKey) throw new Error("Set KEEPER_KEY to the current ChocoLedger keeper private key.");
-  if (shouldSend && !recordOnly) requiredAddress(gatewayAddress, "VITE_SETTLEMENT_SPENDER_ADDRESS");
+  if (shouldSend && !recordOnly) requiredAddress(escrowAddress, "VITE_SCHEDULE_ESCROW_ADDRESS");
 
   const provider = new ethers.JsonRpcProvider(rpcUrl, { chainId: 42220, name: "celo" });
   const signer = shouldSend ? new ethers.Wallet(keeperKey, provider) : null;
   const ledgerReader = new ethers.Contract(ledgerAddress, LEDGER_ABI, provider);
   const ledgerWriter = signer ? ledgerReader.connect(signer) : null;
-  const gatewayWriter = signer && gatewayAddress ? new ethers.Contract(gatewayAddress, GATEWAY_ABI, signer) : null;
+  const escrowReader = escrowAddress ? new ethers.Contract(escrowAddress, ESCROW_ABI, provider) : null;
+  const escrowWriter = signer && escrowAddress ? new ethers.Contract(escrowAddress, ESCROW_ABI, signer) : null;
 
   async function queryFilterChunked(filter, fromBlock, toBlock) {
     const logs = [];
@@ -211,7 +216,7 @@ export async function runDueSchedules({
   if (code === "0x") throw new Error(`No contract code at VITE_LEDGER_ADDRESS=${ledgerAddress}.`);
 
   out.log("Ledger:", ledgerAddress);
-  out.log("Gateway:", gatewayAddress || "(not set)");
+  out.log("Escrow:", escrowAddress || "(not set)");
   out.log("RPC:", rpcUrl);
   if (signer) out.log("Keeper wallet:", signer.address);
 
@@ -236,14 +241,14 @@ export async function runDueSchedules({
   out.log(`Due now: ${due.length}`);
 
   const executed = [];
-  const gatewayLower = String(gatewayAddress || "").toLowerCase();
   for (const schedule of due) {
     const route = `${formatToken(schedule.sourceAmount, 6)} USDC -> ${formatToken(schedule.destinationAmount, 18)} KESm`;
-    const spenderMatches = gatewayLower && schedule.settlementSpender.toLowerCase() === gatewayLower;
-    const spenderStatus = spenderMatches
-      ? "gateway ready"
-      : `gateway mismatch: ${formatAddress(schedule.settlementSpender)}`;
-    out.log(`#${schedule.id} ${formatAddress(schedule.owner)} -> ${formatAddress(schedule.recipient)} | ${route} | ${formatLocal(schedule.runAt)} | ${spenderStatus}`);
+    let lockStatus = "escrow not configured";
+    if (escrowReader) {
+      const locked = await escrowReader.lockedOf(schedule.owner, schedule.id);
+      lockStatus = locked > 0n ? `funded ${formatToken(locked, 6)} USDC` : "not funded (awaiting lock)";
+    }
+    out.log(`#${schedule.id} ${formatAddress(schedule.owner)} -> ${formatAddress(schedule.recipient)} | ${route} | ${formatLocal(schedule.runAt)} | ${lockStatus}`);
   }
 
   if (!shouldSend) {
@@ -252,27 +257,28 @@ export async function runDueSchedules({
   }
 
   for (const schedule of due) {
-    if (!recordOnly && schedule.settlementSpender.toLowerCase() !== gatewayAddress.toLowerCase()) {
-      out.warn(`#${schedule.id} skipped: settlementSpender ${schedule.settlementSpender} does not match gateway ${gatewayAddress}.`);
-      executed.push({ id: schedule.id, skipped: true, reason: "gateway mismatch" });
-      continue;
-    }
-
     let settlementRef = ethers.ZeroHash;
-    let gatewayTxHash = "";
+    let escrowTxHash = "";
     if (!recordOnly) {
-      out.log(`#${schedule.id} executing scheduled gateway settlement...`);
-      const settleTx = await gatewayWriter.executeScheduledExact(
-        schedule.id,
+      // Only funded runs settle. Unfunded plans are skipped (not reverted) so the batch — and the
+      // CI job that calls it — stays green; the app prompts the owner to lock the next run.
+      const locked = await escrowReader.lockedOf(schedule.owner, schedule.id);
+      if (locked === 0n) {
+        out.warn(`#${schedule.id} skipped: no escrow lock — owner must fund the next run.`);
+        executed.push({ id: schedule.id, skipped: true, reason: "not funded" });
+        continue;
+      }
+      out.log(`#${schedule.id} settling from escrow lock (${formatToken(locked, 6)} USDC)...`);
+      const settleTx = await escrowWriter.settleRun(
         schedule.owner,
+        schedule.id,
         schedule.recipient,
-        schedule.sourceAmount,
         schedule.destinationAmount,
       );
-      gatewayTxHash = settleTx.hash;
-      out.log(`#${schedule.id} gateway tx: ${gatewayTxHash}`);
+      escrowTxHash = settleTx.hash;
+      out.log(`#${schedule.id} escrow tx: ${escrowTxHash}`);
       await settleTx.wait();
-      settlementRef = gatewayTxHash;
+      settlementRef = escrowTxHash;
     }
 
     out.log(`#${schedule.id} recording ledger settlement...`);
@@ -283,11 +289,27 @@ export async function runDueSchedules({
       schedule.sourceAmount,
       schedule.destinationAmount,
       settlementRef,
-      recordOnly ? "scheduled batch record-only" : "scheduled batch settlement",
+      recordOnly ? "scheduled batch record-only" : "scheduled escrow settlement",
     );
     out.log(`#${schedule.id} ledger tx: ${recordTx.hash}`);
     await recordTx.wait();
-    executed.push({ id: schedule.id, gatewayTxHash, ledgerTxHash: recordTx.hash });
+
+    // Auto-lock next month's run from the owner's standing allowance. Best-effort: if they lack
+    // funds/allowance this reverts and the app surfaces a top-up notice — the run we just settled
+    // is unaffected.
+    let nextLock = "skipped";
+    if (!recordOnly && escrowWriter) {
+      try {
+        const lockTx = await escrowWriter.lockFor(schedule.owner, schedule.id, schedule.sourceAmount);
+        await lockTx.wait();
+        nextLock = lockTx.hash;
+        out.log(`#${schedule.id} next run locked: ${lockTx.hash}`);
+      } catch (err) {
+        nextLock = "failed";
+        out.warn(`#${schedule.id} next-run auto-lock failed (owner top-up needed): ${err.shortMessage || err.message || err}`);
+      }
+    }
+    executed.push({ id: schedule.id, escrowTxHash, ledgerTxHash: recordTx.hash, nextLock });
   }
 
   return { ok: true, dryRun: false, schedules: schedules.length, due: due.length, executed };
