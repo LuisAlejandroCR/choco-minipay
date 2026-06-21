@@ -218,11 +218,17 @@ export function buildPlanFromCommand(commandText, basePlan = defaultPlan, select
 }
 
 export function buildTransactionFromPlan(plan, type = "Plan confirmed", fromAddress = "", toAddress = "") {
+  // Fall back to the parsed intent so a freshly-sent receipt is never blank when a plan field
+  // (recipient label resolved via a saved contact, amount) didn't make it onto the plan top-level.
+  const recipientLabel = plan.recipient || plan.receiptLabel || plan.intent?.recipientAlias || plan.intent?.receiptLabel || "Recipient";
+  const amountLabel = plan.amount
+    || (plan.amountKes ? Number(plan.amountKes).toLocaleString("en-US") : "")
+    || (plan.intent?.amountKes ? Number(plan.intent.amountKes).toLocaleString("en-US") : "");
   return {
     id: `tx-${Date.now()}`,
     planId: plan.id,
-    recipient: plan.recipient || "Recipient",
-    amount: plan.amount,
+    recipient: recipientLabel,
+    amount: amountLabel,
     asset: plan.asset,
     payAsset: plan.payAsset,
     schedule: plan.schedule,

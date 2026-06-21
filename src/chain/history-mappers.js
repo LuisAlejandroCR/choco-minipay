@@ -108,6 +108,15 @@ export function mapSettlementToMovement(log, schedule, timestamp) {
   };
 }
 
+// Label the route by the protocols actually used, derived from the ledger note. The UniV3 swap
+// contracts (notes …-v3 / -exact-v3 / -exact-v4) bridge USDC->USDm via Mento and USDm->KESm via
+// Uniswap V3; the Mento-only gateway routes both hops through Mento.
+export function routeLabelFromNote(note) {
+  const n = String(note || "").toLowerCase();
+  if (n.includes("v3") || n.includes("univ3") || n.includes("uniswap")) return "Mento + Uniswap V3";
+  return "Mento";
+}
+
 export function mapAttemptToMovement(log, timestamp) {
   const a = log.args;
   const kind = Number(a.kind ?? 0);
@@ -134,7 +143,7 @@ export function mapAttemptToMovement(log, timestamp) {
     from: a.senderWallet,
     to: tailAddress(a.recipientWallet),
     toAddress: a.recipientWallet,
-    routeEstimate: `${usdcIn} ${APP_CONFIG.assets.source} -> ${amountKes} ${APP_CONFIG.assets.destination} via ChocoGateway`,
+    routeEstimate: `${usdcIn} ${APP_CONFIG.assets.source} -> ${amountKes} ${APP_CONFIG.assets.destination} via ${routeLabelFromNote(a.note)}`,
     sortKey: timestamp || 0,
   };
 }
