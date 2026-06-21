@@ -23,7 +23,6 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
         <span className="guard-icon"><ShieldCheck size={24} /></span>
         <div>
           <span>Wallet access</span>
-          <div className="wallet-network-label">{wallet.network.label}</div>
           <h2>
             {needsMobileWallet
               ? "Connect from a mobile wallet"

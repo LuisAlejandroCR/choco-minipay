@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-// ─── Interfaces ────────────────────────────────────────────────────────────────
-
 interface IERC20 {
     function transferFrom(address from, address to, uint256 amount) external returns (bool);
     function transfer(address to, uint256 amount) external returns (bool);
@@ -11,430 +9,271 @@ interface IERC20 {
 }
 
 interface IMentoBroker {
-    function getAmountOut(
-        address exchangeProvider,
-        bytes32 exchangeId,
-        address tokenIn,
-        address tokenOut,
-        uint256 amountIn
-    ) external view returns (uint256);
+    function getAmountOut(address provider, bytes32 id, address tokenIn, address tokenOut, uint256 amountIn)
+        external view returns (uint256);
+    function swapIn(address provider, bytes32 id, address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin)
+        external returns (uint256);
+}
 
-    function swapIn(
-        address exchangeProvider,
-        bytes32 exchangeId,
-        address tokenIn,
-        address tokenOut,
-        uint256 amountIn,
-        uint256 amountOutMin
-    ) external returns (uint256);
+interface IUniswapV3Pool {
+    function slot0() external view returns (
+        uint160 sqrtPriceX96, int24 tick, uint16 obsIndex, uint16 obsCard, uint16 obsCardNext, uint8 feeProtocol, bool unlocked
+    );
+}
+
+// SwapRouter02 (Celo) — V2 structs, NO deadline field.
+interface ISwapRouter02 {
+    struct ExactInputSingleParams {
+        address tokenIn; address tokenOut; uint24 fee; address recipient;
+        uint256 amountIn; uint256 amountOutMinimum; uint160 sqrtPriceLimitX96;
+    }
+    function exactInputSingle(ExactInputSingleParams calldata p) external returns (uint256 amountOut);
+
+    struct ExactOutputSingleParams {
+        address tokenIn; address tokenOut; uint24 fee; address recipient;
+        uint256 amountOut; uint256 amountInMaximum; uint160 sqrtPriceLimitX96;
+    }
+    function exactOutputSingle(ExactOutputSingleParams calldata p) external returns (uint256 amountIn);
 }
 
 interface IChocoLedger {
+    struct Schedule {
+        address owner; address recipient; address settlementSpender; address sourceAsset;
+        uint256 sourceAmount; uint256 destinationAmount; uint8 dayOfMonth; uint8 maxRetries;
+        uint64 firstRunAt; bool active; bool cancelled; bytes32 commandHash; bytes32 receiptLabelHash;
+    }
+    function getSchedule(uint256 id) external view returns (Schedule memory);
     function logAttemptFor(
-        address payer,
-        uint8   kind,
-        address recipientWallet,
-        uint256 usdcAmount,
-        uint256 ckesAmount,
-        string  calldata note
+        address payer, uint8 kind, address recipientWallet, uint256 usdcAmount, uint256 ckesAmount, string calldata note
     ) external returns (uint256);
 }
 
 /// @title ChocoGateway
-/// @notice Single entry-point for all Choco remittances.
-///         - Deducts a protocol fee (default 0.03 %) and forwards it to feeRecipient.
-///         - Executes the two-hop USDC → USDm → cKES swap through the Mento Broker.
-///         - Delivers cKES directly to the recipient.
-///         - Stores an on-chain record of every transaction (queryable by payer).
-///         - Auto-logs each swap to ChocoLedger so the unified history shows both
-///           send-now and scheduled payments from one contract address.
-///         The contract holds no funds between calls.
+/// @notice The single Choco settlement gateway: USDC -> USDm (Mento) -> KESm (Uniswap V3), true
+///         exact-output delivery, protocol fee, ChocoLedger logging — plus held funds for scheduled
+///         plans. Reserves ("holds") one run's USDC per plan so a scheduled transfer can't fail on
+///         insufficient funds, and settles it by reading the canonical recipient/amount straight
+///         from the ChocoLedger schedule, so the keeper can only trigger a run, never redirect it.
 contract ChocoGateway {
+    // --- Route (immutable) ---------------------------------------------------
+    IMentoBroker  public immutable broker;
+    address       public immutable exchangeProvider;
+    bytes32       public immutable usdcToUsdmId;     // Mento USDC<->USDm exchange
+    ISwapRouter02 public immutable router;
+    IUniswapV3Pool public immutable pool;            // USDm/KESm pool (for quoteExactOut slot0)
+    uint24        public immutable poolFee;
+    IERC20        public immutable usdc;             // 6 dec
+    IERC20        public immutable usdm;             // 18 dec
+    IERC20        public immutable ckes;             // 18 dec
+    IChocoLedger  public immutable ledger;
 
-    // ─── Types ─────────────────────────────────────────────────────────────
-
-    struct TxRecord {
-        address payer;
-        address recipient;
-        uint256 usdcIn;      // 6 decimals — full amount the payer approved
-        uint256 feeUsdc;     // 6 decimals — protocol fee deducted before swap
-        uint256 ckesOut;     // 18 decimals — cKES delivered to recipient
-        uint64  timestamp;
-    }
-
-    // ─── Immutables ────────────────────────────────────────────────────────
-
-    IMentoBroker public immutable broker;
-    address      public immutable exchangeProvider;
-    bytes32      public immutable usdcToUsdmId;
-    bytes32      public immutable usdmToCkesId;
-    IERC20       public immutable usdc;
-    IERC20       public immutable usdm;
-    IERC20       public immutable ckes;
-    IChocoLedger public immutable ledger; // address(0) = logging disabled
-
-    // ─── Mutable state ─────────────────────────────────────────────────────
-
+    // --- Admin (mutable) -----------------------------------------------------
     address public admin;
-    address public scheduleKeeper;
+    address public keeper;
     address public feeRecipient;
-    uint16  public feeBps;           // basis points; 3 = 0.03 %, max 100 = 1 %
+    uint16  public feeBps;                            // max 1000 (10%)
 
-    uint256 public txCount;
-    mapping(uint256 => TxRecord)    public txs;
-    mapping(address => uint256[])   public txsByPayer;
+    // --- Held funds: owner => scheduleId => USDC reserved for the next run ----
+    mapping(address => mapping(uint256 => uint256)) public lockedOf;
 
-    // ─── Events ────────────────────────────────────────────────────────────
-
-    /// @dev Kept identical to ChocoCkesSwap so existing celo.js history readers work unchanged.
-    event UsdcToCkesSwap(
-        address indexed payer,
-        uint256 usdcIn,
-        uint256 usdmMid,
-        uint256 ckesOut,
-        uint256 ckesMinOut
-    );
-
-    /// @dev Rich event for Celoscan visibility and fee analytics.
-    event SwapRecorded(
-        uint256 indexed txId,
-        address indexed payer,
-        address indexed recipient,
-        uint256 usdcIn,
-        uint256 feeUsdc,
-        uint256 ckesOut
-    );
-
+    event UsdcToCkesSwap(address indexed payer, address indexed recipient, uint256 usdcIn, uint256 usdmSpent, uint256 ckesOut, uint256 feeUsdc);
+    event RunLocked(address indexed owner, uint256 indexed scheduleId, uint256 usdcAmount, address indexed fundedBy);
+    event RunSettled(address indexed owner, uint256 indexed scheduleId, address recipient, uint256 usdcIn, uint256 ckesOut);
+    event RunRefunded(address indexed owner, uint256 indexed scheduleId, uint256 usdcAmount);
     event FeeUpdated(address indexed feeRecipient, uint16 feeBps);
-    event ScheduleKeeperUpdated(address indexed scheduleKeeper);
-    event ScheduledSwapRecorded(
-        uint256 indexed scheduleId,
-        address indexed payer,
-        address indexed recipient,
-        uint256 usdcIn,
-        uint256 ckesOut
-    );
-    event LedgerLogFailed(
-        address indexed ledger,
-        address indexed payer,
-        address indexed recipient,
-        uint256 usdcIn,
-        uint256 ckesOut,
-        string note,
-        bytes reason
-    );
-
-    // ─── Errors ────────────────────────────────────────────────────────────
+    event KeeperUpdated(address indexed keeper);
 
     error ZeroAmount();
-    error SwapShort(uint256 received, uint256 minOut);
+    error AlreadyLocked();
+    error NothingLocked();
+    error NotUsdcPlan();
 
-    // ─── Modifiers ─────────────────────────────────────────────────────────
-
+    uint256 private _entered;
+    modifier nonReentrant() { require(_entered == 0, "reentrant"); _entered = 1; _; _entered = 0; }
     modifier onlyAdmin() { require(msg.sender == admin, "not admin"); _; }
-    modifier onlyScheduleKeeper() { require(msg.sender == scheduleKeeper || msg.sender == admin, "not schedule keeper"); _; }
-
-    // ─── Constructor ───────────────────────────────────────────────────────
+    modifier onlyKeeper() { require(msg.sender == keeper || msg.sender == admin, "not keeper"); _; }
 
     constructor(
-        address brokerAddress,
-        address exchangeProviderAddress,
-        bytes32 usdcToUsdmExchangeId,
-        bytes32 usdmToCkesExchangeId,
-        address usdcAddress,
-        address usdmAddress,
-        address ckesAddress,
-        address ledgerAddress,
-        address feeRecipientAddress,
-        uint16  initialFeeBps          // 3 = 0.03 %
+        address brokerAddress, address exchangeProviderAddress, bytes32 usdcToUsdmExchangeId,
+        address routerAddress, address poolAddress, uint24 poolFeeValue,
+        address usdcAddress, address usdmAddress, address ckesAddress,
+        address ledgerAddress, address feeRecipientAddress, uint16 initialFeeBps
     ) {
-        require(initialFeeBps <= 100,  "fee cap 1%");
-        require(feeRecipientAddress != address(0), "bad fee recipient");
-
-        admin            = msg.sender;
-        scheduleKeeper   = msg.sender;
-        feeRecipient     = feeRecipientAddress;
-        feeBps           = initialFeeBps;
-        broker           = IMentoBroker(brokerAddress);
-        exchangeProvider = exchangeProviderAddress;
-        usdcToUsdmId     = usdcToUsdmExchangeId;
-        usdmToCkesId     = usdmToCkesExchangeId;
-        usdc             = IERC20(usdcAddress);
-        usdm             = IERC20(usdmAddress);
-        ckes             = IERC20(ckesAddress);
-        ledger           = IChocoLedger(ledgerAddress);
-        emit ScheduleKeeperUpdated(msg.sender);
+        require(initialFeeBps <= 1000, "fee > 10%");
+        broker = IMentoBroker(brokerAddress); exchangeProvider = exchangeProviderAddress; usdcToUsdmId = usdcToUsdmExchangeId;
+        router = ISwapRouter02(routerAddress); pool = IUniswapV3Pool(poolAddress); poolFee = poolFeeValue;
+        usdc = IERC20(usdcAddress); usdm = IERC20(usdmAddress); ckes = IERC20(ckesAddress);
+        ledger = IChocoLedger(ledgerAddress);
+        admin = msg.sender; keeper = msg.sender; feeRecipient = feeRecipientAddress; feeBps = initialFeeBps;
+        emit KeeperUpdated(msg.sender);
     }
 
-    // ─── Admin ─────────────────────────────────────────────────────────────
-
-    function setFee(address newFeeRecipient, uint16 newFeeBps) external onlyAdmin {
-        require(newFeeBps <= 100, "fee cap 1%");
-        require(newFeeRecipient != address(0), "bad fee recipient");
-        feeRecipient = newFeeRecipient;
-        feeBps       = newFeeBps;
-        emit FeeUpdated(newFeeRecipient, newFeeBps);
+    // --- Admin ---------------------------------------------------------------
+    function setFee(address newRecipient, uint16 newFeeBps) external onlyAdmin {
+        require(newFeeBps <= 1000, "fee > 10%");
+        feeRecipient = newRecipient; feeBps = newFeeBps; emit FeeUpdated(newRecipient, newFeeBps);
     }
-
+    function setKeeper(address newKeeper) external onlyAdmin {
+        require(newKeeper != address(0), "bad keeper"); keeper = newKeeper; emit KeeperUpdated(newKeeper);
+    }
     function transferAdmin(address newAdmin) external onlyAdmin {
-        require(newAdmin != address(0), "bad admin");
-        admin = newAdmin;
+        require(newAdmin != address(0), "bad admin"); admin = newAdmin;
     }
 
-    function setScheduleKeeper(address newScheduleKeeper) external onlyAdmin {
-        require(newScheduleKeeper != address(0), "bad keeper");
-        scheduleKeeper = newScheduleKeeper;
-        emit ScheduleKeeperUpdated(newScheduleKeeper);
-    }
-
-    // ─── Quote ─────────────────────────────────────────────────────────────
-
-    /// @notice cKES output estimate for a given USDC input, after deducting the protocol fee.
-    ///         This is what the recipient actually receives.
+    // --- Quotes (slot0 estimate for the frontend) ----------------------------
     function quote(uint256 usdcAmountIn) external view returns (uint256 ckesAmountOut) {
         if (usdcAmountIn == 0) return 0;
-        uint256 swapUsdc = usdcAmountIn - (usdcAmountIn * feeBps) / 10000;
-        uint256 usdmOut  = broker.getAmountOut(exchangeProvider, usdcToUsdmId, address(usdc), address(usdm), swapUsdc);
-        return   broker.getAmountOut(exchangeProvider, usdmToCkesId, address(usdm), address(ckes), usdmOut);
+        uint256 feeUsdc = feeBps > 0 ? (usdcAmountIn * feeBps) / 10_000 : 0;
+        return _quoteForward(usdcAmountIn - feeUsdc);
     }
 
-    /// @notice Breakdown: cKES out, fee in USDC, and the net USDC that enters the swap.
-    function quoteWithFee(uint256 usdcAmountIn) external view returns (
-        uint256 ckesAmountOut,
-        uint256 feeUsdc,
-        uint256 swapUsdc
-    ) {
-        if (usdcAmountIn == 0) return (0, 0, 0);
-        feeUsdc  = (usdcAmountIn * feeBps) / 10000;
-        swapUsdc = usdcAmountIn - feeUsdc;
-        uint256 usdmOut = broker.getAmountOut(exchangeProvider, usdcToUsdmId, address(usdc), address(usdm), swapUsdc);
-        ckesAmountOut   = broker.getAmountOut(exchangeProvider, usdmToCkesId, address(usdm), address(ckes), usdmOut);
-    }
-
-    /// @notice USDC the caller must approve to guarantee recipient receives exactly ckesExactOut.
-    ///         Uses a 1-USDC reference swap to derive the current rate, then adds a 1% buffer so
-    ///         the actual swap never falls short due to minor price movement between quote and send.
     function quoteExactOut(uint256 ckesExactOut) external view returns (uint256 usdcAmountIn) {
         if (ckesExactOut == 0) return 0;
-        uint256 refUsdc = 1_000_000; // 1 USDC (6 decimals)
-        uint256 feeRef  = (refUsdc * feeBps) / 10000;
-        uint256 swapRef = refUsdc - feeRef;
-        uint256 usdmRef = broker.getAmountOut(exchangeProvider, usdcToUsdmId, address(usdc), address(usdm), swapRef);
-        uint256 ckesRef = broker.getAmountOut(exchangeProvider, usdmToCkesId, address(usdm), address(ckes), usdmRef);
-        if (ckesRef == 0) return 0;
-        // ckesExactOut (18 dec) * refUsdc (6 dec) / ckesRef (18 dec) → result in 6 dec; +1% buffer
-        usdcAmountIn = (ckesExactOut * refUsdc * 101) / (ckesRef * 100);
-        if (usdcAmountIn == 0) usdcAmountIn = 1;
+        uint256 sampleUsdc = 1_000_000;
+        uint256 sampleCkes = _quoteForward(sampleUsdc);
+        if (sampleCkes == 0) return type(uint256).max;
+        uint256 netUsdc = ((ckesExactOut * sampleUsdc * 101) / (sampleCkes * 100)) + 1;
+        usdcAmountIn = feeBps == 0 ? netUsdc : ((netUsdc * 10_000) / (10_000 - feeBps)) + 1;
     }
 
-    // ─── Core: swap, collect fee, deliver, store, log ──────────────────────
+    // --- Send now ------------------------------------------------------------
 
-    /// @notice Pull usdcAmountIn from msg.sender, deduct the protocol fee, swap the rest to cKES,
-    ///         deliver cKES to recipient, store the record, and log to ChocoLedger — all in one tx.
-    function swapAndSend(
-        address recipient,
-        uint256 usdcAmountIn,
-        uint256 ckesMinOut
-    ) external returns (uint256 ckesAmountOut) {
+    /// @notice Fixed-input send: recipient receives all KESm produced from `usdcAmountIn`.
+    function swapAndSend(address recipient, uint256 usdcAmountIn, uint256 ckesMinOut)
+        external nonReentrant returns (uint256 ckesAmountOut)
+    {
         if (usdcAmountIn == 0) revert ZeroAmount();
         require(recipient != address(0), "bad recipient");
-
-        // 1. Pull full USDC from payer
         require(usdc.transferFrom(msg.sender, address(this), usdcAmountIn), "usdc pull");
 
-        // 2. Protocol fee → feeRecipient
-        uint256 feeUsdc  = (usdcAmountIn * feeBps) / 10000;
-        uint256 swapUsdc = usdcAmountIn - feeUsdc;
-        if (feeUsdc > 0) require(usdc.transfer(feeRecipient, feeUsdc), "fee send");
-
-        // 3. Hop 1: USDC → USDm
+        (uint256 fee, uint256 swapUsdc) = _collectFee(usdcAmountIn);
         require(usdc.approve(address(broker), swapUsdc), "usdc approve");
-        uint256 usdmQuote    = broker.getAmountOut(exchangeProvider, usdcToUsdmId, address(usdc), address(usdm), swapUsdc);
-        uint256 usdmReceived = broker.swapIn(
-            exchangeProvider, usdcToUsdmId,
-            address(usdc), address(usdm),
-            swapUsdc, (usdmQuote * 985) / 1000
-        );
+        uint256 usdmQ = broker.getAmountOut(exchangeProvider, usdcToUsdmId, address(usdc), address(usdm), swapUsdc);
+        uint256 usdmReceived = broker.swapIn(exchangeProvider, usdcToUsdmId, address(usdc), address(usdm), swapUsdc, (usdmQ * 985) / 1000);
 
-        // 4. Hop 2: USDm → cKES
-        require(usdm.approve(address(broker), usdmReceived), "usdm approve");
-        uint256 ckesQuote = broker.getAmountOut(exchangeProvider, usdmToCkesId, address(usdm), address(ckes), usdmReceived);
-        ckesAmountOut = broker.swapIn(
-            exchangeProvider, usdmToCkesId,
-            address(usdm), address(ckes),
-            usdmReceived, (ckesQuote * 985) / 1000
-        );
-
-        if (ckesAmountOut < ckesMinOut) revert SwapShort(ckesAmountOut, ckesMinOut);
-
-        // 5. Deliver cKES to recipient
-        require(ckes.transfer(recipient, ckesAmountOut), "ckes deliver");
-
-        // 6. Emit backwards-compatible event (keeps celo.js history reader working)
-        emit UsdcToCkesSwap(msg.sender, usdcAmountIn, usdmReceived, ckesAmountOut, ckesMinOut);
-
-        // 7. Store on-chain record
-        uint256 txId = ++txCount;
-        txs[txId] = TxRecord({
-            payer:     msg.sender,
-            recipient: recipient,
-            usdcIn:    usdcAmountIn,
-            feeUsdc:   feeUsdc,
-            ckesOut:   ckesAmountOut,
-            timestamp: uint64(block.timestamp)
-        });
-        txsByPayer[msg.sender].push(txId);
-        emit SwapRecorded(txId, msg.sender, recipient, usdcAmountIn, feeUsdc, ckesAmountOut);
-
-        // 8. Log to ChocoLedger — never blocks the send on failure
-        if (address(ledger) != address(0)) {
-            try ledger.logAttemptFor(msg.sender, 0, recipient, usdcAmountIn, ckesAmountOut, "send-now") {}
-            catch (bytes memory reason) {
-                emit LedgerLogFailed(address(ledger), msg.sender, recipient, usdcAmountIn, ckesAmountOut, "send-now", reason);
-            }
-        }
+        require(usdm.approve(address(router), usdmReceived), "usdm approve");
+        ckesAmountOut = router.exactInputSingle(ISwapRouter02.ExactInputSingleParams({
+            tokenIn: address(usdm), tokenOut: address(ckes), fee: poolFee, recipient: recipient,
+            amountIn: usdmReceived, amountOutMinimum: ckesMinOut, sqrtPriceLimitX96: 0
+        }));
+        emit UsdcToCkesSwap(msg.sender, recipient, usdcAmountIn, usdmReceived, ckesAmountOut, fee);
+        _log(msg.sender, recipient, usdcAmountIn, ckesAmountOut, "send-now-v2");
     }
 
-    /// @notice Exact-output swap: recipient receives precisely ckesExactOut cKES; any surplus
-    ///         from the 1% buffer is returned to msg.sender as cKES.
-    ///         Caller must approve usdcAmountIn (from quoteExactOut) to this contract first.
-    function swapAndSendExact(
-        address recipient,
-        uint256 usdcAmountIn,
-        uint256 ckesExactOut
-    ) external returns (uint256 ckesAmountOut) {
+    /// @notice Exact-output send: recipient receives EXACTLY `ckesExactOut`; surplus returned to sender.
+    function swapAndSendExact(address recipient, uint256 usdcAmountIn, uint256 ckesExactOut)
+        external nonReentrant returns (uint256 ckesAmountOut)
+    {
         if (usdcAmountIn == 0 || ckesExactOut == 0) revert ZeroAmount();
         require(recipient != address(0), "bad recipient");
-
-        // 1. Pull full USDC from payer
         require(usdc.transferFrom(msg.sender, address(this), usdcAmountIn), "usdc pull");
 
-        // 2. Protocol fee → feeRecipient
-        uint256 feeUsdc  = (usdcAmountIn * feeBps) / 10000;
-        uint256 swapUsdc = usdcAmountIn - feeUsdc;
-        if (feeUsdc > 0) require(usdc.transfer(feeRecipient, feeUsdc), "fee send");
-
-        // 3. Hop 1: USDC → USDm
-        require(usdc.approve(address(broker), swapUsdc), "usdc approve");
-        uint256 usdmQuote    = broker.getAmountOut(exchangeProvider, usdcToUsdmId, address(usdc), address(usdm), swapUsdc);
-        uint256 usdmReceived = broker.swapIn(
-            exchangeProvider, usdcToUsdmId,
-            address(usdc), address(usdm),
-            swapUsdc, (usdmQuote * 985) / 1000
-        );
-
-        // 4. Hop 2: USDm → cKES; ckesExactOut is the floor so tx reverts if market moved too far
-        require(usdm.approve(address(broker), usdmReceived), "usdm approve");
-        ckesAmountOut = broker.swapIn(
-            exchangeProvider, usdmToCkesId,
-            address(usdm), address(ckes),
-            usdmReceived, ckesExactOut
-        );
-        require(ckesAmountOut >= ckesExactOut, "swap below exact");
-
-        // 5. Deliver exactly ckesExactOut to recipient
-        require(ckes.transfer(recipient, ckesExactOut), "ckes deliver");
-
-        // 6. Return buffer surplus to sender
-        uint256 surplus = ckesAmountOut - ckesExactOut;
-        if (surplus > 0) require(ckes.transfer(msg.sender, surplus), "ckes surplus");
-
-        // 7. Backwards-compatible event (ckesOut = what recipient received)
-        emit UsdcToCkesSwap(msg.sender, usdcAmountIn, usdmReceived, ckesExactOut, ckesExactOut);
-
-        // 8. Store on-chain record
-        uint256 txId = ++txCount;
-        txs[txId] = TxRecord({
-            payer:     msg.sender,
-            recipient: recipient,
-            usdcIn:    usdcAmountIn,
-            feeUsdc:   feeUsdc,
-            ckesOut:   ckesExactOut,
-            timestamp: uint64(block.timestamp)
-        });
-        txsByPayer[msg.sender].push(txId);
-        emit SwapRecorded(txId, msg.sender, recipient, usdcAmountIn, feeUsdc, ckesExactOut);
-
-        // 9. Log to ChocoLedger
-        if (address(ledger) != address(0)) {
-            try ledger.logAttemptFor(msg.sender, 0, recipient, usdcAmountIn, ckesExactOut, "send-now-exact") {}
-            catch (bytes memory reason) {
-                emit LedgerLogFailed(address(ledger), msg.sender, recipient, usdcAmountIn, ckesExactOut, "send-now-exact", reason);
-            }
-        }
+        (uint256 fee, uint256 netUsdc, uint256 usdmSpent) = _swapExactOut(usdcAmountIn, recipient, ckesExactOut, msg.sender);
+        ckesAmountOut = ckesExactOut;
+        emit UsdcToCkesSwap(msg.sender, recipient, netUsdc, usdmSpent, ckesAmountOut, fee);
+        _log(msg.sender, recipient, netUsdc, ckesAmountOut, "send-now-exact-v2");
     }
 
-    // ─── Views ─────────────────────────────────────────────────────────────
+    // --- Held funds (one run at a time) --------------------------------------
 
-    /// @notice Keeper path for wallet-authorized scheduled plans.
-    ///         Pulls USDC from the schedule owner, swaps through Mento, and sends exact cKES
-    ///         to the recipient. The off-chain keeper records the SettlementReceipt after this
-    ///         transaction confirms so ChocoLedger remains the source of truth for history.
-    function executeScheduledExact(
-        uint256 scheduleId,
-        address payer,
-        address recipient,
-        uint256 usdcAmountIn,
-        uint256 ckesExactOut
-    ) external onlyScheduleKeeper returns (uint256 ckesAmountOut) {
-        if (usdcAmountIn == 0 || ckesExactOut == 0) revert ZeroAmount();
-        require(payer != address(0), "bad payer");
+    /// @notice Owner reserves the next run's USDC for their plan; it leaves the wallet so it can't be spent.
+    function fundRun(uint256 scheduleId, uint256 usdcAmount) external nonReentrant {
+        if (usdcAmount == 0) revert ZeroAmount();
+        if (lockedOf[msg.sender][scheduleId] != 0) revert AlreadyLocked();
+        require(usdc.transferFrom(msg.sender, address(this), usdcAmount), "usdc pull");
+        lockedOf[msg.sender][scheduleId] = usdcAmount;
+        emit RunLocked(msg.sender, scheduleId, usdcAmount, msg.sender);
+    }
+
+    /// @notice Keeper reserves the next run from the owner's standing allowance (auto-lock after a run).
+    function lockFor(address owner, uint256 scheduleId, uint256 usdcAmount) external onlyKeeper nonReentrant {
+        if (usdcAmount == 0) revert ZeroAmount();
+        if (lockedOf[owner][scheduleId] != 0) revert AlreadyLocked();
+        require(usdc.transferFrom(owner, address(this), usdcAmount), "usdc pull");
+        lockedOf[owner][scheduleId] = usdcAmount;
+        emit RunLocked(owner, scheduleId, usdcAmount, msg.sender);
+    }
+
+    /// @notice Owner reclaims a reserved run (cancel/pause). Always available — funds are never trapped.
+    function refundRun(uint256 scheduleId) external nonReentrant {
+        uint256 amount = lockedOf[msg.sender][scheduleId];
+        if (amount == 0) revert NothingLocked();
+        lockedOf[msg.sender][scheduleId] = 0;
+        require(usdc.transfer(msg.sender, amount), "usdc refund");
+        emit RunRefunded(msg.sender, scheduleId, amount);
+    }
+
+    // --- Scheduled settlement (ledger-verified — keeper cannot redirect) ------
+
+    /// @notice Keeper settles a held run. Recipient + KESm amount come from the ChocoLedger schedule,
+    ///         not from the caller, so a compromised keeper can only trigger the owner's own plan.
+    function settleScheduledRun(uint256 scheduleId) external onlyKeeper nonReentrant returns (uint256 ckesAmountOut) {
+        IChocoLedger.Schedule memory s = ledger.getSchedule(scheduleId);
+        require(s.active && !s.cancelled, "inactive");
+        if (s.sourceAsset != address(usdc)) revert NotUsdcPlan();
+
+        uint256 held = lockedOf[s.owner][scheduleId];
+        if (held == 0) revert NothingLocked();
+        lockedOf[s.owner][scheduleId] = 0; // effects before interactions; held USDC already in this contract
+
+        (uint256 fee, uint256 netUsdc, ) = _swapExactOut(held, s.recipient, s.destinationAmount, s.owner);
+        ckesAmountOut = s.destinationAmount;
+        emit UsdcToCkesSwap(s.owner, s.recipient, netUsdc, 0, ckesAmountOut, fee);
+        emit RunSettled(s.owner, scheduleId, s.recipient, netUsdc, ckesAmountOut);
+        _log(s.owner, s.recipient, netUsdc, ckesAmountOut, "schedule-exact-v2");
+    }
+
+    // --- Internal ------------------------------------------------------------
+
+    /// @dev Two-hop exact-output: USDC -> USDm (Mento) -> exactly `ckesExactOut` KESm (UniV3) to
+    ///      `recipient`. Surplus is returned to `refundTo` as USDm directly — a single transfer that
+    ///      can't fail, so the recipient delivery is never blocked by a Mento refund hiccup. Assumes
+    ///      `usdcAmountIn` is already held by this contract.
+    function _swapExactOut(uint256 usdcAmountIn, address recipient, uint256 ckesExactOut, address refundTo)
+        internal returns (uint256 fee, uint256 netUsdc, uint256 usdmSpent)
+    {
         require(recipient != address(0), "bad recipient");
-
-        require(usdc.transferFrom(payer, address(this), usdcAmountIn), "usdc pull");
-
-        uint256 feeUsdc  = (usdcAmountIn * feeBps) / 10000;
-        uint256 swapUsdc = usdcAmountIn - feeUsdc;
-        if (feeUsdc > 0) require(usdc.transfer(feeRecipient, feeUsdc), "fee send");
+        uint256 swapUsdc;
+        (fee, swapUsdc) = _collectFee(usdcAmountIn);
 
         require(usdc.approve(address(broker), swapUsdc), "usdc approve");
-        uint256 usdmQuote    = broker.getAmountOut(exchangeProvider, usdcToUsdmId, address(usdc), address(usdm), swapUsdc);
-        uint256 usdmReceived = broker.swapIn(
-            exchangeProvider, usdcToUsdmId,
-            address(usdc), address(usdm),
-            swapUsdc, (usdmQuote * 985) / 1000
-        );
+        uint256 usdmQ = broker.getAmountOut(exchangeProvider, usdcToUsdmId, address(usdc), address(usdm), swapUsdc);
+        uint256 usdmReceived = broker.swapIn(exchangeProvider, usdcToUsdmId, address(usdc), address(usdm), swapUsdc, (usdmQ * 985) / 1000);
 
-        require(usdm.approve(address(broker), usdmReceived), "usdm approve");
-        ckesAmountOut = broker.swapIn(
-            exchangeProvider, usdmToCkesId,
-            address(usdm), address(ckes),
-            usdmReceived, ckesExactOut
-        );
-        require(ckesAmountOut >= ckesExactOut, "swap below exact");
+        require(usdm.approve(address(router), usdmReceived), "usdm approve");
+        usdmSpent = router.exactOutputSingle(ISwapRouter02.ExactOutputSingleParams({
+            tokenIn: address(usdm), tokenOut: address(ckes), fee: poolFee, recipient: recipient,
+            amountOut: ckesExactOut, amountInMaximum: usdmReceived, sqrtPriceLimitX96: 0
+        }));
+        require(usdm.approve(address(router), 0), "usdm reset");
 
-        require(ckes.transfer(recipient, ckesExactOut), "ckes deliver");
-        uint256 surplus = ckesAmountOut - ckesExactOut;
-        if (surplus > 0) require(ckes.transfer(payer, surplus), "ckes surplus");
+        uint256 usdmLeft = usdmReceived - usdmSpent;
+        if (usdmLeft > 0) require(usdm.transfer(refundTo, usdmLeft), "usdm refund");
 
-        emit UsdcToCkesSwap(payer, usdcAmountIn, usdmReceived, ckesExactOut, ckesExactOut);
-
-        uint256 txId = ++txCount;
-        txs[txId] = TxRecord({
-            payer:     payer,
-            recipient: recipient,
-            usdcIn:    usdcAmountIn,
-            feeUsdc:   feeUsdc,
-            ckesOut:   ckesExactOut,
-            timestamp: uint64(block.timestamp)
-        });
-        txsByPayer[payer].push(txId);
-        emit SwapRecorded(txId, payer, recipient, usdcAmountIn, feeUsdc, ckesExactOut);
-        emit ScheduledSwapRecorded(scheduleId, payer, recipient, usdcAmountIn, ckesExactOut);
+        // USDm ~ USDC 1:1; report the net USDC-equivalent cost (gross minus the refunded USDm).
+        uint256 refundUsdcEq = usdmLeft / 1e12;
+        netUsdc = usdcAmountIn > refundUsdcEq ? usdcAmountIn - refundUsdcEq : usdcAmountIn;
     }
 
-    function getTx(uint256 txId) external view returns (TxRecord memory) {
-        require(txId > 0 && txId <= txCount, "no tx");
-        return txs[txId];
+    function _collectFee(uint256 usdcAmountIn) internal returns (uint256 fee, uint256 swapUsdc) {
+        fee = feeBps > 0 && feeRecipient != address(0) ? (usdcAmountIn * feeBps) / 10_000 : 0;
+        swapUsdc = usdcAmountIn - fee;
+        if (fee > 0) require(usdc.transfer(feeRecipient, fee), "fee transfer");
     }
 
-    function getTxsByPayer(address payer) external view returns (uint256[] memory) {
-        return txsByPayer[payer];
+    function _quoteForward(uint256 swapUsdc) internal view returns (uint256) {
+        if (swapUsdc == 0) return 0;
+        uint256 usdmOut = broker.getAmountOut(exchangeProvider, usdcToUsdmId, address(usdc), address(usdm), swapUsdc);
+        if (usdmOut == 0) return 0;
+        (uint160 sqrtPriceX96,,,,,,) = pool.slot0();
+        uint256 scaledInvSqrt = (2**96 * 1_000_000_000) / uint256(sqrtPriceX96);
+        uint256 ckesPerUsdm18 = scaledInvSqrt * scaledInvSqrt;
+        return (usdmOut * ckesPerUsdm18) / 1_000_000_000_000_000_000;
     }
 
-    function totalFeeEarned() external view returns (uint256 total) {
-        for (uint256 i = 1; i <= txCount; i++) {
-            total += txs[i].feeUsdc;
+    function _log(address payer, address recipient, uint256 usdcIn, uint256 ckesOut, string memory note) internal {
+        if (address(ledger) != address(0)) {
+            try ledger.logAttemptFor(payer, 0, recipient, usdcIn, ckesOut, note) {} catch {}
         }
     }
 }
