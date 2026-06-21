@@ -108,13 +108,10 @@ export function mapSettlementToMovement(log, schedule, timestamp) {
   };
 }
 
-// Label the route by the protocols actually used, derived from the ledger note. The UniV3 swap
-// contracts (notes …-v3 / -exact-v3 / -exact-v4) bridge USDC->USDm via Mento and USDm->KESm via
-// Uniswap V3; the Mento-only gateway routes both hops through Mento.
-export function routeLabelFromNote(note) {
-  const n = String(note || "").toLowerCase();
-  if (n.includes("v3") || n.includes("univ3") || n.includes("uniswap")) return "Mento + Uniswap V3";
-  return "Mento";
+// Show the corridor (e.g. "US to Kenya") rather than the underlying DEX path — the protocol names
+// are noise for end users; the corridor is the meaningful detail.
+export function routeCorridorLabel() {
+  return APP_CONFIG.transfer.corridor;
 }
 
 export function mapAttemptToMovement(log, timestamp) {
@@ -143,7 +140,7 @@ export function mapAttemptToMovement(log, timestamp) {
     from: a.senderWallet,
     to: tailAddress(a.recipientWallet),
     toAddress: a.recipientWallet,
-    routeEstimate: `${usdcIn} ${APP_CONFIG.assets.source} -> ${amountKes} ${APP_CONFIG.assets.destination} via ${routeLabelFromNote(a.note)}`,
+    routeEstimate: `${usdcIn} ${APP_CONFIG.assets.source} -> ${amountKes} ${APP_CONFIG.assets.destination} · ${routeCorridorLabel()}`,
     sortKey: timestamp || 0,
   };
 }

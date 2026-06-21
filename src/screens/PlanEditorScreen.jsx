@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, CalendarDays, CircleDollarSign, Mic, Trash2 } from "lucide-react";
+import { ArrowRight, CalendarDays, CircleDollarSign, Mic, Trash2, X } from "lucide-react";
 import { ChocoMark } from "../components/ChocoMark.jsx";
 import { useVoiceRecorder } from "../modules/voice/useVoiceRecorder.js";
 import { deliveryModes, formatDemoTime } from "../utils/planUtils.js";
+import { planCreationReminder } from "../lib/scheduleNotices.js";
+
+const FUNDING_REMINDER = planCreationReminder();
 
 export function PlanEditorScreen({
   mode,
@@ -47,6 +50,22 @@ export function PlanEditorScreen({
   const timingMode = agentIntent?.deliveryMode || agentDetection.timing?.deliveryMode || deliveryMode;
   const timingDay = agentIntent?.dayOfMonth || agentDetection.timing?.dayOfMonth || 1;
   const readySummary = `${recipientLabel || "Recipient"} - ${Number(amountValue || 0).toLocaleString("en-US")} ${currencyCode || "asset"} - ${timingMode === "now" ? "now" : `every ${timingDay}`}`;
+
+  // Auto-advance to review when Agent Choco has everything and is confident (>80%), so the user
+  // doesn't have to tap again. Debounced, fires once per instruction, and never while recording.
+  const onBuildRef = useRef(onBuild);
+  onBuildRef.current = onBuild;
+  const autoAdvancedRef = useRef("");
+  useEffect(() => {
+    const trimmed = command.trim();
+    if (!isAgentReady || confidence <= 80 || !trimmed || isRecording) return undefined;
+    if (autoAdvancedRef.current === trimmed) return undefined;
+    const timer = setTimeout(() => {
+      autoAdvancedRef.current = trimmed;
+      void onBuildRef.current?.();
+    }, 700);
+    return () => clearTimeout(timer);
+  }, [command, isAgentReady, confidence, isRecording]);
 
   function submitRecording() {
     stopRecording();
@@ -130,9 +149,19 @@ export function PlanEditorScreen({
               onKeyDown={(event) => {
                 if (event.key === "Enter" && hasText) void onBuild();
               }}
-              placeholder="Tell Agent Choco who, how much, and when"
+              placeholder={'e.g. "Send 5 to mom now"'}
               aria-label="Transfer instruction"
             />
+            {hasText && (
+              <button
+                className="composer-clear"
+                type="button"
+                aria-label="Clear instruction"
+                onClick={() => setCommand("")}
+              >
+                <X size={16} strokeWidth={2.8} />
+              </button>
+            )}
             <button
               className={`composer-action ${hasText ? "send" : "mic"}`}
               type="button"
@@ -159,6 +188,13 @@ export function PlanEditorScreen({
         </p>
         <small>Confidence {confidence}%</small>
       </section>
+
+      {deliveryMode === "schedule" && (
+        <section className="schedule-reminder" role="note" aria-label="How scheduled plans stay funded">
+          <strong>{FUNDING_REMINDER.title}</strong>
+          <span>{FUNDING_REMINDER.body}</span>
+        </section>
+      )}
 
       {statusMessage && (
         <div className="voice-error-banner" role="alert">

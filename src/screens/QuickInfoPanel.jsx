@@ -89,6 +89,8 @@ export function QuickInfoPanel({ type, onClose, reportHash = "" }) {
           <button type="button" aria-label="Close" onClick={onClose}><X size={18} strokeWidth={3} /></button>
         </div>
         <p>{panel.copy}</p>
+        {/* On the report panel the copy action is the first, primary instruction. */}
+        {type === "report" && <ReportIssueAction reportHash={reportHash} />}
         {panel.items.length > 0 && (
           <div className="quick-info-list">
             {panel.items.map((item) => (
@@ -99,8 +101,7 @@ export function QuickInfoPanel({ type, onClose, reportHash = "" }) {
             ))}
           </div>
         )}
-        {type === "report" && <ReportIssueAction reportHash={reportHash} />}
-        {(type === "support" || type === "report") && <SupportAboutContent />}
+        {type === "support" && <SupportAboutContent />}
       </section>
     </div>
   );

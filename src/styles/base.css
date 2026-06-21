@@ -164,6 +164,78 @@ a {
   background: var(--latte-500);
 }
 
+/* Top-left back control: arrow only, in the choco palette (no blue, no text label). */
+.header-back {
+  justify-self: start;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: none;
+  background: transparent;
+  color: var(--cream);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.quick-info-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin: 2px 0 14px;
+  padding: 11px 14px;
+  border: 1px solid rgba(246, 232, 212, 0.18);
+  border-radius: 14px;
+  background: rgba(246, 232, 212, 0.08);
+  color: var(--cream);
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Inputs at >=16px so mobile browsers never zoom on focus (no-zoom across the app). */
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+.composer-clear {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 50%;
+  background: rgba(246, 232, 212, 0.1);
+  color: var(--latte-300);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.schedule-reminder {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid rgba(246, 232, 212, 0.14);
+  border-radius: 14px;
+  background: rgba(246, 232, 212, 0.05);
+}
+
+.schedule-reminder strong {
+  color: var(--cream);
+  font-size: 13px;
+}
+
+.schedule-reminder span {
+  color: var(--latte-300);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .app-panel {
   flex: 1;
   min-height: 0;

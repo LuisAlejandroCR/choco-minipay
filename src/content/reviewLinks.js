@@ -20,12 +20,8 @@ export const infoPanels = {
   report: {
     eyebrow: "Report an issue",
     title: "Something wrong with this transfer?",
-    copy: "Tap “Verify on-chain” on the receipt to open the transaction, copy its hash, and send it to us through any support link below. Every transfer is on-chain, so we can trace exactly what happened.",
-    items: [
-      "Open the receipt's “Verify on-chain” link",
-      "Copy the transaction hash",
-      "Share it with support below — we'll trace it",
-    ],
+    copy: "Copy the transaction details and send them to support — we'll trace it on-chain.",
+    items: [],
     icon: "support",
   },
 };

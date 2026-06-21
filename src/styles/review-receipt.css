@@ -469,9 +469,9 @@
   position: sticky;
   top: 0;
   z-index: 5;
-  padding: 4px 0 22px;
+  padding: 2px 0 14px;
   display: grid;
-  gap: 5px;
+  gap: 4px;
   background: var(--choco-sticky-surface);
 }
 
@@ -548,17 +548,17 @@
 .rds-qr {
   display: grid;
   justify-items: center;
-  gap: 12px;
-  padding: 24px 0;
+  gap: 8px;
+  padding: 12px 0;
   border-top: 1px solid var(--line-soft);
   border-bottom: 1px solid var(--line-soft);
   background: var(--choco-surface);
 }
 
 .rds-qr-wrapper {
-  padding: 12px;
+  padding: 9px;
   background: var(--paper);
-  border-radius: 20px;
+  border-radius: 16px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
 }
 
@@ -587,11 +587,11 @@
 
 .rds-fields {
   display: grid;
-  margin: 4px 0 16px;
+  margin: 2px 0 10px;
 }
 
 .rds-field {
-  padding: 13px 0;
+  padding: 9px 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
