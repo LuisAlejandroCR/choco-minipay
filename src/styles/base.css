@@ -195,11 +195,13 @@ a {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Inputs at >=16px so mobile browsers never zoom on focus (no-zoom across the app). */
+/* Inputs at >=16px so mobile browsers never zoom on focus (no-zoom across the app). !important
+   so it wins over component rules like `.composer input` (14px) that would otherwise re-trigger
+   the iOS focus-zoom in MiniPay's WebView. */
 input,
 select,
 textarea {
-  font-size: 16px;
+  font-size: 16px !important;
 }
 
 .composer-clear {
