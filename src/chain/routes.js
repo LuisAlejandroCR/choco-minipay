@@ -3,15 +3,18 @@ import { CKES_SWAP_ABI } from "./abis.js";
 import { ADDRESSES, makePublicClient } from "./client.js";
 import { applyExactOutputBuffer } from "./tokens.js";
 
+const routeEnv = import.meta.env || {};
+const uniV3BackupDisabled = String(routeEnv.VITE_DISABLE_UNIV3_BACKUP || "").toLowerCase() === "true";
+
 export const ROUTE_IDS = {
   CHOCO_GATEWAY_MENTO: "choco-gateway-mento-usdc-usdm-kesm",
   CHOCO_UNIV3:         "choco-univ3-usdc-usdm-kesm",
 };
 
 // Routes are tried in order. The first route whose quote call succeeds is selected.
-// No human intervention needed — if the Mento KESm oracle goes down, the app
-// automatically falls to the Uniswap V3 backup. When Mento recovers, it's used again.
-// Both contracts must be deployed once; after that switching is fully automatic.
+// The backup route is automatic for users when configured. Keep the UI simple:
+// Choco tries the primary route first, then falls back internally. Use
+// VITE_DISABLE_UNIV3_BACKUP=true only as an operational kill switch.
 export const TRANSFER_ROUTES = [
   {
     id:              ROUTE_IDS.CHOCO_GATEWAY_MENTO,
@@ -23,7 +26,7 @@ export const TRANSFER_ROUTES = [
   {
     id:              ROUTE_IDS.CHOCO_UNIV3,
     label:           "Uniswap V3 USDC -> USDm -> KESm",
-    executable:      isAddress(ADDRESSES.ckesSwapUniV3 || ""),
+    executable:      !uniV3BackupDisabled && isAddress(ADDRESSES.ckesSwapUniV3 || ""),
     contractAddress: ADDRESSES.ckesSwapUniV3,
     description:     "Backup route: USDC->USDm via Mento, USDm->KESm via Uniswap V3 (no KESm oracle needed).",
   },

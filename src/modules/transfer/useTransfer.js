@@ -16,14 +16,11 @@ function humaniseTransferError(error) {
   if (/insufficient.*funds|insufficient.*balance/i.test(msg)) {
     return "Insufficient balance for this transfer or network fee.";
   }
-  if (/no valid median/i.test(msg)) {
+  if (/no valid median|gateway|route|quote|swap|mento|reverted|execution reverted|could not execute/i.test(msg)) {
     return "This transfer is temporarily unavailable. Try again later.";
   }
-  if (/allowance|approval|approve/i.test(msg)) {
+  if (/allowance.*lower|approval.*lower|approval|approve/i.test(msg)) {
     return "Approval failed. Confirm the wallet approval and try again.";
-  }
-  if (/gateway|route|quote|swap|mento|reverted|execution reverted/i.test(msg)) {
-    return "This transfer is temporarily unavailable. Try again later.";
   }
   if (/network|fetch|timeout/i.test(msg)) {
     return "Network error. Check your connection and try again.";
