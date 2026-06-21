@@ -190,10 +190,23 @@ export default function App() {
       ? similarTransfer
       : similarPlan;
   const activeTransaction = useMemo(
-    () =>
-      transactions.find((item) => item.id === selectedTransactionId) ||
-      (selectedTransactionFallback?.id === selectedTransactionId ? selectedTransactionFallback : null) ||
-      (transfer.lastReceipt?.id === selectedTransactionId ? transfer.lastReceipt : null),
+    () => {
+      const selected =
+        transactions.find((item) => item.id === selectedTransactionId) ||
+        (selectedTransactionFallback?.id === selectedTransactionId ? selectedTransactionFallback : null) ||
+        (transfer.lastReceipt?.id === selectedTransactionId ? transfer.lastReceipt : null);
+      // The locally-built receipt (id `tx-<timestamp>`) never matches a chain-indexed row, so once
+      // the on-chain movement for this hash is loaded, prefer it: it is authoritative and fully
+      // populated (recipient, exact amount, route), fixing the blank/partial receipt seen right
+      // after sending. Falls back to the local receipt until the ledger refresh catches up.
+      if (selected?.hash) {
+        const chainRow = transactions.find(
+          (item) => item !== selected && item.hash && item.hash.toLowerCase() === selected.hash.toLowerCase(),
+        );
+        if (chainRow) return chainRow;
+      }
+      return selected;
+    },
     [selectedTransactionFallback, transfer.lastReceipt, selectedTransactionId, transactions],
   );
   const actionReady = Boolean(
