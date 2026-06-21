@@ -38,6 +38,7 @@ import { ReceiptDetailScreen } from "./screens/ReceiptDetailScreen.jsx";
 import { PlanDetailScreen } from "./screens/PlanDetailScreen.jsx";
 import { PlanEditorScreen } from "./screens/PlanEditorScreen.jsx";
 import { DeletePlanScreen } from "./screens/DeletePlanScreen.jsx";
+import { isEscrowConfigured, readLockedRun, refundScheduleRun } from "./chain/escrow.js";
 import { ProcessingScreen } from "./screens/ProcessingScreen.jsx";
 import { DuplicateGuardScreen } from "./screens/DuplicateGuardScreen.jsx";
 import { ReviewScreen } from "./screens/ReviewScreen.jsx";
@@ -340,6 +341,18 @@ export default function App() {
     const planToDelete = activePlan;
     try {
       appStatus.setStatus("pending");
+      // Reclaim any escrow-locked next run first so the user gets their reserved USDC back.
+      if (isEscrowConfigured() && wallet.address) {
+        try {
+          const locked = await readLockedRun({ owner: wallet.address, scheduleId: planToDelete.onchainId });
+          if (locked > 0n) {
+            appStatus.setMessage("Returning your locked funds...");
+            await refundScheduleRun({ account: wallet.address, scheduleId: planToDelete.onchainId });
+          }
+        } catch (refundError) {
+          console.warn("Escrow refund skipped:", refundError?.message || refundError);
+        }
+      }
       appStatus.setMessage("Cancelling schedule on-chain...");
       await cancelScheduleViaRegistry({ account: wallet.address, id: planToDelete.onchainId });
       appStatus.setStatus("idle");
@@ -399,11 +412,11 @@ export default function App() {
               global nav + shortcuts, so the user can't accidentally leave mid-flow. */}
           {visibleScreen === "planEditor" ? (
             <button className="header-back" type="button" aria-label="Back to Home" onClick={() => setScreen("plan")}>
-              <ArrowLeft size={20} strokeWidth={2.4} /> <span>Home</span>
+              <ArrowLeft size={22} strokeWidth={2.6} />
             </button>
           ) : visibleScreen === "receiptDetail" ? (
             <button className="header-back" type="button" aria-label="Back to Movements" onClick={() => goTo("history")}>
-              <ArrowLeft size={20} strokeWidth={2.4} /> <span>Movements</span>
+              <ArrowLeft size={22} strokeWidth={2.6} />
             </button>
           ) : (
             <div aria-hidden="true" />
