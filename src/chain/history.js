@@ -395,10 +395,13 @@ async function readSendNowHistoryFromReceipts(publicClient, owner, fromBlock) {
       continue;
     }
 
-    // Fallback for routes that don't log to the ledger: find the cKES delivery to the recipient.
-    // Don't require from==swapAddress — only that it lands on someone other than payer/contract.
+    // Fallback for routes that don't log to the ledger (e.g. the legacy ChocoGateway). The
+    // cKES delivery is either (a) sent from the swap contract itself — this also catches
+    // self-sends where the recipient is the payer, which the legacy gateway was used for — or
+    // (b) sent from elsewhere (the UniV3 pool) to a recipient other than the payer/contract.
     const transferLog = decodeReceiptEvents(receipt, ADDRESSES.kesm, TRANSFER_EVENT_ABI, "Transfer")
-      .find((log) => !sameAddress(log.args.to, owner) && !sameAddress(log.args.to, swapAddress));
+      .find((log) => sameAddress(log.args.from, swapAddress)
+        || (!sameAddress(log.args.to, owner) && !sameAddress(log.args.to, swapAddress)));
     if (!transferLog) continue;
 
     movements.push({ transferLog, swapLog });
@@ -632,7 +635,10 @@ export async function readOwnerLedger(owner) {
   // Peak: ~6 concurrent forno requests — well within forno's limit.
   const [sendNowFallback, sendNowReceiptFallback, scheduleData, ledgerAttempts] = await Promise.all([
     withTimeout(readSendNowHistory(publicClient, owner, sendNowFromBlock), []).catch(() => []),
-    readSendNowHistoryFromReceipts(publicClient, owner, sendNowFromBlock).catch(() => []),
+    // The explorer/receipts path is bounded by the wallet's tx count (one txlist call), not by
+    // block range, so it can afford to scan from the full ledger-era block. This is what surfaces
+    // legacy swap contracts (e.g. the old ChocoGateway) whose txs predate the current swap deploy.
+    readSendNowHistoryFromReceipts(publicClient, owner, fromBlock).catch(() => []),
     hasLedger
       ? readScheduleDataWithFallback(publicClient, owner, fromBlock, ledgerOrRegistry).catch(() => null)
       : Promise.resolve(null),

@@ -61,6 +61,17 @@ interface ISwapRouter02 {
         uint160 sqrtPriceLimitX96;
     }
     function exactInputSingle(ExactInputSingleParams calldata params) external returns (uint256 amountOut);
+
+    struct ExactOutputSingleParams {
+        address tokenIn;
+        address tokenOut;
+        uint24  fee;
+        address recipient;
+        uint256 amountOut;
+        uint256 amountInMaximum;
+        uint160 sqrtPriceLimitX96;
+    }
+    function exactOutputSingle(ExactOutputSingleParams calldata params) external returns (uint256 amountIn);
 }
 
 /// @title ChocoUniV3CkesSwap
@@ -100,7 +111,6 @@ contract ChocoUniV3CkesSwap {
         uint256 feePaid
     );
 
-    error SwapShort(uint256 received, uint256 minOut);
     error ZeroAmount();
 
     constructor(
@@ -184,25 +194,65 @@ contract ChocoUniV3CkesSwap {
         _log(msg.sender, recipient, usdcAmountIn, ckesAmountOut, "send-now-v3");
     }
 
-    /// @notice Exact-output swap: recipient receives all KESm produced; `ckesExactOut` is the
-    ///         slippage floor - reverts if output is below it. The caller provides an estimated
-    ///         USDC input from quoteExactOut(); any surplus cKES produced goes to the recipient.
+    /// @notice True exact-output swap: the recipient receives EXACTLY `ckesExactOut` KESm and the
+    ///         sender is refunded the unused USDC. The caller provides an over-estimated USDC input
+    ///         from quoteExactOut() (which carries a safety buffer); hop 2 uses Uniswap V3
+    ///         exactOutputSingle so only the USDm needed for `ckesExactOut` is consumed, and the
+    ///         leftover USDm is swapped back to USDC and returned to the sender. Reverts if the
+    ///         provided input is too small to cover the exact output (buffer too tight).
     function swapAndSendExact(
         address recipient,
         uint256 usdcAmountIn,
         uint256 ckesExactOut
     ) external returns (uint256 ckesAmountOut) {
-        if (usdcAmountIn == 0) revert ZeroAmount();
+        if (usdcAmountIn == 0 || ckesExactOut == 0) revert ZeroAmount();
         require(recipient != address(0), "bad recipient");
         require(usdc.transferFrom(msg.sender, address(this), usdcAmountIn), "usdc pull");
 
         (uint256 fee, uint256 swapUsdc) = _collectFee(usdcAmountIn);
-        (uint256 usdmReceived, uint256 ckesOut) = _swap(swapUsdc, recipient, ckesExactOut);
-        ckesAmountOut = ckesOut;
-        if (ckesAmountOut < ckesExactOut) revert SwapShort(ckesAmountOut, ckesExactOut);
 
-        emit UsdcToCkesSwap(msg.sender, recipient, usdcAmountIn, usdmReceived, ckesAmountOut, ckesExactOut, fee);
-        _log(msg.sender, recipient, usdcAmountIn, ckesAmountOut, "send-now-exact-v3");
+        // Hop 1: USDC -> USDm via Mento (exact-in). Intentionally over-provides; surplus refunded.
+        require(usdc.approve(address(broker), swapUsdc), "usdc approve");
+        uint256 usdmQuote = broker.getAmountOut(exchangeProvider, usdcToUsdmId, address(usdc), address(usdm), swapUsdc);
+        uint256 usdmReceived = broker.swapIn(
+            exchangeProvider, usdcToUsdmId, address(usdc), address(usdm), swapUsdc, (usdmQuote * 985) / 1000
+        );
+
+        // Hop 2: USDm -> KESm via Uniswap V3 EXACT-OUTPUT. Delivers exactly ckesExactOut to recipient,
+        // consuming only the USDm required (reverts "STF"/amountInMaximum if usdmReceived is short).
+        require(usdm.approve(address(router), usdmReceived), "usdm approve");
+        uint256 usdmSpent = router.exactOutputSingle(
+            ISwapRouter02.ExactOutputSingleParams({
+                tokenIn:           address(usdm),
+                tokenOut:          address(ckes),
+                fee:               poolFee,
+                recipient:         recipient,
+                amountOut:         ckesExactOut,
+                amountInMaximum:   usdmReceived,
+                sqrtPriceLimitX96: 0
+            })
+        );
+        require(usdm.approve(address(router), 0), "usdm reset"); // clear residual router allowance
+        ckesAmountOut = ckesExactOut;
+
+        // Refund the unused USDm back to USDC and return it to the sender, so the sender pays only
+        // what the exact delivery cost (plus fee). Reuses the live Mento USDC/USDm exchange.
+        uint256 refundUsdc = 0;
+        uint256 usdmLeft = usdmReceived - usdmSpent;
+        if (usdmLeft > 0) {
+            require(usdm.approve(address(broker), usdmLeft), "usdm approve refund");
+            uint256 usdcBackQuote = broker.getAmountOut(exchangeProvider, usdcToUsdmId, address(usdm), address(usdc), usdmLeft);
+            if (usdcBackQuote > 0) {
+                refundUsdc = broker.swapIn(
+                    exchangeProvider, usdcToUsdmId, address(usdm), address(usdc), usdmLeft, (usdcBackQuote * 985) / 1000
+                );
+                require(usdc.transfer(msg.sender, refundUsdc), "usdc refund");
+            }
+        }
+
+        uint256 netUsdc = usdcAmountIn - refundUsdc;
+        emit UsdcToCkesSwap(msg.sender, recipient, netUsdc, usdmSpent, ckesAmountOut, ckesExactOut, fee);
+        _log(msg.sender, recipient, netUsdc, ckesAmountOut, "send-now-exact-v4");
     }
 
     // --- Internal helpers -----------------------------------------------------
