@@ -12,16 +12,22 @@ export function ReceiptDetailScreen({ transaction }) {
   const verifyUrl = getTransactionExplorerUrl(transaction.hash);
   const timingLabel = getTimingLabel(transaction);
   const hasApproveHash = transaction.approveHash && isTransactionHash(transaction.approveHash);
+  const statusLabel = transaction.status && transaction.status !== "Pending" ? transaction.status : "";
+  const recipientName = transaction.recipient && transaction.recipient !== "Recipient"
+    ? transaction.recipient
+    : transaction.to || "Recipient";
+  const amountLabel = transaction.amount || (transaction.amountMinor ? Number(transaction.amountMinor).toLocaleString("en-US") : "");
+  const assetLabel = transaction.asset || "KESm";
   const recipientDetail = transaction.toAddress
-    ? `${transaction.recipient} ${shortAddress(transaction.toAddress)}`
-    : transaction.to && transaction.to !== transaction.recipient
+    ? `${recipientName} ${shortAddress(transaction.toAddress)}`
+    : transaction.to && transaction.to !== recipientName
       ? transaction.to
-      : transaction.recipient;
+      : recipientName;
 
   const shareText = [
-    `Choco receipt: ${transaction.amount} ${transaction.asset} to ${transaction.recipient}`,
+    `Choco receipt: ${amountLabel || "Pending"} ${assetLabel} to ${recipientName}`,
     `Timing: ${timingLabel}`,
-    `Status: ${transaction.status}`,
+    `Status: ${statusLabel || "Pending"}`,
     `Recipient: ${recipientDetail}`,
     `Hash: ${formatTransactionHash(transaction.hash)}`,
     hasHash ? `Verify: ${verifyUrl}` : "Verify: pending wallet signature",
@@ -47,11 +53,11 @@ export function ReceiptDetailScreen({ transaction }) {
         <div className="rds-hero">
           <div className="rds-hero-top">
             <span className="rds-hero-kicker">Choco receipt</span>
-            <span className="sheet-chip">{transaction.status}</span>
+            {statusLabel && <span className="sheet-chip">{statusLabel}</span>}
           </div>
-          <div className="rds-hero-recipient">{transaction.recipient || "Recipient"}</div>
+          <div className="rds-hero-recipient">{recipientName}</div>
           <div className="rds-hero-amount">
-            {transaction.amount} <small>{transaction.asset}</small>
+            {amountLabel || "-"} <small>{assetLabel}</small>
           </div>
           {transaction.date && <div className="rds-hero-date">{transaction.date}</div>}
         </div>
@@ -135,9 +141,7 @@ export function ReceiptDetailScreen({ transaction }) {
               <X size={18} strokeWidth={2.6} />
             </button>
             <QrCanvas data={verifyUrl} size={220} />
-            <a className="rds-qr-link" href={verifyUrl} target="_blank" rel="noreferrer">
-              Open on explorer <ExternalLink size={13} />
-            </a>
+            <p className="qr-preview-copy">Scan this QR to verify the transaction on-chain.</p>
           </div>
         </div>
       )}

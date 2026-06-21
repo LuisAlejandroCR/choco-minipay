@@ -211,7 +211,6 @@ export function ReviewScreen({
       <div className="rds-hero">
         <div className="rds-hero-top">
           <span className="rds-hero-kicker">{isSendNow ? "Send now" : "Schedule"}</span>
-          <span className="sheet-chip">{APP_CONFIG.network.badge}</span>
         </div>
         <div className="rds-hero-recipient">{receiptLabel}</div>
         <div className="rds-hero-amount">

@@ -96,6 +96,39 @@ function humanisePlanError(error) {
   return "Something went wrong. Please try again.";
 }
 
+function isUsefulTransactionValue(value) {
+  if (value === 0) return true;
+  return value !== undefined && value !== null && value !== "" && value !== "Recipient" && value !== "Unknown" && value !== "Pending";
+}
+
+function preferTransactionValue(chainValue, localValue) {
+  return isUsefulTransactionValue(chainValue) ? chainValue : localValue;
+}
+
+function mergeTransactionDetails(localTransaction, chainTransaction) {
+  if (!chainTransaction) return localTransaction;
+  if (!localTransaction) return chainTransaction;
+  return {
+    ...localTransaction,
+    ...chainTransaction,
+    id: localTransaction.id || chainTransaction.id,
+    recipient: preferTransactionValue(chainTransaction.recipient, localTransaction.recipient),
+    amount: preferTransactionValue(chainTransaction.amount, localTransaction.amount),
+    asset: preferTransactionValue(chainTransaction.asset, localTransaction.asset),
+    payAsset: preferTransactionValue(chainTransaction.payAsset, localTransaction.payAsset),
+    payAmount: preferTransactionValue(chainTransaction.payAmount, localTransaction.payAmount),
+    schedule: preferTransactionValue(chainTransaction.schedule, localTransaction.schedule),
+    date: preferTransactionValue(chainTransaction.date, localTransaction.date),
+    status: preferTransactionValue(chainTransaction.status, localTransaction.status),
+    type: preferTransactionValue(chainTransaction.type, localTransaction.type),
+    routeEstimate: preferTransactionValue(chainTransaction.routeEstimate, localTransaction.routeEstimate),
+    from: preferTransactionValue(chainTransaction.from, localTransaction.from),
+    to: preferTransactionValue(chainTransaction.to, localTransaction.to),
+    toAddress: preferTransactionValue(chainTransaction.toAddress, localTransaction.toAddress),
+    approveHash: preferTransactionValue(chainTransaction.approveHash, localTransaction.approveHash),
+    hash: preferTransactionValue(chainTransaction.hash, localTransaction.hash),
+  };
+}
 export default function App() {
   // --- Core app state ---
   const [screen, setScreen] = useState(INITIAL_SCREEN);
@@ -213,7 +246,7 @@ export default function App() {
         const chainRow = transactions.find(
           (item) => item !== selected && item.hash && item.hash.toLowerCase() === selected.hash.toLowerCase(),
         );
-        if (chainRow) return chainRow;
+        if (chainRow) return mergeTransactionDetails(selected, chainRow);
       }
       return selected;
     },
@@ -262,7 +295,7 @@ export default function App() {
       const address = await wallet.verifyWallet();
       await refreshBalances(address);
       appStatus.setStatus("review");
-      appStatus.setMessage("Wallet connected on Celo Mainnet. Choose now or schedule.");
+      appStatus.setMessage("Wallet connected. Choose now or schedule.");
       return address;
     } catch (error) {
       appStatus.setStatus("error");
@@ -277,6 +310,13 @@ export default function App() {
     await transfer.buildPlan(commandForBuild, activePlan || defaultPlan, deliveryMode);
   }
 
+  function handleEditInstruction() {
+    setCommand("");
+    setResolvedPreviewPlan(null);
+    appStatus.setStatus("idle");
+    appStatus.setMessage("");
+    goTo("planEditor");
+  }
   async function handleConfirmAction() {
     await transfer.confirmAction(reviewPlan, contacts.recipientAddress, reviewMode);
   }
@@ -456,7 +496,7 @@ export default function App() {
               >
                 <Flag size={20} strokeWidth={2.4} />
               </button>
-            ) : ["planEditor", "planDetail", "deletePlan"].includes(visibleScreen) ? null : (
+            ) : ["planEditor", "planDetail", "deletePlan", "review"].includes(visibleScreen) ? null : (
               <>
                 <button
                   className="header-icon"
@@ -614,14 +654,14 @@ export default function App() {
               duplicateAttempt={duplicateAttempt}
               onComplete={duplicateAttempt ? () => goTo("duplicateGuard") : undefined}
               onApprove={() => goTo("review")}
-              onEdit={() => goTo("planEditor")}
+              onEdit={handleEditInstruction}
             />
           )}
           {visibleScreen === "duplicateGuard" && duplicateAttempt && (
             <DuplicateGuardScreen
               plan={reviewPlan}
               match={duplicateAttempt}
-              onEdit={() => goTo("planEditor")}
+              onEdit={handleEditInstruction}
               onProceed={continueDuplicateAttempt}
             />
           )}
@@ -641,7 +681,7 @@ export default function App() {
               walletAccount={wallet.address}
               onConnect={connectWallet}
               onConfirm={handleConfirmAction}
-              onEdit={() => setScreen("planEditor")}
+              onEdit={handleEditInstruction}
               onPickContact={contacts.pickContact}
               onResolveContact={contacts.resolveContact}
               onEditContact={contacts.editContact}

@@ -154,7 +154,7 @@ export function HistoryScreen({
         <div className="empty-plans">
           <div className="loading-sync"><ChocoMark size="small" /></div>
           <h2>Loading movements…</h2>
-          <p>Syncing with Celo Mainnet.</p>
+          <p>Syncing with your wallet.</p>
         </div>
       ) : visible.length > 0 ? (
         <div className="history-list" aria-label="Transaction history">
