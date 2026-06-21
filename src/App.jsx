@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Bell, MessageCircleQuestionMark } from "lucide-react";
+import { ArrowLeft, Bell, Flag, MessageCircleQuestionMark } from "lucide-react";
 import { useMiniPayWallet } from "./modules/wallet/useMiniPayWallet.js";
 import { useChocoLedger } from "./modules/ledger/useChocoLedger.js";
 import { useAppStatus } from "./modules/app/useAppStatus.js";
@@ -395,27 +395,54 @@ export default function App() {
       <img className="map-preload" src={WORLD_MAP_URL} alt="" aria-hidden="true" />
       <section className="miniapp" aria-label="Choco Mini App">
         <div className="topbar">
-          <div aria-hidden="true" />
+          {/* Deep screens (New Transfer, Receipt) get a single top-left back control instead of the
+              global nav + shortcuts, so the user can't accidentally leave mid-flow. */}
+          {visibleScreen === "planEditor" ? (
+            <button className="header-back" type="button" aria-label="Back to Home" onClick={() => setScreen("plan")}>
+              <ArrowLeft size={20} strokeWidth={2.4} /> <span>Home</span>
+            </button>
+          ) : visibleScreen === "receiptDetail" ? (
+            <button className="header-back" type="button" aria-label="Back to Movements" onClick={() => goTo("history")}>
+              <ArrowLeft size={20} strokeWidth={2.4} /> <span>Movements</span>
+            </button>
+          ) : (
+            <div aria-hidden="true" />
+          )}
           <div className="app-title">{screenTitle}</div>
-          <div className="topbar-actions" aria-label="Feature and support shortcuts">
-            <button
-              className="header-icon"
-              type="button"
-              aria-label="Support and about Choco"
-              title="Support and about Choco"
-              onClick={() => setActiveInfoPanel("support")}
-            >
-              <MessageCircleQuestionMark size={22} strokeWidth={2.4} />
-            </button>
-            <button
-              className="header-icon future"
-              type="button"
-              aria-label="Future development"
-              title="Future development"
-              onClick={() => setActiveInfoPanel("future")}
-            >
-              <Bell size={21} strokeWidth={2.4} />
-            </button>
+          <div className="topbar-actions" aria-label="Support shortcuts">
+            {visibleScreen === "receiptDetail" ? (
+              // On a receipt the only shortcut is "report an issue with this transaction".
+              <button
+                className="header-icon"
+                type="button"
+                aria-label="Report an issue with this transaction"
+                title="Report an issue"
+                onClick={() => setActiveInfoPanel("report")}
+              >
+                <Flag size={20} strokeWidth={2.4} />
+              </button>
+            ) : visibleScreen === "planEditor" ? null : (
+              <>
+                <button
+                  className="header-icon"
+                  type="button"
+                  aria-label="Support and about Choco"
+                  title="Support and about Choco"
+                  onClick={() => setActiveInfoPanel("support")}
+                >
+                  <MessageCircleQuestionMark size={22} strokeWidth={2.4} />
+                </button>
+                <button
+                  className="header-icon future"
+                  type="button"
+                  aria-label="Notifications and upcoming features"
+                  title="Notifications and upcoming features"
+                  onClick={() => setActiveInfoPanel("future")}
+                >
+                  <Bell size={21} strokeWidth={2.4} />
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -600,7 +627,7 @@ export default function App() {
             />
           )}
         </div>
-        {!["splash", "pitch", "review"].includes(visibleScreen) && (
+        {!["splash", "pitch", "review", "planEditor", "receiptDetail"].includes(visibleScreen) && (
           <BottomNav
             active={
               ["history", "receiptDetail"].includes(visibleScreen) ? "history"

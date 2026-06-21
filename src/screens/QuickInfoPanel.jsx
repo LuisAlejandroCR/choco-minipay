@@ -76,7 +76,7 @@ export function QuickInfoPanel({ type, onClose }) {
             ))}
           </div>
         )}
-        {type === "support" && <SupportAboutContent />}
+        {(type === "support" || type === "report") && <SupportAboutContent />}
       </section>
     </div>
   );
