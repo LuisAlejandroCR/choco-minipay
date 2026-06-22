@@ -45,10 +45,10 @@ or scheduled run is executed.
 
 | Contract | Current address | Role | Verification status |
 |---|---|---|---|
-| ChocoLedger | `0xd8F54CCbc314014443DEbAA8558B09D4ccC57A9E` | Plan registry and unified event log for send-now attempts, schedule creation, and executed plan receipts | Deployed from an uncommitted source revision — see note |
-| ChocoGateway | `0x3003f0Fb134ED3c66Ac95A6AbE59FA3E2BA792E7` | USDC→USDm via Mento, then USDm→KESm via Uniswap V3; held funds for scheduled plans (`fundRun`/`settleScheduledRun`), protocol fee, recipient delivery, and ledger logging | ✅ Verified on Blockscout |
+| ChocoLedger | `0x5A33C24eBF81fb215ee39f801D94895c8A7CE2C9` | Plan registry and unified event log for send-now attempts, schedule creation, and executed plan receipts | ✅ Verified on Blockscout (block 70235501) |
+| ChocoGateway | `0xcF4DC6118482C04ac25A95742202745aE7DB193E` | USDC→USDm via Mento, then USDm→KESm via Uniswap V3; held funds for scheduled plans (`fundRun`/`settleScheduledRun`), protocol fee, recipient delivery, and ledger logging | Verification pending — source + constructor args confirmed (block 70235509) |
 
-> `0xBB1ebeDf01C6Df335aA186748d9B08Df8fB6F8c8` and `0xF51E842b22469c43c697710e5D2C52b0B71eA00B` are **superseded** earlier gateways (dormant). The live gateway is `0x3003f0Fb…`.
+> **Superseded (dormant):** old ledger `0xd8F54CCbc314014443DEbAA8558B09D4ccC57A9E` + old gateway `0x3003f0Fb134ED3c66Ac95A6AbE59FA3E2BA792E7` — that pair had an incompatible 12-vs-13-field schedule struct that broke scheduled settlement — plus earlier gateways `0xBB1ebeDf…` / `0xF51E842b…`. The live pair is the verified ledger `0x5A33C24e…` + gateway `0xcF4DC6…`.
 
 ### Contract responsibilities
 
@@ -89,15 +89,15 @@ intent parsing, contact resolution, wallet confirmation, settlement, and on-chai
 Required production env vars:
 
 ```bash
-VITE_LEDGER_ADDRESS=0xd8F54CCbc314014443DEbAA8558B09D4ccC57A9E
-VITE_LEDGER_DEPLOY_BLOCK=69697824
+VITE_LEDGER_ADDRESS=0x5A33C24eBF81fb215ee39f801D94895c8A7CE2C9
+VITE_LEDGER_DEPLOY_BLOCK=70235501
 # All four gateway/escrow/settlement vars point at the ONE live ChocoGateway:
-VITE_CKES_SWAP_CONTRACT_ADDRESS=0x3003f0Fb134ED3c66Ac95A6AbE59FA3E2BA792E7
-VITE_CKES_SWAP_UNIV3_ADDRESS=0x3003f0Fb134ED3c66Ac95A6AbE59FA3E2BA792E7
-VITE_CKES_SWAP_DEPLOY_BLOCK=70180540
-VITE_CKES_SWAP_CONTRACT_ADDRESSES=0x3003f0Fb134ED3c66Ac95A6AbE59FA3E2BA792E7
-VITE_SCHEDULE_ESCROW_ADDRESS=0x3003f0Fb134ED3c66Ac95A6AbE59FA3E2BA792E7
-VITE_SETTLEMENT_SPENDER_ADDRESS=0x3003f0Fb134ED3c66Ac95A6AbE59FA3E2BA792E7
+VITE_CKES_SWAP_CONTRACT_ADDRESS=0xcF4DC6118482C04ac25A95742202745aE7DB193E
+VITE_CKES_SWAP_UNIV3_ADDRESS=0xcF4DC6118482C04ac25A95742202745aE7DB193E
+VITE_CKES_SWAP_DEPLOY_BLOCK=70235509
+VITE_CKES_SWAP_CONTRACT_ADDRESSES=0xcF4DC6118482C04ac25A95742202745aE7DB193E
+VITE_SCHEDULE_ESCROW_ADDRESS=0xcF4DC6118482C04ac25A95742202745aE7DB193E
+VITE_SETTLEMENT_SPENDER_ADDRESS=0xcF4DC6118482C04ac25A95742202745aE7DB193E
 VITE_FEE_CURRENCY_ADDRESS=0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B
 ```
 
