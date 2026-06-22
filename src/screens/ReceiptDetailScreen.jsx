@@ -1,4 +1,4 @@
-import { CalendarDays, Check, ExternalLink, GitBranch, Share2, User, X } from "lucide-react";
+import { CalendarDays, Check, ExternalLink, GitBranch, Share2, User } from "lucide-react";
 import { useState } from "react";
 import { QrCanvas } from "../components/QrCode.jsx";
 import { shortAddress } from "../lib/celo.js";
@@ -7,7 +7,7 @@ import { getTimingLabel } from "../utils/planUtils.js";
 
 export function ReceiptDetailScreen({ transaction }) {
   const [shareState, setShareState] = useState("");
-  const [showQrPreview, setShowQrPreview] = useState(false);
+  const [showExplorerPreview, setShowExplorerPreview] = useState(false);
   const hasHash = isTransactionHash(transaction.hash);
   const verifyUrl = getTransactionExplorerUrl(transaction.hash);
   const timingLabel = getTimingLabel(transaction);
@@ -68,8 +68,8 @@ export function ReceiptDetailScreen({ transaction }) {
               <button
                 className="rds-qr-wrapper"
                 type="button"
-                aria-label="Preview transaction QR"
-                onClick={() => setShowQrPreview(true)}
+                aria-label="Preview transaction page"
+                onClick={() => setShowExplorerPreview(true)}
               >
                 <QrCanvas data={verifyUrl} size={116} />
               </button>
@@ -134,13 +134,27 @@ export function ReceiptDetailScreen({ transaction }) {
       </div>
 
 
-      {showQrPreview && hasHash && (
-        <div className="qr-preview-backdrop" role="dialog" aria-modal="true" aria-label="Transaction QR preview" onClick={() => setShowQrPreview(false)}>
-          <div className="qr-preview-sheet" onClick={(event) => event.stopPropagation()}>
-            <button className="qr-preview-close" type="button" aria-label="Close QR preview" onClick={() => setShowQrPreview(false)}>
-              <X size={18} strokeWidth={2.6} />
-            </button>
-            <QrCanvas data={verifyUrl} size={220} />
+      {showExplorerPreview && hasHash && (
+        <div
+          className="qr-preview-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Transaction page preview"
+          onClick={() => setShowExplorerPreview(false)}
+        >
+          <div className="qr-preview-sheet explorer-preview-sheet" onClick={(event) => event.stopPropagation()}>
+            <div className="qr-preview-bar">
+              <span>celoscan.io</span>
+              <button type="button" onClick={() => setShowExplorerPreview(false)}>Hide preview</button>
+            </div>
+            <iframe
+              className="qr-preview-frame"
+              src={verifyUrl}
+              title="Celoscan transaction preview"
+              loading="lazy"
+              referrerPolicy="no-referrer"
+              sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+            />
           </div>
         </div>
       )}
