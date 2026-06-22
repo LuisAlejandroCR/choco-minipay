@@ -22,6 +22,12 @@ function routeError(error) {
   return new Error(`Choco route could not execute before wallet signing: ${reason}`);
 }
 
+function confirmTransactionInBackground(publicClient, hash) {
+  publicClient.waitForTransactionReceipt({ hash }).catch((error) => {
+    console.warn("Choco could not confirm the transaction receipt yet.", error);
+  });
+}
+
 // Send now. cKES transfers go wallet → recipient directly. USDC routes USDC → USDm → cKES through
 // the Mento Broker (each hop signed by the wallet), then the received cKES is delivered to the recipient.
 export async function sendNow({ account, recipient, intent }) {
@@ -41,7 +47,7 @@ export async function sendNow({ account, recipient, intent }) {
       args: [recipient, sourceAmountForIntent(intent)],
       feeCurrency: ADDRESSES.feeCurrency,
     });
-    await publicClient.waitForTransactionReceipt({ hash });
+    confirmTransactionInBackground(publicClient, hash);
     return { approveHash: null, hash };
   }
 
@@ -99,7 +105,7 @@ export async function sendNow({ account, recipient, intent }) {
         args: [recipient, usdcNeeded, ckesExact],
         feeCurrency: ADDRESSES.feeCurrency,
       });
-      await publicClient.waitForTransactionReceipt({ hash });
+      confirmTransactionInBackground(publicClient, hash);
       return { approveHash, swap1Hash: null, swap2Hash: null, hash, ckesReceived: ckesExact };
     }
 
@@ -114,8 +120,6 @@ export async function sendNow({ account, recipient, intent }) {
     if (usdcBalance < usdcAmount) {
       throw new Error(`Insufficient USDC balance. Choco needs ${formatUsdc(usdcAmount)} for this route, but your wallet has ${formatUsdc(usdcBalance)}.`);
     }
-
-    const ckesBefore = await readErc20Balance(publicClient, ADDRESSES.kesm, recipient);
     const approveHash = await approveTokenIfNeeded({
       account,
       tokenAddress: ADDRESSES.usdc,
@@ -146,10 +150,8 @@ export async function sendNow({ account, recipient, intent }) {
       args: [recipient, usdcAmount, ckesMinOut],
       feeCurrency: ADDRESSES.feeCurrency,
     });
-    await publicClient.waitForTransactionReceipt({ hash });
-    const ckesAfter = await readErc20Balance(publicClient, ADDRESSES.kesm, recipient);
-    const ckesReceived = ckesAfter > ckesBefore ? ckesAfter - ckesBefore : ckesMinOut;
-    return { approveHash, swap1Hash: null, swap2Hash: null, hash, ckesReceived };
+    confirmTransactionInBackground(publicClient, hash);
+    return { approveHash, swap1Hash: null, swap2Hash: null, hash, ckesReceived: selectedRouteIn.ckesAmountOut };
   }
 
   // Direct Mento path (5-step): USDC → USDm → cKES → transfer to recipient.
@@ -204,6 +206,6 @@ export async function sendNow({ account, recipient, intent }) {
     args: [recipient, ckesReceived],
     feeCurrency: ADDRESSES.feeCurrency,
   });
-  await publicClient.waitForTransactionReceipt({ hash });
+  confirmTransactionInBackground(publicClient, hash);
   return { approveHash, swap1Hash, swap2Hash, hash, ckesReceived };
 }
