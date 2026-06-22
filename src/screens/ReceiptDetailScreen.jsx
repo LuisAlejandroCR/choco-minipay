@@ -1,6 +1,5 @@
 import { CalendarDays, Check, ExternalLink, GitBranch, Share2, User } from "lucide-react";
 import { useState } from "react";
-import { QrCanvas } from "../components/QrCode.jsx";
 import { shortAddress } from "../lib/celo.js";
 import { formatTransactionHash, getTransactionExplorerUrl, isTransactionHash } from "../lib/transactions.js";
 import { getTimingLabel } from "../utils/planUtils.js";
@@ -67,23 +66,12 @@ export function ReceiptDetailScreen({ transaction }) {
 
         <div className="rds-qr">
           {hasHash ? (
-            <>
-              <a
-                className="rds-qr-wrapper"
-                href={verifyUrl}
-                target="_blank"
-                rel="noreferrer"
-                aria-label="Open this transaction on the block explorer"
-              >
-                <QrCanvas data={verifyUrl} size={116} />
-              </a>
-              <a className="rds-qr-link" href={verifyUrl} target="_blank" rel="noreferrer">
-                Verify on-chain <ExternalLink size={13} />
-              </a>
-            </>
+            <a className="rds-qr-link" href={verifyUrl} target="_blank" rel="noreferrer">
+              Verify on-chain <ExternalLink size={13} />
+            </a>
           ) : (
             <div className="rds-qr-notice">
-              Verification QR appears after the wallet signs and the transaction is mined.
+              The on-chain verification link appears after the wallet signs and the transaction is mined.
             </div>
           )}
         </div>

@@ -1239,6 +1239,7 @@
 }
 
 .plan-status-label {
+  align-self: flex-start;
   margin-top: 8px;
   padding: 5px 10px;
   border: 1px solid rgba(217, 166, 121, 0.18);
