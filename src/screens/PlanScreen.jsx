@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ArrowRight, CircleDollarSign, Eye, EyeOff, ExternalLink, ShieldCheck, X } from "lucide-react";
 import { ChocoMark } from "../components/ChocoMark.jsx";
 import { formatWalletAddress } from "../modules/wallet/useMiniPayWallet.js";
+import { scheduledLocalDateForPlan } from "../lib/schedule-time.js";
 import { getPlanExecutionState, getTimingLabel } from "../utils/planUtils.js";
 import { demoPromptContent } from "../content/demoFlow.js";
 
@@ -28,6 +29,21 @@ function DemoPrompt({ liveDemoUrl, onDismiss, onRunDemo }) {
   );
 }
 
+function getNextPlanRunMs(plan, from = new Date()) {
+  const nowMs = from.getTime();
+  const firstRunMs = plan.firstRunAt ? Number(plan.firstRunAt) * 1000 : 0;
+  if (firstRunMs && firstRunMs >= nowMs) return firstRunMs;
+
+  const scheduled = scheduledLocalDateForPlan(plan, from);
+  if (!scheduled) return Number.MAX_SAFE_INTEGER;
+
+  const next = new Date(scheduled);
+  while (next.getTime() < nowMs) {
+    next.setUTCMonth(next.getUTCMonth() + 1);
+  }
+  return next.getTime();
+}
+
 export function PlanScreen({
   plans,
   isWalletVerified,
@@ -51,9 +67,9 @@ export function PlanScreen({
   const primaryAmount = usdcBalance?.formatted ?? "0.00";
   const walletShort = formatWalletAddress(wallet.address);
   const activePlans = plans.filter((plan) => getPlanExecutionState(plan).status !== "Paused");
-  const nextPlan = activePlans[0] || null;
-  const todayPlanCount = activePlans.filter((plan) =>
-    ["Runs today", "Awaiting auto-run"].includes(getPlanExecutionState(plan).status)).length;
+  const upcomingPlans = [...activePlans].sort((a, b) => getNextPlanRunMs(a) - getNextPlanRunMs(b));
+  const homePlans = upcomingPlans.slice(0, 2);
+  const nextPlan = upcomingPlans[0] || null;
 
   const heroSub = isWalletVerified
     ? wallet.isReadOnly
@@ -138,7 +154,7 @@ export function PlanScreen({
       {isWalletVerified && plans.length > 0 && (
         <div className="section-heading">
           <span>Plans</span>
-          <small className="section-count">{todayPlanCount ? `${todayPlanCount} today` : `${activePlans.length} active`}</small>
+          <button type="button" onClick={onPlans}>See all</button>
         </div>
       )}
       </div>
@@ -146,7 +162,7 @@ export function PlanScreen({
       {/* ── ACTIVE SCHEDULES (only when wallet is connected and plans exist) */}
       {isWalletVerified && plans.length > 0 && (
         <section className="home-list" aria-label="Plans">
-          {activePlans.slice(0, 3).map((item) => {
+          {homePlans.map((item) => {
             const execution = getPlanExecutionState(item);
             return (
             <button
@@ -164,11 +180,6 @@ export function PlanScreen({
             </button>
             );
           })}
-          {(plans.length > activePlans.length || activePlans.length > 3) && (
-            <button className="see-all-plans" type="button" onClick={onPlans}>
-              See all {plans.length} plans
-            </button>
-          )}
         </section>
       )}
 
