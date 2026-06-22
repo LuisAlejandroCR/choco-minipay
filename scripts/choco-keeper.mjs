@@ -73,7 +73,7 @@ export async function runDueSchedules({
   const rpcUrl = env.RPC_URL || env.CELO_RPC_URL || env.VITE_CELO_RPC_URL || "https://forno.celo.org";
   const explorerApi = env.VITE_BLOCK_EXPLORER_API_URL || "https://celo.blockscout.com/api";
   const keeperKey = env.KEEPER_KEY || "";
-  const logChunkSize = Number(env.LOG_CHUNK_SIZE || 20000);
+  const logChunkSize = Number(env.LOG_CHUNK_SIZE || 4500); // forno caps eth_getLogs at 5000 blocks/query
 
   if (!deployBlock) throw new Error("Set VITE_LEDGER_DEPLOY_BLOCK.");
   if (shouldSend && !keeperKey) throw new Error("Set KEEPER_KEY to the current ChocoLedger keeper private key.");
