@@ -7,7 +7,6 @@ import { getTimingLabel } from "../utils/planUtils.js";
 
 export function ReceiptDetailScreen({ transaction }) {
   const [shareState, setShareState] = useState("");
-  const [showExplorerPreview, setShowExplorerPreview] = useState(false);
   const hasHash = isTransactionHash(transaction.hash);
   const verifyUrl = getTransactionExplorerUrl(transaction.hash);
   const timingLabel = getTimingLabel(transaction);
@@ -69,14 +68,15 @@ export function ReceiptDetailScreen({ transaction }) {
         <div className="rds-qr">
           {hasHash ? (
             <>
-              <button
+              <a
                 className="rds-qr-wrapper"
-                type="button"
-                aria-label="Preview transaction page"
-                onClick={() => setShowExplorerPreview(true)}
+                href={verifyUrl}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Open this transaction on the block explorer"
               >
                 <QrCanvas data={verifyUrl} size={116} />
-              </button>
+              </a>
               <a className="rds-qr-link" href={verifyUrl} target="_blank" rel="noreferrer">
                 Verify on-chain <ExternalLink size={13} />
               </a>
@@ -138,30 +138,6 @@ export function ReceiptDetailScreen({ transaction }) {
       </div>
 
 
-      {showExplorerPreview && hasHash && (
-        <div
-          className="qr-preview-backdrop"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Transaction page preview"
-          onClick={() => setShowExplorerPreview(false)}
-        >
-          <div className="qr-preview-sheet explorer-preview-sheet" onClick={(event) => event.stopPropagation()}>
-            <div className="qr-preview-bar">
-              <span>celoscan.io</span>
-              <button type="button" onClick={() => setShowExplorerPreview(false)}>Hide preview</button>
-            </div>
-            <iframe
-              className="qr-preview-frame"
-              src={verifyUrl}
-              title="Celoscan transaction preview"
-              loading="lazy"
-              referrerPolicy="no-referrer"
-              sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
-            />
-          </div>
-        </div>
-      )}
       <div className="rds-actions">
         <button className="primary-cta" type="button" onClick={shareMovement}>
           <Share2 size={18} />
