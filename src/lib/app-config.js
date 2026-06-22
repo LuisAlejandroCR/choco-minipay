@@ -96,7 +96,7 @@ export const APP_CONFIG = {
   },
   ui: {
     initialScreen: ["splash", "pitch", "plan"].includes(env.VITE_INITIAL_SCREEN) ? env.VITE_INITIAL_SCREEN : "splash",
-    liveDemoUrl: env.VITE_LIVE_DEMO_URL || "https://choco-azure.vercel.app/",
+    liveDemoUrl: env.VITE_LIVE_DEMO_URL || "/demo.html",
     showDemoPrompt: env.VITE_SHOW_DEMO_PROMPT !== "false",
     worldMapUrl: env.VITE_WORLD_MAP_URL || "https://upload.wikimedia.org/wikipedia/commons/5/51/BlankMap-Equirectangular.svg",
   },
