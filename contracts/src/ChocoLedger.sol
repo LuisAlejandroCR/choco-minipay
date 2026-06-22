@@ -53,6 +53,11 @@ contract ChocoLedger {
     uint256 public scheduleCount;
     mapping(uint256 => Schedule) public schedules;
 
+    /// @notice Per-schedule last settlement timestamp — gates recordSettlement to once per period
+    ///         (audit M2: stops a keeper replaying recordSettlement to inflate the audit trail).
+    mapping(uint256 => uint64) public lastSettlementAt;
+    uint64 public constant MIN_SETTLE_INTERVAL = 27 days;
+
     uint256 public attemptCount;   // totalTransactions: send-now + settled schedules
     mapping(uint256 => AuditEntry) public attempts;
     mapping(address => uint256[]) private attemptsBySender;
@@ -121,8 +126,16 @@ contract ChocoLedger {
     // ─── Admin ─────────────────────────────────────────────────────────────
 
     function setKeeper(address nextKeeper) external onlyAdmin {
+        require(nextKeeper != address(0), "bad keeper"); // audit M3: match ChocoGateway.setKeeper guard
         keeper = nextKeeper;
         emit KeeperUpdated(nextKeeper);
+    }
+
+    /// @notice Admin handoff (audit M3: the ledger previously had NO admin transfer at all, so a lost
+    ///         admin key would permanently freeze setKeeper / setSwapContract / schedule controls).
+    function transferAdmin(address newAdmin) external onlyAdmin {
+        require(newAdmin != address(0), "bad admin");
+        admin = newAdmin;
     }
 
     function setSwapContract(address swapContract, bool authorized) external onlyAdmin {
@@ -197,30 +210,25 @@ contract ChocoLedger {
         emit ScheduleResumed(id, msg.sender);
     }
 
-    /// @notice Record a keeper-executed settlement and auto-log it to the unified audit trail.
-    ///         This is what makes totalTransactions include scheduled payments alongside send-now.
+    /// @notice Record a keeper-executed settlement's receipt. The gateway's logAttemptFor already
+    ///         increments totalTransactions for the run, so this only emits the structured receipt.
     function recordSettlement(
         uint256 id,
         bool    success,
-        address sourceAsset,
+        address /* sourceAsset */,       // ignored: canonical asset is read from the schedule
         uint256 sourceAmount,
-        uint256 destinationAmount,
+        uint256 /* destinationAmount */, // ignored: canonical KESm amount is read from the schedule
         bytes32 settlementRef,
         string  calldata note
     ) external onlyKeeper {
-        require(schedules[id].active && !schedules[id].cancelled, "inactive");
-        emit SettlementReceipt(id, success, sourceAsset, sourceAmount, destinationAmount, settlementRef, note);
-        _logAttempt(
-            schedules[id].owner,
-            success ? AttemptKind.SUCCESS : AttemptKind.FAILED_TRANSFER,
-            schedules[id].receiptLabelHash,
-            schedules[id].recipient,
-            sourceAmount,
-            destinationAmount,
-            settlementRef,
-            settlementRef,
-            note
-        );
+        Schedule storage s = schedules[id];
+        require(s.active && !s.cancelled, "inactive");
+        // audit M2: idempotency — one receipt per period, so a replayed call can't spam the trail.
+        require(block.timestamp >= lastSettlementAt[id] + MIN_SETTLE_INTERVAL, "too soon");
+        lastSettlementAt[id] = uint64(block.timestamp);
+        // Use the schedule's CANONICAL asset/amount (a compromised keeper can no longer fabricate the
+        // delivered amount). No _logAttempt: the gateway is the single attempt-count path (no double-log).
+        emit SettlementReceipt(id, success, s.sourceAsset, sourceAmount, s.destinationAmount, settlementRef, note);
     }
 
     function getSchedule(uint256 id) external view returns (Schedule memory) {
