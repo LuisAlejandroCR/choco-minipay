@@ -45,8 +45,8 @@ or scheduled run is executed.
 
 | Contract | Current address | Role | Verification status |
 |---|---|---|---|
-| ChocoLedger | `0xd8F54CCbc314014443DEbAA8558B09D4ccC57A9E` | Plan registry and unified event log for send-now attempts, schedule creation, and executed plan receipts | Not verified yet — see Verification below |
-| ChocoGateway | `0x3003f0Fb134ED3c66Ac95A6AbE59FA3E2BA792E7` | USDC→USDm via Mento, then USDm→KESm via Uniswap V3; held funds for scheduled plans (`fundRun`/`settleScheduledRun`), protocol fee, recipient delivery, and ledger logging | Not verified yet — see Verification below |
+| ChocoLedger | `0xd8F54CCbc314014443DEbAA8558B09D4ccC57A9E` | Plan registry and unified event log for send-now attempts, schedule creation, and executed plan receipts | Deployed from an uncommitted source revision — see note |
+| ChocoGateway | `0x3003f0Fb134ED3c66Ac95A6AbE59FA3E2BA792E7` | USDC→USDm via Mento, then USDm→KESm via Uniswap V3; held funds for scheduled plans (`fundRun`/`settleScheduledRun`), protocol fee, recipient delivery, and ledger logging | ✅ Verified on Blockscout |
 
 > `0xBB1ebeDf01C6Df335aA186748d9B08Df8fB6F8c8` and `0xF51E842b22469c43c697710e5D2C52b0B71eA00B` are **superseded** earlier gateways (dormant). The live gateway is `0x3003f0Fb…`.
 
@@ -103,8 +103,11 @@ VITE_FEE_CURRENCY_ADDRESS=0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B
 
 ### Verification note
 
-The active contracts are **not yet source-verified**. Both are single self-contained `.sol` files
-compiled with **solc 0.8.26, optimizer enabled (200 runs), default evmVersion**. To verify:
+**ChocoGateway is source-verified on Blockscout.** ChocoLedger deployed from an uncommitted source
+revision, so its exact bytes are not in git and a full-match verify is not possible (it holds no
+funds — it is the event log; a partial/Sourcify match or re-verify on its next redeploy is the path).
+Both contracts are single self-contained `.sol` files compiled with **solc 0.8.26, optimizer enabled
+(200 runs), default evmVersion**. To (re)verify via Blockscout's Etherscan-compatible API or the UI:
 
 **Hardhat → Celoscan** (needs a free key in `CELOSCAN_API_KEY`), from `contracts/`:
 
