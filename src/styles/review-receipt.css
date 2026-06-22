@@ -538,11 +538,21 @@
   color: var(--latte-300);
 }
 
-.rds-hero-date {
+.rds-hero-meta {
   margin-top: 4px;
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+}
+
+.rds-hero-date {
   font-size: 13px;
   color: var(--muted);
   font-weight: 500;
+}
+
+.rds-status-chip {
+  justify-self: start;
 }
 
 .rds-qr {
@@ -1223,14 +1233,22 @@
   background: rgba(18, 9, 6, 0.42);
 }
 
+.plan-detail-hero-copy {
+  display: grid;
+  justify-items: start;
+}
+
 .plan-status-label {
-  align-self: start;
-  padding-top: 8px;
+  margin-top: 8px;
+  padding: 5px 10px;
+  border: 1px solid rgba(217, 166, 121, 0.18);
+  border-radius: 999px;
+  background: rgba(217, 166, 121, 0.08);
   color: var(--latte-300);
   font-size: 12px;
   font-weight: 900;
   letter-spacing: 0.01em;
-  text-align: right;
+  line-height: 1;
   white-space: nowrap;
 }
 

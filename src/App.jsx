@@ -45,24 +45,6 @@ import { DuplicateGuardScreen } from "./screens/DuplicateGuardScreen.jsx";
 import { ReviewScreen } from "./screens/ReviewScreen.jsx";
 import { TransactionSuccessScreen } from "./screens/TransactionSuccessScreen.jsx";
 
-// Static topbar titles by screen. planEditor is the one dynamic case (depends on review/delivery
-// mode) and is handled separately in the screenTitle memo below.
-const SCREEN_TITLES = {
-  splash: "Choco",
-  pitch: "Choco",
-  plans: "Plans",
-  planDetail: "Details",
-  history: "History",
-  receiptDetail: "Receipt",
-  deletePlan: "Delete",
-  demoTour: "Demo",
-  processing: "Planning",
-  duplicateGuard: "Choco",
-  review: "Confirm",
-  walletGate: "Wallet",
-  plan: "Home",
-};
-
 function humanisePlanError(error) {
   // Log full viem error chain for debugging — check browser console when a plan action fails.
   console.error("[Choco] plan operation error:", error);
@@ -450,12 +432,6 @@ export default function App() {
     }
   }
 
-  const screenTitle = useMemo(() => {
-    if (visibleScreen === "planEditor") {
-      return reviewMode === "update" ? "Edit plan" : deliveryMode === "now" ? "Send now" : "New schedule";
-    }
-    return SCREEN_TITLES[visibleScreen] || "Home";
-  }, [deliveryMode, reviewMode, visibleScreen]);
 
   return (
     <main className="stage">
@@ -483,7 +459,7 @@ export default function App() {
           ) : (
             <div aria-hidden="true" />
           )}
-          <div className="app-title">{screenTitle}</div>
+          <div className="app-title" aria-hidden="true" />
           <div className="topbar-actions" aria-label="Support shortcuts">
             {visibleScreen === "receiptDetail" ? (
               // On a receipt the only shortcut is "report an issue with this transaction".
