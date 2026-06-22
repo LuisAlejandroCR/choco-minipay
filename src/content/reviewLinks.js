@@ -1,13 +1,17 @@
 export const infoPanels = {
   future: {
-    eyebrow: "Notifications & roadmap",
-    title: "Alerts, more corridors & channels",
-    copy: "Plan reminders and run alerts show here in the app by default. Proactive WhatsApp/SMS messages are coming — you'll authorize your MiniPay number first so we only message you when you opt in.",
-    items: [
-      "In-app alerts: live (next-run reminders, top-up notices)",
-      "WhatsApp / SMS alerts: coming — opt in with your number",
-      "UK to NGN corridor",
-    ],
+    eyebrow: "Notifications",
+    title: "Plan alerts",
+    copy: "Plan reminders and run alerts show here in the app, by default.",
+    items: [],
+    roadmap: {
+      eyebrow: "Roadmap",
+      title: "Coming soon",
+      items: [
+        "WhatsApp / SMS alerts — opt in with your MiniPay number",
+        "More corridors (e.g. UK → NGN)",
+      ],
+    },
     icon: "future",
   },
   support: {

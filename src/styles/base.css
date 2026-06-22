@@ -269,6 +269,29 @@ textarea {
   background: rgba(245, 191, 108, 0.1);
 }
 
+/* Roadmap block — visually separated from the live notifications above it. */
+.quick-info-roadmap {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(246, 232, 212, 0.14);
+  display: grid;
+  gap: 6px;
+}
+
+.quick-info-roadmap-eyebrow {
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--latte-300);
+}
+
+.quick-info-roadmap > strong {
+  color: var(--cream);
+  font-size: 15px;
+  font-weight: 800;
+}
+
 .app-panel {
   flex: 1;
   min-height: 0;
