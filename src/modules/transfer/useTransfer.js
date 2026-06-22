@@ -35,7 +35,7 @@ export function useTransfer({
   appStatus,            // { status, setStatus, message, setMessage } from useAppStatus
   onPlanBuilt,          // (plan) => void  — calls setResolvedPreviewPlan
   onContactResolved,    // (key, contact) => void  — merges into resolvedContacts
-  onTransactionCreated, // (transactionId) => void  — sets selectedTransactionId
+  onTransactionCreated, // (transaction) => void  — selects the freshly-built receipt
   onPlanCreated,        // (plan) => void  — selects the just-created schedule detail
   onNavigate,           // (screen) => void  — calls goTo
   onRefreshLedger,      // () => Promise<void>
@@ -128,7 +128,7 @@ export function useTransfer({
       onTransactionCreated("");
       onNavigate("planDetail");
     } else {
-      onTransactionCreated(transaction.id);
+      onTransactionCreated(transaction);
       onNavigate("receiptDetail");
     }
   }
