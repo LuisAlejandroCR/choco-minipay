@@ -32,17 +32,15 @@ contract ChocoLedger {
     struct Schedule {
         address owner;
         address recipient;
-        address settlementSpender;
-        address sourceAsset;
+        address sourceAsset;        // audit L7: settlementSpender removed (dead — gateway uses escrow)
         uint256 sourceAmount;
         uint256 destinationAmount;
-        uint8   dayOfMonth;       // 1-28 valid in every month
-        uint8   maxRetries;
-        uint64  firstRunAt;
+        uint8   dayOfMonth;         // 1-28 valid in every month
+        uint64  firstRunAt;         // audit L7: maxRetries removed (never enforced)
         bool    active;
         bool    cancelled;
         bytes32 commandHash;
-        bytes32 receiptLabelHash; // stored at creation so recordSettlement can auto-log it
+        bytes32 receiptLabelHash;
     }
 
     // ─── State ─────────────────────────────────────────────────────────────
@@ -68,18 +66,18 @@ contract ChocoLedger {
     // ─── Events ────────────────────────────────────────────────────────────
 
     event KeeperUpdated(address indexed keeper);
+    event AdminTransferred(address indexed from, address indexed to);    // audit L8
+    event SwapContractUpdated(address indexed swapContract, bool authorized); // audit L8
 
     event MonthlyScheduleCreated(
         uint256 indexed id,
         address indexed owner,
         address indexed recipient,
-        address settlementSpender,
         address sourceAsset,
         uint256 sourceAmount,
         uint256 destinationAmount,
         uint8   dayOfMonth,
         uint64  firstRunAt,
-        uint8   maxRetries,
         bytes32 commandHash
     );
 
@@ -135,18 +133,19 @@ contract ChocoLedger {
     ///         admin key would permanently freeze setKeeper / setSwapContract / schedule controls).
     function transferAdmin(address newAdmin) external onlyAdmin {
         require(newAdmin != address(0), "bad admin");
+        emit AdminTransferred(admin, newAdmin); // audit L8
         admin = newAdmin;
     }
 
     function setSwapContract(address swapContract, bool authorized) external onlyAdmin {
         authorizedSwapContracts[swapContract] = authorized;
+        emit SwapContractUpdated(swapContract, authorized); // audit L8
     }
 
     // ─── Schedule management ───────────────────────────────────────────────
 
     function createMonthlySchedule(
         address recipient,
-        address settlementSpender,
         address sourceAsset,
         uint256 sourceAmount,
         uint256 destinationAmount,
@@ -156,7 +155,6 @@ contract ChocoLedger {
         bytes32 receiptLabelHash
     ) external returns (uint256 id) {
         require(recipient         != address(0), "bad recipient");
-        require(settlementSpender != address(0), "bad spender");
         require(sourceAsset       != address(0), "bad asset");
         require(sourceAmount      > 0,           "bad source amount");
         require(destinationAmount > 0,           "bad destination amount");
@@ -167,12 +165,10 @@ contract ChocoLedger {
         schedules[id] = Schedule({
             owner:             msg.sender,
             recipient:         recipient,
-            settlementSpender: settlementSpender,
             sourceAsset:       sourceAsset,
             sourceAmount:      sourceAmount,
             destinationAmount: destinationAmount,
             dayOfMonth:        dayOfMonth,
-            maxRetries:        3,
             firstRunAt:        start,
             active:            true,
             cancelled:         false,
@@ -181,8 +177,8 @@ contract ChocoLedger {
         });
 
         emit MonthlyScheduleCreated(
-            id, msg.sender, recipient, settlementSpender, sourceAsset,
-            sourceAmount, destinationAmount, dayOfMonth, start, 3, commandHash
+            id, msg.sender, recipient, sourceAsset,
+            sourceAmount, destinationAmount, dayOfMonth, start, commandHash
         );
     }
 

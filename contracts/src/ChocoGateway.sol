@@ -19,6 +19,7 @@ interface IUniswapV3Pool {
     function slot0() external view returns (
         uint160 sqrtPriceX96, int24 tick, uint16 obsIndex, uint16 obsCard, uint16 obsCardNext, uint8 feeProtocol, bool unlocked
     );
+    function token0() external view returns (address); // audit L3: needed by constructor ordering check
 }
 
 // SwapRouter02 (Celo) — V2 structs, NO deadline field.
@@ -38,8 +39,8 @@ interface ISwapRouter02 {
 
 interface IChocoLedger {
     struct Schedule {
-        address owner; address recipient; address settlementSpender; address sourceAsset;
-        uint256 sourceAmount; uint256 destinationAmount; uint8 dayOfMonth; uint8 maxRetries;
+        address owner; address recipient; address sourceAsset;
+        uint256 sourceAmount; uint256 destinationAmount; uint8 dayOfMonth;
         uint64 firstRunAt; bool active; bool cancelled; bytes32 commandHash; bytes32 receiptLabelHash;
     }
     function getSchedule(uint256 id) external view returns (Schedule memory);
@@ -87,6 +88,7 @@ contract ChocoGateway {
     event RunRefunded(address indexed owner, uint256 indexed scheduleId, uint256 usdcAmount);
     event FeeUpdated(address indexed feeRecipient, uint16 feeBps);
     event KeeperUpdated(address indexed keeper);
+    event AdminTransferred(address indexed from, address indexed to); // audit L8
 
     error ZeroAmount();
     error AlreadyLocked();
@@ -107,6 +109,13 @@ contract ChocoGateway {
         address ledgerAddress, address feeRecipientAddress, uint16 initialFeeBps
     ) {
         require(initialFeeBps <= 1000, "fee > 10%");
+        // audit L3: zero-addr guards on every route address so a misconfigured deploy fails loudly
+        require(brokerAddress != address(0) && exchangeProviderAddress != address(0), "bad broker");
+        require(routerAddress  != address(0) && poolAddress  != address(0),           "bad router");
+        require(usdcAddress    != address(0) && usdmAddress  != address(0) && ckesAddress != address(0), "bad token");
+        require(ledgerAddress  != address(0),                                          "bad ledger");
+        // audit L3: _quoteForward math assumes token0=cKES (sqrtPriceX96 = sqrt(USDm/cKES)·2^96)
+        require(IUniswapV3Pool(poolAddress).token0() == ckesAddress, "pool: token0 must be ckes");
         broker = IMentoBroker(brokerAddress); exchangeProvider = exchangeProviderAddress; usdcToUsdmId = usdcToUsdmExchangeId;
         router = ISwapRouter02(routerAddress); pool = IUniswapV3Pool(poolAddress); poolFee = poolFeeValue;
         usdc = IERC20(usdcAddress); usdm = IERC20(usdmAddress); ckes = IERC20(ckesAddress);
@@ -126,7 +135,9 @@ contract ChocoGateway {
         keeper = newKeeper; emit KeeperUpdated(newKeeper);
     }
     function transferAdmin(address newAdmin) external onlyAdmin {
-        require(newAdmin != address(0), "bad admin"); admin = newAdmin;
+        require(newAdmin != address(0), "bad admin");
+        emit AdminTransferred(admin, newAdmin); // audit L8
+        admin = newAdmin;
     }
 
     // --- Quotes (slot0 estimate for the frontend) ----------------------------
@@ -141,7 +152,7 @@ contract ChocoGateway {
         uint256 sampleUsdc = 1_000_000;
         uint256 sampleCkes = _quoteForward(sampleUsdc);
         if (sampleCkes == 0) return type(uint256).max;
-        uint256 netUsdc = ((ckesExactOut * sampleUsdc * 101) / (sampleCkes * 100)) + 1;
+        uint256 netUsdc = ((ckesExactOut * sampleUsdc * 102) / (sampleCkes * 100)) + 1; // audit I1: ≥2% buffer (Mento slippage is 1.5%)
         usdcAmountIn = feeBps == 0 ? netUsdc : ((netUsdc * 10_000) / (10_000 - feeBps)) + 1;
     }
 
@@ -160,6 +171,7 @@ contract ChocoGateway {
         require(usdc.approve(address(broker), swapUsdc), "usdc approve");
         uint256 usdmQ = broker.getAmountOut(exchangeProvider, usdcToUsdmId, address(usdc), address(usdm), swapUsdc);
         uint256 usdmReceived = broker.swapIn(exchangeProvider, usdcToUsdmId, address(usdc), address(usdm), swapUsdc, (usdmQ * 985) / 1000);
+        require(usdc.approve(address(broker), 0), "usdc reset"); // audit L1: clear leftover allowance
 
         require(usdm.approve(address(router), usdmReceived), "usdm approve");
         ckesAmountOut = router.exactInputSingle(ISwapRouter02.ExactInputSingleParams({
@@ -239,9 +251,9 @@ contract ChocoGateway {
         lockedOf[s.owner][scheduleId] = 0;          // effects before interactions; held USDC already here
         lastSettledAt[scheduleId] = uint64(block.timestamp);
 
-        (uint256 fee, uint256 netUsdc, ) = _swapExactOut(held, s.recipient, s.destinationAmount, s.owner);
+        (uint256 fee, uint256 netUsdc, uint256 usdmSpent) = _swapExactOut(held, s.recipient, s.destinationAmount, s.owner);
         ckesAmountOut = s.destinationAmount;
-        emit UsdcToCkesSwap(s.owner, s.recipient, netUsdc, 0, ckesAmountOut, fee);
+        emit UsdcToCkesSwap(s.owner, s.recipient, netUsdc, usdmSpent, ckesAmountOut, fee); // audit L4: real usdmSpent
         emit RunSettled(s.owner, scheduleId, s.recipient, netUsdc, ckesAmountOut);
         _log(s.owner, s.recipient, netUsdc, ckesAmountOut, "schedule-exact-v2");
     }
@@ -262,6 +274,7 @@ contract ChocoGateway {
         require(usdc.approve(address(broker), swapUsdc), "usdc approve");
         uint256 usdmQ = broker.getAmountOut(exchangeProvider, usdcToUsdmId, address(usdc), address(usdm), swapUsdc);
         uint256 usdmReceived = broker.swapIn(exchangeProvider, usdcToUsdmId, address(usdc), address(usdm), swapUsdc, (usdmQ * 985) / 1000);
+        require(usdc.approve(address(broker), 0), "usdc reset"); // audit L1: clear leftover allowance
 
         require(usdm.approve(address(router), usdmReceived), "usdm approve");
         usdmSpent = router.exactOutputSingle(ISwapRouter02.ExactOutputSingleParams({
