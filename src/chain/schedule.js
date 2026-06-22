@@ -39,21 +39,14 @@ export async function createScheduleViaRegistry({ account, recipient, intent }) 
   // Escrow mode (USDC-funded plans): the next run's USDC is locked in ChocoScheduleEscrow instead
   // of relying on a standing settlement-spender allowance, so the run can't fail on insufficient
   // funds. Dormant until VITE_SCHEDULE_ESCROW_ADDRESS is set — legacy behavior is unchanged.
+  // The new ChocoLedger+ChocoGateway pair has no settlement-spender concept: the gateway settles
+  // from its own locked funds (escrow model), so there is no standing approval to pre-grant.
   const escrowMode = isEscrowConfigured() && sourceAsset.toLowerCase() === String(ADDRESSES.usdc).toLowerCase();
-  const settlementSpender = escrowMode ? ADDRESSES.scheduleEscrow : ADDRESSES.settlementSpender;
-  assertAddress(settlementSpender, escrowMode ? "VITE_SCHEDULE_ESCROW_ADDRESS" : "VITE_SETTLEMENT_SPENDER_ADDRESS");
 
   const walletClient = makeWalletClient(account);
   const publicClient = makePublicClient();
 
-  // Legacy: pre-approve the settlement spender to pull at run time. Escrow mode locks the run
-  // below instead, so no run-time spender allowance is needed here.
-  const approveHash = escrowMode ? null : await approveTokenIfNeeded({
-    account,
-    tokenAddress: sourceAsset,
-    spender: settlementSpender,
-    amount,
-  });
+  const approveHash = null; // no settlement-spender in the new contract pair
 
   const receiptLabel = String(intent.receiptLabel || "").trim().toLowerCase();
   const receiptLabelHash = receiptLabel ? keccak256(toHex(receiptLabel)) : `0x${"0".repeat(64)}`;
@@ -64,7 +57,6 @@ export async function createScheduleViaRegistry({ account, recipient, intent }) 
     functionName: "createMonthlySchedule",
     args: [
       recipient,
-      settlementSpender,
       sourceAsset,
       amount,
       destinationAmountForIntent(intent),

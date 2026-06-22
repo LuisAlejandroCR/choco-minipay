@@ -66,16 +66,16 @@ Both contracts compile clean (`npm run build`).
 | M2 | Medium | Ledger: recordSettlement | double-log, replayable, keeper-fabricated amounts | **Fixed** |
 | M3 | Medium | Ledger: admin | no `transferAdmin` (freeze risk); no zero-addr guard on setKeeper | **Fixed** |
 | M4 | Medium | Gateway: swapAndSend | `ckesMinOut == 0` → ~0 KESm on sandwich/dust, silent success | **Fixed** |
-| L1 | Low | Gateway: _swapExactOut | USDC→broker allowance not reset to 0 between swaps | Backlog |
-| L2 | Low | Gateway: fee | fee mutable between lock & settle (rate staleness, liveness only) | Backlog |
-| L3 | Low | Gateway: constructor | no `require(pool.token0()==ckes)`; no zero-addr guards on route args | Backlog |
-| L4 | Low | Gateway: settle event | `usdmSpent` hard-coded `0` in the scheduled event (observability) | Backlog |
-| L5 | Low | Gateway: quoteExactOut | returns `type(uint256).max` sentinel on a dry pool (frontend safety) | Backlog |
-| L6 | Low | Both | no swap `deadline`; slot0 spot quote is view-only | Backlog |
-| L7 | Low | Ledger: fields | `settlementSpender` + `maxRetries` are dead (never enforced) | Backlog |
-| L8 | Low | Both: events | missing `AdminTransferred` / `setSwapContract` events; no two-step admin | Backlog |
-| I1 | Info | Gateway: fee | fee rounds to 0 on dust; quote buffer (1%) < gateway Mento slippage (1.5%) — raise to ≥2% | Backlog |
-| I2 | Info | Ledger: interface | gateway interface declares `uint8 kind` vs ledger `AttemptKind` (benign, forward-looking) | Backlog |
+| L1 | Low | Gateway: _swapExactOut + swapAndSend | USDC→broker allowance not reset to 0 between swaps | **Fixed** |
+| L2 | Low | Gateway: fee | fee mutable between lock & settle (rate staleness, liveness only) | Accepted |
+| L3 | Low | Gateway: constructor | no `require(pool.token0()==ckes)`; no zero-addr guards on route args | **Fixed** |
+| L4 | Low | Gateway: settle event | `usdmSpent` hard-coded `0` in the scheduled event (observability) | **Fixed** |
+| L5 | Low | Gateway: quoteExactOut | returns `type(uint256).max` sentinel on a dry pool — frontend handles this | Accepted |
+| L6 | Low | Both | no swap `deadline`; slot0 spot quote is view-only | Accepted (SwapRouter02 on Celo has no deadline field) |
+| L7 | Low | Both: fields | `settlementSpender` + `maxRetries` are dead (never enforced) | **Fixed** — removed from struct, function, event + JS ABI/args |
+| L8 | Low | Both: events | missing `AdminTransferred` / `setSwapContract` events; no two-step admin | **Fixed** (two-step admin deferred) |
+| I1 | Info | Gateway: quote | fee rounds to 0 on dust; quote buffer (1%) < Mento slippage (1.5%) | **Fixed** — raised to 2% |
+| I2 | Info | Ledger: interface | gateway interface `uint8 kind` vs ledger `AttemptKind` (benign, ABI-compat) | Accepted |
 
 ## Calibration — a multi-agent false positive (kept out of the register)
 
@@ -89,9 +89,14 @@ worthwhile *defensive* hardening (future-proofs against a USDm pause) and is tra
 This is the run's clearest lesson: agreement across agents is not proof — the gating step caught a confident
 4-lens consensus that was technically incorrect.
 
-## Backlog (next hardening pass, optional)
+## Accepted (not fixed)
 
-Reset the USDC→broker allowance to 0 after `swapIn`; `try/catch` the USDm surplus refund (pull-payment);
-constructor `require(pool.token0() == ckes)` + zero-address guards on the route args; capture real `usdmSpent`
-in the scheduled event; raise the frontend quote buffer to ≥2%; remove/honor the dead `settlementSpender` +
-`maxRetries`; emit `AdminTransferred` / swap-contract-authorization events.
+- **L2** — Fee is mutable between lock & settle (admin could raise fee after lock). A `feeAtLock` snapshot would fix it but adds storage per lock entry. Risk is low because admin == deployer, not keeper. Accepted.
+- **L5** — `quoteExactOut` returns `type(uint256).max` on a dry pool. Correct sentinel; the frontend already guards `usdcAmountIn == type(uint256).max`. Accepted.
+- **L6** — SwapRouter02 deployed on Celo has no `deadline` field (the comment at the top of the interface is accurate). Cannot be fixed without a different router. Accepted.
+- **I2** — `uint8` in the gateway interface vs `AttemptKind` in the ledger: both ABI-encode identically, and the gateway hard-codes `0` (SUCCESS). Accepted.
+
+## Remaining optional hardening
+
+- `try/catch` the USDm surplus refund in `_swapExactOut` (defensive against a hypothetical USDm token-level pause — low probability, not a live exploit per the false-positive calibration above).
+- Two-step admin pattern (pending confirmation on `newAdmin` before handoff takes effect) — useful if admin key management warrants it.
