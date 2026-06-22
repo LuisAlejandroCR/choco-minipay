@@ -4,10 +4,10 @@
 
 | Environment | URL | Purpose |
 |-------------|-----|---------|
-| **Demo animation** | `https://usechoco.app/demo.html` | Lightweight Choco app preview |
+| **Demo preview** | `https://usechoco.app/demo.html` | Standalone left-side Choco phone preview |
 | **Production** | `https://usechoco.app/` | Live mainnet deployment |
 
-The canonical public domain is `https://usechoco.app/`. The lightweight Choco app preview lives at `https://usechoco.app/demo.html`.
+The canonical public domain is `https://usechoco.app/`. The standalone Choco phone preview lives at `https://usechoco.app/demo.html` and intentionally excludes the old remittance landing copy, script, and video embed.
 
 ## Local Development
 
@@ -196,10 +196,10 @@ If History is missing send-now movements after a redeploy, confirm the active an
 gateway addresses are both present in `VITE_CKES_SWAP_CONTRACT_ADDRESSES`. The active
 `VITE_CKES_SWAP_CONTRACT_ADDRESS` is used for new sends; the list is used for audit/history.
 
-## Demo Deployment (choco-azure)
+## Demo route
 
-Demo stays on `choco-azure.vercel.app` with **default env vars** from `.env.example`. No contract addresses, no agent registration — just the UI for screenshots/testing. Supabase can be shared or separate.
+`/demo.html` is served from the same Vercel production deployment as a static preview route. It contains only the Choco phone preview used for demos and sharing; it does not include the old remittance page, script, right-side cards, or video embed.
 
 ## Rollback
 
-If production breaks, revert the Vercel deployment or point `VITE_LIVE_DEMO_URL` and `VITE_AGENT_URI` back to demo (`choco-azure.vercel.app`). The on-chain state (registry, audit log, agent registration) persists independently.
+If production breaks, revert the Vercel deployment. Keep `VITE_LIVE_DEMO_URL=https://usechoco.app/demo.html` and `VITE_AGENT_URI=https://usechoco.app/agent.json` aligned with the canonical domain. The on-chain state (registry, audit log, agent registration) persists independently.

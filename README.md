@@ -122,6 +122,15 @@ npx hardhat verify --network celo \
 paste `contracts/src/ChocoGateway.sol` / `ChocoLedger.sol`, select compiler `v0.8.26` + optimizer/200,
 and paste the ABI-encoded constructor args (gateway args are in `contracts/verify-gateway-args.cjs`;
 ledger arg is the keeper `0xCAA38B341d421E1D3e6F5a9F011130B7cB0AA80F`).
+
+## Public routes
+
+| Route | Purpose |
+|---|---|
+| `/` | MiniPay app entry point |
+| `/demo.html` | Standalone Choco phone preview for demos and sharing. It intentionally includes only the left-side app preview, not the old remittance landing page, script, or video embed. |
+| `/agent.json` | ERC-8004 agent metadata |
+| `/privacy.html`, `/terms.html`, `/support.html`, `/stats.html` | Public support and compliance pages |
 ## Frontend architecture
 
 ```
