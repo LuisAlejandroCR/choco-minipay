@@ -102,57 +102,26 @@ export async function quoteUsdcToCkes(usdcAmountFloat) {
   });
 }
 
-// Live Mento swapIn gas from Blockscout (celopedia live-data-sources.md pattern).
-// No API key needed. Returns p90 gas for recent successful swapIn calls so the estimate
-// covers 90 % of real transactions without over-estimating on outliers.
-// Cached for 30 minutes to avoid a network round-trip on every screen load.
-const _swapGasCache = { value: null, at: 0 };
-const SWAP_GAS_CACHE_TTL = 30 * 60 * 1000;
-const SWAP_GAS_FALLBACK = 350000n; // calibrated from real txs (p90 ≈ 332 k, rounded up)
-
-async function fetchMentoSwapGas() {
-  if (_swapGasCache.value && Date.now() - _swapGasCache.at < SWAP_GAS_CACHE_TTL) {
-    return _swapGasCache.value;
-  }
-  try {
-    const url = `https://celo.blockscout.com/api/v2/addresses/${ADDRESSES.mentoBroker}/transactions`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
-    if (!res.ok) return null;
-    const { items } = await res.json();
-    const ok = (items ?? []).filter((tx) => tx.method === "swapIn" && tx.status === "ok");
-    if (!ok.length) return null;
-    const sorted = ok.map((tx) => Number(tx.gas_used)).sort((a, b) => a - b);
-    const p90 = BigInt(sorted[Math.floor(sorted.length * 0.9)] ?? sorted[sorted.length - 1]);
-    _swapGasCache.value = p90;
-    _swapGasCache.at = Date.now();
-    return p90;
-  } catch {
-    return null;
-  }
-}
-
-// Estimate the USDC fee for a full USDC → cKES transfer using the CIP-64 fee currency approach.
-//
-// The actual execution path has 5 on-chain ops:
-//   1. approve USDC  → Mento Broker
-//   2. swapIn USDC   → USDm  (Mento V2 hop 1)
-//   3. approve USDm  → Mento Broker
-//   4. swapIn USDm   → cKES  (Mento V2 hop 2)
-//   5. transfer cKES → recipient
+// Estimate the USDC network fee for one Choco gateway transfer, using the CIP-64 fee-currency
+// approach. The gateway settles the whole route (USDC → USDm via Mento, USDm → KESm via Uniswap V3,
+// deliver KESm, refund USDm surplus) in ONE swapAndSendExact tx, so the cost is just:
+//   1. approve USDC → gateway   (first send only; the allowance stays warm afterwards)
+//   2. swapAndSendExact         (everything else, in a single tx)
 //
 // Celopedia CIP-64 rules (builder-guide.md):
 //   • Pass feeCurrency to estimateContractGas — the node prices gas in the fee token.
-//   • Call eth_gasPrice with the feeCurrency adapter address — returns price already in
-//     fee-token units (18 dec normalised). No CELO→USDC conversion needed.
-//   • formatUnits(totalGas × gasPriceHex, 18) = USDC display value.
+//   • eth_gasPrice with the feeCurrency adapter returns the price already in fee-token units
+//     (18-dec USDC), so formatUnits(totalGas × gasPrice, 18) is the USDC cost directly.
 //
-// Ops 3-5 can't be simulated without prior swap state, so we use live Blockscout p90
-// data for swapIn and a live estimateContractGas call for approve.
+// Settle gas is calibrated from verified mainnet tx 0x9a4a… (618,573 gas), rounded up for headroom.
+// The old 5-op Mento model (~844k) over-stated the fee by ~70 %.
+const GATEWAY_SETTLE_GAS = 650000n;
+
 async function estimateTransferFeeUsdc(account, usdcAmountRaw) {
   const publicClient = makePublicClient();
   const feeCurrency = ADDRESSES.feeCurrency;
 
-  // Celopedia CIP-64: estimateContractGas must include feeCurrency for accurate pricing.
+  // approve USDC → gateway is the only approval; the gateway runs both hops internally.
   let approveGas = 46000n;
   const approvalTarget = getApprovalTarget({
     deliveryMode: "now",
@@ -171,12 +140,7 @@ async function estimateTransferFeeUsdc(account, usdcAmountRaw) {
     } catch {}
   }
 
-  // Fetch live p90 swapIn gas from Blockscout; fall back to calibrated constant.
-  // Real observed range: 241 k–374 k gas, median 299 k, p90 332 k.
-  const swapGas = await fetchMentoSwapGas() ?? SWAP_GAS_FALLBACK;
-  const approve2Gas = 46000n; // approve USDm for hop 2 (standard warm-slot approve)
-  const transferGas = 52000n; // ERC-20 transfer cKES → recipient
-  const totalGas = approveGas + swapGas + approve2Gas + swapGas + transferGas;
+  const totalGas = approveGas + GATEWAY_SETTLE_GAS;
 
   // eth_gasPrice with feeCurrency returns the price denominated in the fee adapter
   // (18-dec USDC), so formatUnits(total, 18) gives the USDC cost directly.
@@ -187,7 +151,7 @@ async function estimateTransferFeeUsdc(account, usdcAmountRaw) {
     });
     return Number(formatUnits(totalGas * BigInt(gasPriceHex), 18));
   } catch {
-    return 0.005; // fallback reflecting full 5-op cost at typical gas price
+    return 0.004; // fallback: one approve + one gateway settle at a typical gas price
   }
 }
 
