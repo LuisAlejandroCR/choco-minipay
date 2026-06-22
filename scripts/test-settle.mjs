@@ -81,11 +81,11 @@ const ledger = new ethers.Contract(LEDGER, [
   "function keeper() view returns (address)",
   "function recordSettlement(uint256,bool,address,uint256,uint256,bytes32,string) external",
   "function recordSettlement(uint256,uint256,uint256,bytes32) external",
-  "function getSchedule(uint256) external view returns (address,address,address,address,uint256,uint256,uint8,uint8,uint64,bool,bool,bytes32,bytes32)",
-  "function schedules(uint256) external view returns (address,address,address,address,uint256,uint256,uint8,uint8,uint64,bool,bool,bytes32,bytes32)",
+  "function getSchedule(uint256) external view returns (address,address,address,uint256,uint256,uint8,uint64,bool,bool,bytes32,bytes32)",
+  "function schedules(uint256) external view returns (address,address,address,uint256,uint256,uint8,uint64,bool,bool,bytes32,bytes32)",
   "function getPlan(uint256) external view returns (address,address,uint256,uint64,uint64,uint8)",
   "function plans(uint256) external view returns (address,address,uint256,uint64,uint64,uint8)",
-  "event MonthlyScheduleCreated(uint256 indexed id,address indexed owner,address indexed recipient,address settlementSpender,address sourceAsset,uint256 sourceAmount,uint256 destinationAmount,uint8 dayOfMonth,uint64 firstRunAt,uint8 maxRetries,bytes32 commandHash)",
+  "event MonthlyScheduleCreated(uint256 indexed id,address indexed owner,address indexed recipient,address sourceAsset,uint256 sourceAmount,uint256 destinationAmount,uint8 dayOfMonth,uint64 firstRunAt,bytes32 commandHash)",
   "event ScheduleCancelled(uint256 indexed id,address indexed by)",
   "event SchedulePaused(uint256 indexed id,address indexed by)",
   "event ScheduleResumed(uint256 indexed id,address indexed by)",
@@ -151,12 +151,10 @@ function readScheduleFromEnv(id) {
     value: [
       process.env.SCHEDULE_OWNER || keeper.address,
       process.env.SCHEDULE_RECIPIENT || ethers.ZeroAddress,
-      process.env.SETTLEMENT_SPENDER || keeper.address,
       process.env.SOURCE_ASSET || process.env.VITE_USDC_ADDRESS || "0xcebA9300f2b948710d2653dD7B07f33A8B32118C",
       sourceAmount,
       destinationAmount,
       Number(process.env.DAY_OF_MONTH || new Date(Number(firstRunAt) * 1000).getUTCDate()),
-      Number(process.env.MAX_RETRIES || 1),
       firstRunAt,
       process.env.SCHEDULE_ACTIVE !== "false",
       process.env.SCHEDULE_CANCELLED === "true",
@@ -216,12 +214,10 @@ async function readScheduleFromEvents(id) {
   return [
     a.owner,
     a.recipient,
-    a.settlementSpender,
     a.sourceAsset,
     a.sourceAmount,
     a.destinationAmount,
     a.dayOfMonth,
-    a.maxRetries,
     a.firstRunAt,
     active,
     Boolean(cancelled.length),
@@ -292,12 +288,10 @@ console.log("Schedule getter:", `${scheduleRead.source} (${scheduleRead.type})`)
 
 let owner;
 let recipient;
-let settlementSpender;
 let sourceAsset;
 let sourceAmount;
 let destinationAmount;
 let dayOfMonth;
-let maxRetries;
 let firstRunAt;
 let active;
 let cancelled;
@@ -306,12 +300,10 @@ if (scheduleRead.type === "modern") {
   [
     owner,
     recipient,
-    settlementSpender,
     sourceAsset,
     sourceAmount,
     destinationAmount,
     dayOfMonth,
-    maxRetries,
     firstRunAt,
     active,
     cancelled,
@@ -326,11 +318,9 @@ if (scheduleRead.type === "modern") {
     ,
     firstRunAt,
   ] = scheduleRead.value;
-  settlementSpender = keeper.address;
   sourceAsset = process.env.VITE_USDC_ADDRESS || "0xcebA9300f2b948710d2653dD7B07f33A8B32118C";
   destinationAmount = process.env.DST_AMOUNT ? BigInt(process.env.DST_AMOUNT) : sourceAmount;
   dayOfMonth = new Date(Number(firstRunAt) * 1000).getUTCDate();
-  maxRetries = 1;
   active = status === 0;
   cancelled = status === 2;
   console.log("Legacy interval seconds:", `${scheduleRead.value[3] || intervalSeconds}`);
@@ -342,11 +332,9 @@ const due = active && !cancelled && Number(firstRunAt) <= now;
 console.log(`Schedule #${scheduleId}`);
 console.log("Owner:", owner);
 console.log("Recipient:", recipient);
-console.log("Settlement spender:", settlementSpender);
 console.log("Source amount:", `${formatToken(sourceAmount, 6)} USDC`);
 console.log("Destination amount:", `${formatToken(destinationAmount, 18)} KESm`);
 console.log("Day:", `${dayOfMonth}`);
-console.log("Max retries:", `${maxRetries}`);
 console.log("First run UTC:", new Date(Number(firstRunAt) * 1000).toISOString());
 console.log("First run local:", formatLocal(firstRunAt));
 console.log("Active:", active);
