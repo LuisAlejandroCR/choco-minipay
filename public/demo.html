@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content="Choco MiniPay app preview." />
+    <title>Choco Demo</title>
+    <style>
+      :root {
+        --page: #090504;
+        --cocoa-950: #100704;
+        --cocoa-900: #180b06;
+        --cocoa-800: #24130c;
+        --cocoa-700: #342015;
+        --cream: #fff0d8;
+        --vanilla: #f3dfbf;
+        --muted: rgba(255, 240, 216, 0.7);
+        --line: rgba(255, 240, 216, 0.16);
+        --line-strong: rgba(255, 240, 216, 0.24);
+        --accent: #d79b5f;
+        --green: #315f35;
+      }
+
+      * { box-sizing: border-box; }
+
+      html, body { min-height: 100%; }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background:
+          radial-gradient(circle at 50% 12%, rgba(96, 54, 31, 0.26), transparent 36%),
+          var(--page);
+        color: var(--cream);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .phone {
+        width: min(405px, 100vw);
+        min-height: min(860px, 100vh);
+        display: grid;
+        grid-template-rows: auto 1fr;
+        overflow: hidden;
+        background: #050302;
+        border: 1px solid rgba(255, 240, 216, 0.1);
+        position: relative;
+      }
+
+      .statusbar {
+        height: 36px;
+        padding: 12px 22px 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: var(--cream);
+        font-size: 14px;
+        font-weight: 900;
+      }
+
+      .status-icons {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .bars {
+        width: 18px;
+        height: 14px;
+        display: flex;
+        align-items: end;
+        gap: 2px;
+      }
+
+      .bars i {
+        width: 3px;
+        border-radius: 999px;
+        background: var(--cream);
+      }
+
+      .bars i:nth-child(1) { height: 5px; }
+      .bars i:nth-child(2) { height: 8px; }
+      .bars i:nth-child(3) { height: 11px; }
+      .bars i:nth-child(4) { height: 14px; }
+
+      .wifi {
+        width: 14px;
+        height: 10px;
+        border: 2px solid var(--cream);
+        border-bottom: 0;
+        border-radius: 14px 14px 0 0;
+      }
+
+      .battery {
+        width: 24px;
+        height: 12px;
+        border: 2px solid var(--cream);
+        border-radius: 4px;
+        position: relative;
+      }
+
+      .battery::before {
+        content: "";
+        position: absolute;
+        left: 3px;
+        top: 2px;
+        width: 14px;
+        height: 4px;
+        border-radius: 2px;
+        background: var(--cream);
+      }
+
+      .battery::after {
+        content: "";
+        position: absolute;
+        right: -5px;
+        top: 3px;
+        width: 3px;
+        height: 4px;
+        border-radius: 0 2px 2px 0;
+        background: var(--cream);
+      }
+
+      .topbar {
+        height: 86px;
+        padding: 22px 18px 12px;
+        display: grid;
+        grid-template-columns: 44px 1fr 88px;
+        align-items: center;
+        background: #050302;
+      }
+
+      .close-mark {
+        width: 36px;
+        height: 36px;
+        position: relative;
+      }
+
+      .close-mark::before,
+      .close-mark::after {
+        content: "";
+        position: absolute;
+        left: 17px;
+        top: 3px;
+        width: 3px;
+        height: 30px;
+        border-radius: 999px;
+        background: var(--cream);
+      }
+
+      .close-mark::before { transform: rotate(45deg); }
+      .close-mark::after { transform: rotate(-45deg); }
+
+      .title {
+        text-align: center;
+        font-size: 14px;
+        font-weight: 950;
+      }
+
+      .top-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+      }
+
+      .round-icon {
+        width: 36px;
+        height: 36px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--line-strong);
+        border-radius: 50%;
+        background: rgba(255, 240, 216, 0.08);
+        color: var(--cream);
+        font-size: 17px;
+        font-weight: 950;
+      }
+
+      .screen {
+        display: grid;
+        grid-template-rows: 1fr auto;
+        min-height: 0;
+        background:
+          linear-gradient(135deg, rgba(255, 240, 216, 0.055) 25%, transparent 25%) 0 0 / 35px 35px,
+          linear-gradient(180deg, rgba(91, 49, 28, 0.44), transparent 36%),
+          var(--cocoa-950);
+      }
+
+      .content {
+        padding: 0 18px 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        overflow: hidden;
+      }
+
+      .balance-card {
+        min-height: 288px;
+        padding: 18px 14px 22px;
+        border: 1px solid var(--line-strong);
+        border-radius: 28px;
+        background:
+          linear-gradient(135deg, rgba(255, 240, 216, 0.06) 25%, transparent 25%) 0 0 / 33px 33px,
+          linear-gradient(180deg, rgba(84, 45, 27, 0.72), rgba(36, 19, 12, 0.72));
+        overflow: hidden;
+        position: relative;
+      }
+
+      .brand-row {
+        display: grid;
+        grid-template-columns: 54px 1fr 54px;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .pod {
+        width: 50px;
+        height: 50px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--line-strong);
+        border-radius: 50%;
+        background: rgba(16, 7, 4, 0.56);
+      }
+
+      .pod::before,
+      .avatar::before {
+        content: "";
+        width: 24px;
+        height: 34px;
+        border-radius: 55% 45% 54% 46%;
+        background:
+          linear-gradient(90deg, rgba(255, 240, 216, 0.2), transparent 22% 32%, rgba(255, 240, 216, 0.16) 42%, transparent 52%),
+          linear-gradient(145deg, #bb8051, #59321f 62%, #2b160d);
+        transform: rotate(-18deg);
+        box-shadow: inset -8px -10px 12px rgba(0, 0, 0, 0.18);
+      }
+
+      .brand-pill {
+        min-height: 42px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--line-strong);
+        border-radius: 999px;
+        background: rgba(16, 7, 4, 0.42);
+        font-size: 14px;
+        font-weight: 950;
+      }
+
+      .shield {
+        font-size: 18px;
+      }
+
+      .network-pill {
+        width: fit-content;
+        margin-top: 20px;
+        padding: 8px 13px;
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        border: 1px solid rgba(99, 170, 105, 0.54);
+        border-radius: 999px;
+        background: rgba(49, 95, 53, 0.74);
+        font-size: 13px;
+        font-weight: 950;
+      }
+
+      .network-pill span {
+        color: #a9e7a5;
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .next-plan {
+        margin-top: 74px;
+      }
+
+      .eyebrow {
+        color: var(--vanilla);
+        font-size: 12px;
+        font-weight: 950;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .amount {
+        margin-top: 6px;
+        color: var(--cream);
+        font-size: 52px;
+        line-height: 0.9;
+        font-weight: 450;
+      }
+
+      .next-copy {
+        margin-top: 9px;
+        color: var(--cream);
+        font-size: 16px;
+      }
+
+      .cta-card,
+      .plan-card {
+        width: 100%;
+        min-height: 82px;
+        display: grid;
+        grid-template-columns: 54px 1fr auto;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: rgba(16, 7, 4, 0.54);
+      }
+
+      .cta-icon,
+      .avatar {
+        width: 42px;
+        height: 42px;
+        display: grid;
+        place-items: center;
+        border-radius: 14px;
+        background: rgba(255, 240, 216, 0.1);
+      }
+
+      .cta-icon {
+        color: var(--cream);
+        font-size: 20px;
+        font-weight: 900;
+      }
+
+      .cta-title,
+      .plan-name {
+        font-size: 17px;
+        font-weight: 950;
+      }
+
+      .cta-subtitle,
+      .plan-meta {
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .arrow {
+        color: var(--cream);
+        font-size: 28px;
+        font-weight: 600;
+      }
+
+      .section-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 4px 0 0;
+      }
+
+      .section-row h2,
+      .section-row span {
+        margin: 0;
+        color: var(--vanilla);
+        font-size: 12px;
+        font-weight: 950;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .status {
+        padding: 7px 11px;
+        border-radius: 999px;
+        background: rgba(255, 240, 216, 0.1);
+        color: var(--cream);
+        font-size: 12px;
+        font-weight: 950;
+      }
+
+      .plans-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .plan-card {
+        min-height: 70px;
+      }
+
+      .bottom-nav {
+        margin: 0 18px max(16px, env(safe-area-inset-bottom));
+        min-height: 76px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        align-items: center;
+        border: 1px solid var(--line-strong);
+        border-radius: 28px;
+        background: rgba(16, 7, 4, 0.8);
+        overflow: hidden;
+      }
+
+      .nav-item {
+        height: 100%;
+        display: grid;
+        place-items: center;
+        color: rgba(255, 240, 216, 0.78);
+        font-size: 13px;
+        font-weight: 950;
+      }
+
+      .nav-item.active {
+        margin: 8px;
+        border-radius: 22px;
+        background: var(--cream);
+        color: #170904;
+      }
+
+      .nav-icon {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 22px;
+        line-height: 1;
+      }
+
+      .ambient {
+        position: absolute;
+        inset: 128px 20px auto auto;
+        width: 132px;
+        height: 132px;
+        border-radius: 50%;
+        background: rgba(215, 155, 95, 0.08);
+        filter: blur(36px);
+        pointer-events: none;
+        animation: glow 4s ease-in-out infinite;
+      }
+
+      @keyframes glow {
+        0%, 100% { opacity: 0.56; transform: scale(0.92); }
+        50% { opacity: 1; transform: scale(1.1); }
+      }
+
+      @media (max-height: 780px) {
+        .statusbar { height: 26px; padding-top: 8px; }
+        .topbar { height: 74px; padding-top: 14px; }
+        .balance-card { min-height: 250px; }
+        .next-plan { margin-top: 50px; }
+        .amount { font-size: 46px; }
+        .cta-card { min-height: 72px; }
+        .plan-card { min-height: 64px; }
+        .bottom-nav { min-height: 68px; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="phone" aria-label="Choco MiniPay preview">
+      <div class="statusbar" aria-hidden="true">
+        <span>9:41</span>
+        <span class="status-icons"><span class="bars"><i></i><i></i><i></i><i></i></span><span class="wifi"></span><span class="battery"></span></span>
+      </div>
+
+      <section class="screen">
+        <header class="topbar">
+          <span class="close-mark" aria-hidden="true"></span>
+          <strong class="title">Home</strong>
+          <div class="top-actions" aria-hidden="true">
+            <span class="round-icon">!</span>
+            <span class="round-icon">?</span>
+          </div>
+        </header>
+
+        <div class="content">
+          <div class="balance-card">
+            <div class="brand-row">
+              <span class="pod" aria-hidden="true"></span>
+              <span class="brand-pill">Choco</span>
+              <span class="pod shield" aria-hidden="true">&#9826;</span>
+            </div>
+            <div class="network-pill"><span>Network</span> Celo Mainnet</div>
+            <div class="next-plan">
+              <div class="eyebrow">Next plan</div>
+              <div class="amount">50,000</div>
+              <div class="next-copy">KESm to Mom · Every 1st · 9:00 AM</div>
+            </div>
+          </div>
+
+          <a class="cta-card" href="/" aria-label="Continue to Choco">
+            <span class="cta-icon">$</span>
+            <span><span class="cta-title">New transfer</span><span class="cta-subtitle">Send now or schedule with voice</span></span>
+            <span class="arrow">›</span>
+          </a>
+
+          <div class="section-row">
+            <h2>Plans</h2>
+            <span>1 active</span>
+          </div>
+
+          <div class="plans-list">
+            <div class="plan-card">
+              <span class="avatar" aria-hidden="true"></span>
+              <span><span class="plan-name">Mom</span><span class="plan-meta">50,000 KESm · Every 1st · 9:00 AM</span></span>
+              <span class="status">Active</span>
+            </div>
+          </div>
+        </div>
+
+        <nav class="bottom-nav" aria-label="Preview navigation">
+          <span class="nav-item active"><span><span class="nav-icon">?</span>Home</span></span>
+          <span class="nav-item"><span><span class="nav-icon">?</span>Plans</span></span>
+          <span class="nav-item"><span><span class="nav-icon">?</span>History</span></span>
+        </nav>
+      </section>
+      <span class="ambient" aria-hidden="true"></span>
+    </main>
+  </body>
+</html>

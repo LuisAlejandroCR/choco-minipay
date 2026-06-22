@@ -4,10 +4,10 @@
 
 | Environment | URL | Purpose |
 |-------------|-----|---------|
-| **Demo** | `https://choco-azure.vercel.app/` | Testing, development, default in code |
-| **Production** | `choco-minipay.vercel.app` | Live mainnet deployment |
+| **Demo animation** | `https://usechoco.app/demo.html` | Lightweight Choco app preview |
+| **Production** | `https://usechoco.app/` | Live mainnet deployment |
 
-All files in this repo default to **demo URLs** (`choco-azure.vercel.app`). Production overrides these via environment variables.
+The canonical public domain is `https://usechoco.app/`. The lightweight Choco app preview lives at `https://usechoco.app/demo.html`.
 
 ## Local Development
 
@@ -16,7 +16,7 @@ npm install
 npm run dev
 ```
 
-Opens `http://127.0.0.1:5173` with demo config (points to `choco-azure.vercel.app` for agent metadata).
+Opens `http://127.0.0.1:5173` with local config. The in-app live demo link falls back to `/demo.html`.
 
 ## Production Deployment (Vercel)
 
@@ -66,8 +66,8 @@ In Vercel project settings → Environment Variables → Production:
 
 ```bash
 # Production URLs (override demo defaults)
-VITE_LIVE_DEMO_URL=https://choco-minipay.vercel.app/
-VITE_AGENT_URI=https://choco-minipay.vercel.app/agent.json
+VITE_LIVE_DEMO_URL=https://usechoco.app/demo.html
+VITE_AGENT_URI=https://usechoco.app/agent.json
 
 # Celo Mainnet
 VITE_CELO_CHAIN_ID=42220
@@ -134,7 +134,7 @@ Manual production test:
 
 ```powershell
 $headers = @{ Authorization = "Bearer $env:CRON_SECRET" }
-Invoke-WebRequest -Uri "https://choco-minipay.vercel.app/api/run-due-schedules" -Headers $headers
+Invoke-WebRequest -Uri "https://usechoco.app/api/run-due-schedules" -Headers $headers
 ```
 
 Local dry run still works without private-key execution:
@@ -152,11 +152,11 @@ npm run settle:due -- --send
 
 ### 5. Register ERC-8004 agent
 
-After the production site is live at `choco-minipay.vercel.app` and serves `/agent.json`:
+After the production site is live at `usechoco.app` and serves `/agent.json`:
 
 ```powershell
 # In local .env, set production URL
-$env:AGENT_URI = "https://choco-minipay.vercel.app/agent.json"
+$env:AGENT_URI = "https://usechoco.app/agent.json"
 $env:AGENT_PRIVATE_KEY = "0x..."  # funded mainnet key
 npm run register:agent
 ```
@@ -181,7 +181,7 @@ For content-addressed `agentURI`:
 
 ### 7. Verify
 
-1. Open `https://choco-minipay.vercel.app` in MiniPay on Android
+1. Open `https://usechoco.app` in MiniPay on Android
 2. Connect wallet
 3. Test send-now: type `send <address> 5 KESm now` → Build → Review → Confirm
    - Verify recipient receives **exactly 5 KESm** (exact-output path)

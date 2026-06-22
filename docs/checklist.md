@@ -12,9 +12,9 @@ behavior benchmark only. What follows is what changed in this repo and what is s
 
 Decisions taken for this pass:
 
-- **ERC-8004 identity**: fresh Celo Mainnet registration (new `agentId`), metadata points to production URL (`choco-minipay.vercel.app`).
+- **ERC-8004 identity**: fresh Celo Mainnet registration (new `agentId`), metadata points to production URL (`usechoco.app`).
 - **Settlement**: direct Mento Broker for USDC, no custom router — one Choco contract only.
-- **URLs**: Demo defaults to `choco-azure.vercel.app` (code/testing); production at `choco-minipay.vercel.app` (Vercel env vars).
+- **URLs**: production at `usechoco.app`; lightweight Choco app preview at `usechoco.app/demo.html`.
 
 ---
 
@@ -23,18 +23,18 @@ Decisions taken for this pass:
 **Done (code):**
 
 - `public/agent.json` rewritten for mainnet: real description, `image` + `web`/`OASF` endpoints on
-  `https://choco-azure.vercel.app`, no `choco.example` / `TODO` placeholders.
+  `https://usechoco.app`, no `choco.example` / `TODO` placeholders.
 - Config slots added: `VITE_AGENT_REGISTRY_ADDRESS` (fixed mainnet `0x8004A169…`), `VITE_AGENT_URI`,
   `VITE_AGENT_ID`, `VITE_AGENT_OWNER_ADDRESS`, `VITE_AGENT_EXPLORER_URL` (`src/lib/app-config.js`, `.env.example`).
 - `scripts/register-agent.mjs` + `npm run register:agent` added (one-shot ops script, no new contract).
 
 **On-chain step (you run it):**
 
-1. Finalize `public/agent.json` and deploy to production (`choco-minipay.vercel.app`) so `/agent.json` returns 200.
+1. Finalize `public/agent.json` and deploy to production (`usechoco.app`) so `/agent.json` returns 200.
 2. In Vercel production environment variables, set:
    ```
-   VITE_LIVE_DEMO_URL=https://choco-minipay.vercel.app/
-   VITE_AGENT_URI=https://choco-minipay.vercel.app/agent.json
+   VITE_LIVE_DEMO_URL=https://usechoco.app/demo.html
+   VITE_AGENT_URI=https://usechoco.app/agent.json
    ```
 3. `node --env-file=.env scripts/register-agent.mjs` with a funded mainnet key. It mints the agent,
    prints the new `agentId`, and writes `ops/agent.mainnet.json`.
