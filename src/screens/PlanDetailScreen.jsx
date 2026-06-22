@@ -42,6 +42,7 @@ export function PlanDetailScreen({ plan, onEdit, onDelete, operationStatus = "",
           <div className="plan-detail-hero-copy">
             <h2 className="screen-hero-title">{plan.recipient}</h2>
             <p className="screen-hero-detail">{plan.amount} {plan.asset}</p>
+            <span className={`plan-status-label ${execution.tone}`}>{execution.label}</span>
           </div>
         </div>
       </div>
@@ -50,7 +51,6 @@ export function PlanDetailScreen({ plan, onEdit, onDelete, operationStatus = "",
         <CalendarDays size={21} strokeWidth={2.5} />
         <strong>{getTimingLabel(plan)}</strong>
       </div>
-      <span className={`plan-status-label ${execution.tone}`}>{execution.label}</span>
 
       <div className="detail-list" aria-label="Plan details">
         <DetailLine label="Route" value={`${plan.payAsset} to ${plan.asset}`} />
