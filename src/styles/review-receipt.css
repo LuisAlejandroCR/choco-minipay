@@ -897,143 +897,80 @@
   color: var(--latte-300);
 }
 
-/* Final palette refinement: balanced cocoa surfaces + soft vanilla actions. */
-.home-start-action,
-.asset-card,
-.composer,
-.schedule-bar,
-.bottom-nav,
-.detail-line,
-.summary-tile,
-.plan-row,
-.transaction-row,
-.ready-check-row {
-  border-color: rgba(255, 241, 220, 0.12);
-  background: var(--surface-strong);
-}
-
-.bottom-nav button.active {
-  background: rgba(255, 241, 220, 0.14);
-  color: var(--cream);
-}
-
-.primary-cta {
-  background: linear-gradient(180deg, #fff4e4, var(--cream));
-  color: var(--cocoa-900);
-  box-shadow: 0 10px 24px rgba(5, 3, 2, 0.16);
-}
-
-.secondary-dark {
-  border-color: rgba(255, 241, 220, 0.13);
-  background: rgba(18, 9, 6, 0.34);
-}
-
-.review-screen .summary-card {
-  border-color: rgba(201, 144, 96, 0.18);
-  background: rgba(36, 21, 14, 0.72);
-}
-
-.screen-hero-label {
-  color: var(--latte-500);
-  opacity: 0.82;
-}
-
-.plan-row:hover,
-.transaction-row:hover {
-  border-color: rgba(201, 144, 96, 0.26);
-  background: rgba(45, 27, 18, 0.66);
-}
-
-.home-hero {
-  border: 1px solid rgba(255, 241, 220, 0.1);
-  background:
-    linear-gradient(135deg, rgba(255, 241, 220, 0.055) 25%, transparent 25%) 0 0 / 36px 36px,
-    linear-gradient(225deg, rgba(201, 144, 96, 0.045) 25%, transparent 25%) 0 0 / 36px 36px,
-    rgba(36, 21, 14, 0.78);
-}
-
-.review-screen .reference-card {
-  border-left: 3px solid rgba(201, 144, 96, 0.58);
-  background: rgba(36, 21, 14, 0.68);
-}
-
-.review-screen .reference-card span {
-  color: var(--latte-300);
-  opacity: 0.78;
-}
-
-.review-screen .contact-resolution-card {
-  border-color: rgba(201, 144, 96, 0.18);
-  background: rgba(18, 9, 6, 0.5);
-  max-height: none;
-  overflow: visible;
-}
-
-.review-screen .contact-resolution-card > button {
-  border-color: rgba(201, 144, 96, 0.24);
-  background: rgba(18, 9, 6, 0.28);
-  color: var(--latte-300);
-}
-
-.review-screen .contact-select-pill {
-  border-color: rgba(201, 144, 96, 0.26);
-  background: rgba(255, 241, 220, 0.12);
-  color: var(--latte-300);
-  min-width: 72px;
-}
-
-.agent-phone-card {
-  min-height: min(520px, calc(100dvh - 210px));
-  border-color: rgba(255, 241, 220, 0.12);
-  background: var(--choco-surface);
-}
-
-.agent-plan {
-  background: rgba(255, 241, 220, 0.075);
-}
-
-.agent-plan strong {
-  font-size: 32px;
-}
-
-.agent-line {
-  border-color: rgba(255, 241, 220, 0.11);
-  background: rgba(18, 9, 6, 0.44);
-}
-
-.agent-next {
-  color: var(--latte-300);
-  opacity: 0.72;
-}
-
-/* MiniPay UX polish: warmer cocoa depth with vanilla action clarity. */
+/* Choco balanced cocoa UI pass: one calm layer, no stacked palette effects. */
 :root {
-  --vanilla-strong: #fff6e8;
-  --vanilla-soft: rgba(255, 246, 232, 0.16);
-  --cocoa-glass: rgba(30, 17, 11, 0.82);
-  --cocoa-glass-strong: rgba(18, 9, 6, 0.88);
+  --vanilla-strong: #fff4e4;
+  --vanilla-soft: rgba(255, 244, 228, 0.13);
+  --choco-card: rgba(30, 15, 8, 0.82);
+  --choco-card-strong: rgba(21, 9, 5, 0.9);
+  --choco-line: rgba(232, 198, 158, 0.16);
+  --choco-line-strong: rgba(232, 198, 158, 0.28);
+  --choco-accent: #d49a61;
+  --choco-success: #2f8a45;
 }
 
 .stage {
-  background:
-    radial-gradient(circle at 18% 14%, rgba(201, 144, 96, 0.14), transparent 30%),
-    radial-gradient(circle at 82% 80%, rgba(255, 241, 220, 0.08), transparent 28%),
-    var(--black);
+  background: var(--black);
+}
+
+.miniapp {
+  background: var(--cocoa-950);
+  border-color: rgba(232, 198, 158, 0.10);
+}
+
+.topbar,
+.app-panel {
+  background: var(--cocoa-950);
+}
+
+.topbar::after,
+.rds-header::after {
+  background: linear-gradient(180deg, rgba(18, 9, 6, 0.9), transparent);
 }
 
 .app-panel {
-  background: var(--choco-surface);
+  padding-top: 20px;
 }
 
 .home-hero,
+.screen-hero,
 .editor-card,
-.agent-phone-card {
-  box-shadow:
-    inset 0 1px 0 rgba(255, 246, 232, 0.06),
-    0 18px 38px rgba(0, 0, 0, 0.16);
+.agent-phone-card,
+.rds-header,
+.rds-hero,
+.details-screen .screen-hero {
+  background:
+    linear-gradient(135deg, rgba(255, 244, 228, 0.045) 25%, transparent 25%) 0 0 / 44px 44px,
+    linear-gradient(180deg, rgba(45, 27, 18, 0.74), rgba(24, 11, 6, 0.78));
+  border: 1px solid var(--choco-line);
+  box-shadow: none;
+}
+
+.screen-hero,
+.editor-card {
+  border-radius: 22px;
+}
+
+.home-hero {
+  border-radius: 24px;
+}
+
+.home-title-pill {
+  background: rgba(18, 9, 6, 0.8);
+  border-color: var(--choco-line);
+  color: var(--cream);
+}
+
+.home-network-pill.ready,
+.sheet-chip,
+.filter-pill.active {
+  border-color: rgba(75, 150, 88, 0.42);
+  background: rgba(47, 138, 69, 0.18);
+  color: #d9f5d7;
 }
 
 .home-start-action,
+.asset-card,
 .composer,
 .timing-toggle,
 .bottom-nav,
@@ -1042,14 +979,89 @@
 .contact-resolution-card,
 .review-screen .summary-card,
 .review-screen .reference-card,
-.notice.compact {
-  border-color: var(--vanilla-soft);
-  background: var(--cocoa-glass);
+.notice.compact,
+.detail-line,
+.summary-tile,
+.ready-check-row {
+  border-color: var(--choco-line);
+  background: var(--choco-card);
+  box-shadow: none;
 }
 
-.home-start-action,
+.home-start-action {
+  min-height: 70px;
+}
+
+.home-start-icon,
+.plan-row-icon,
+.tx-dot,
+.agent-line-icon,
+.rds-field-icon {
+  background: rgba(212, 154, 97, 0.14);
+  color: var(--latte-300);
+}
+
+.home-start-action b,
+.plan-row b,
+.transaction-row b,
+.review-screen .summary-card b,
+.review-screen .reference-card b,
+.rds-field-value {
+  color: var(--cream);
+}
+
+.home-start-action span,
+.plan-row span,
+.transaction-row span,
+.review-screen .summary-card span,
+.review-screen .reference-card span,
+.rds-field-key,
+.rds-hero-date,
+.screen-hero-detail {
+  color: var(--muted);
+}
+
+.bottom-nav {
+  background: rgba(18, 9, 6, 0.94);
+}
+
+.bottom-nav button.active,
+.filter-pill.active,
+.timing-toggle button.active {
+  background: var(--vanilla-strong);
+  border-color: rgba(255, 244, 228, 0.72);
+  color: var(--cocoa-950);
+}
+
+.bottom-nav button.active svg,
+.filter-pill.active svg,
+.timing-toggle button.active svg {
+  color: var(--cocoa-950);
+}
+
 .primary-cta {
-  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.2);
+  background: var(--vanilla-strong);
+  color: var(--cocoa-950);
+  box-shadow: none;
+}
+
+.secondary-dark {
+  border-color: var(--choco-line);
+  background: rgba(18, 9, 6, 0.28);
+  color: var(--cream);
+}
+
+.review-screen {
+  gap: 16px;
+}
+
+.review-screen .rds-fields {
+  gap: 10px;
+}
+
+.review-screen .rds-field {
+  border-color: var(--choco-line);
+  background: var(--choco-card-strong);
 }
 
 .review-screen .contact-resolution-card,
@@ -1060,108 +1072,94 @@
   overflow: visible;
 }
 
-.primary-cta {
-  background: linear-gradient(180deg, var(--vanilla-strong), #f4dfc4);
-  color: var(--cocoa-950);
+.review-screen .contact-resolution-card > button,
+.review-screen .contact-select-pill {
+  border-color: var(--choco-line-strong);
+  background: rgba(255, 244, 228, 0.08);
+  color: var(--latte-300);
 }
 
-.secondary-dark {
-  border-color: rgba(255, 246, 232, 0.2);
-  background: rgba(255, 246, 232, 0.035);
-  color: var(--cream);
+.notice.danger,
+.review-screen .notice.danger {
+  border-color: rgba(235, 100, 88, 0.36);
+  background: rgba(120, 30, 30, 0.18);
+  color: #f8c5bd;
 }
 
-.home-network-pill.ready,
-.sheet-chip,
-.filter-pill.active {
-  border-color: rgba(119, 181, 126, 0.42);
-  background: rgba(68, 112, 71, 0.3);
+.agent-intent-card {
+  background: var(--choco-card);
+  border-color: var(--choco-line);
 }
 
 .agent-intent-card.ready,
 .agent-line.show {
-  border-color: rgba(119, 181, 126, 0.34);
+  border-color: rgba(75, 150, 88, 0.38);
 }
 
-.agent-phone-head span,
-.screen-hero-label,
-.balance-hero-label,
-.section-heading span,
-.reference-card span {
-  color: var(--latte-300);
+.agent-plan,
+.agent-line {
+  border-color: var(--choco-line);
+  background: rgba(18, 9, 6, 0.44);
 }
 
-.sheet-chip.paused,
-.plan-row small.paused {
-  border-color: rgba(229, 211, 185, 0.32);
-  background: rgba(246, 232, 212, 0.13);
-  color: var(--latte-300);
-}
-
-.sheet-chip.due,
-.plan-row small.due,
-.sheet-chip.warning,
-.plan-row small.warning {
-  border-color: rgba(245, 191, 108, 0.38);
-  background: rgba(245, 191, 108, 0.18);
-  color: #ffe0a8;
-}
-
-.sheet-chip.success,
-.plan-row small.success {
-  border-color: rgba(119, 181, 126, 0.42);
-  background: rgba(68, 112, 71, 0.3);
-  color: #d9f5d7;
-}
-
-.agent-plan {
-  border-color: var(--vanilla-soft);
-  background: rgba(255, 246, 232, 0.085);
+.agent-plan strong {
+  font-size: 32px;
 }
 
 .agent-next {
-  color: var(--vanilla-strong);
-  opacity: 0.82;
+  color: var(--muted);
+  opacity: 1;
 }
 
-/* Visible palette pass: make active states read clearly in screenshots. */
-.home-hero,
-.screen-hero,
-.editor-card {
-  background:
-    linear-gradient(135deg, rgba(255, 246, 232, 0.075) 25%, transparent 25%) 0 0 / 36px 36px,
-    linear-gradient(180deg, rgba(58, 35, 23, 0.88), rgba(28, 15, 9, 0.9));
-  border-color: rgba(255, 246, 232, 0.18);
+.rds-header,
+.rds-hero {
+  background-color: var(--cocoa-950);
 }
 
-.bottom-nav button.active,
-.filter-pill.active,
-.timing-toggle button.active {
-  background: linear-gradient(180deg, #f5e5ce, #dcc4a7);
-  color: var(--cocoa-950);
-  border-color: rgba(255, 246, 232, 0.58);
+.rds-qr {
+  background: transparent;
+  border-color: var(--choco-line);
 }
 
-.bottom-nav button.active svg,
-.filter-pill.active svg,
-.timing-toggle button.active svg {
-  color: var(--cocoa-950);
+.rds-qr-wrapper {
+  display: grid;
+  place-items: center;
+  border: 0;
+  cursor: pointer;
 }
 
-.home-start-icon,
-.plan-row-icon,
-.tx-dot,
-.agent-line-icon {
-  background: rgba(255, 246, 232, 0.14);
-  color: var(--vanilla-strong);
+.rds-actions .primary-cta,
+.receipt-detail-screen .rds-actions .primary-cta {
+  min-height: 58px;
+  border-radius: 22px;
 }
 
-.home-start-action b,
-.plan-row b,
-.transaction-row b {
-  color: var(--vanilla-strong);
+.plan-status-label {
+  margin-top: 8px;
+  padding: 5px 10px;
+  border: 1px solid rgba(217, 166, 121, 0.18);
+  border-radius: 999px;
+  background: rgba(217, 166, 121, 0.08);
+  color: var(--latte-300);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  white-space: nowrap;
 }
 
+.plan-status-label.success {
+  color: #d9f5d7;
+}
+
+.plan-status-label.due,
+.plan-status-label.warning {
+  color: #ffe0a8;
+}
+
+.plan-status-label.paused {
+  color: var(--muted);
+}
 .qr-preview-backdrop {
   position: absolute;
   inset: 0;
