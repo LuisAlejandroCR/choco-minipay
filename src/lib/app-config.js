@@ -75,7 +75,7 @@ export const APP_CONFIG = {
     registry: env.VITE_AGENT_REGISTRY_ADDRESS || "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",
     agentId: env.VITE_AGENT_ID || "",
     owner: env.VITE_AGENT_OWNER_ADDRESS || "",
-    agentUri: env.VITE_AGENT_URI || "https://choco-azure.vercel.app/agent.json",
+    agentUri: env.VITE_AGENT_URI || "https://usechoco.app/agent.json",
     explorerUrl: env.VITE_AGENT_EXPLORER_URL || "https://8004scan.io/agents/celo",
   },
   recipients: {
