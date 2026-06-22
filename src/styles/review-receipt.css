@@ -553,6 +553,7 @@
 
 .rds-status-chip {
   justify-self: start;
+  margin-left: 0; /* counter the shared .sheet-chip { margin-left: auto } so "Sent" sits under the date, left-aligned */
 }
 
 .rds-qr {
@@ -1239,7 +1240,6 @@
 }
 
 .plan-status-label {
-  align-self: flex-start;
   margin-top: 8px;
   padding: 5px 10px;
   border: 1px solid rgba(217, 166, 121, 0.18);

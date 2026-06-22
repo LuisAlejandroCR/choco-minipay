@@ -26,8 +26,8 @@ off-chain except contacts the user explicitly saves.
 3. User types a plain-language instruction — `20k mom every 1st` → 20,000 KESm to Mum.
 4. `parseTransferIntent` (intent.js) extracts recipient, amount, currency, timing.
 5. `verifyReadiness` (cepolia.js) gates on wallet + USDC balance before reaching Review.
-6. **Send now** — `swapAndSendExact` on ChocoGateway: caller approves `quoteExactOut(ckesExact)` USDC, gateway deducts fee, swaps USDC → USDm → KESm via Mento, delivers exactly `ckesExact` to recipient, returns surplus to sender.
-7. **Schedule** — wallet approves the keeper settlement spender and `createMonthlySchedule` writes the authorized plan to ChocoLedger.
+6. **Send now** — `swapAndSendExact` on ChocoGateway: caller approves `quoteExactOut(ckesExact)` USDC, gateway deducts fee, swaps USDC → USDm via Mento then USDm → KESm via Uniswap V3, delivers exactly `ckesExact` to recipient, returns surplus to sender as USDm.
+7. **Schedule** — wallet approves the gateway and the plan is written to ChocoLedger; the gateway holds one run's USDC (`fundRun`) so the scheduled transfer can't fail on insufficient funds.
 8. Plans and movement history are re-read from ChocoLedger events — never cached off-chain.
    Authorized schedules stay in Plans; History shows send-now movements and executed schedule runs.
    The keeper/executor must run due plans automatically and emit `SettlementReceipt` so every
@@ -45,8 +45,10 @@ or scheduled run is executed.
 
 | Contract | Current address | Role | Verification status |
 |---|---|---|---|
-| ChocoLedger | `0xd8F54CCbc314014443DEbAA8558B09D4ccC57A9E` | Plan registry and unified event log for send-now attempts, schedule creation, and executed plan receipts | Not verified on Blockscout/Celoscan at last check |
-| ChocoGateway | `0xBB1ebeDf01C6Df335aA186748d9B08Df8fB6F8c8` | USDC to USDm to KESm settlement route, protocol fee collection, recipient delivery, and ledger logging | Not verified on Blockscout/Celoscan at last check |
+| ChocoLedger | `0xd8F54CCbc314014443DEbAA8558B09D4ccC57A9E` | Plan registry and unified event log for send-now attempts, schedule creation, and executed plan receipts | Not verified yet — see Verification below |
+| ChocoGateway | `0x3003f0Fb134ED3c66Ac95A6AbE59FA3E2BA792E7` | USDC→USDm via Mento, then USDm→KESm via Uniswap V3; held funds for scheduled plans (`fundRun`/`settleScheduledRun`), protocol fee, recipient delivery, and ledger logging | Not verified yet — see Verification below |
+
+> `0xBB1ebeDf01C6Df335aA186748d9B08Df8fB6F8c8` and `0xF51E842b22469c43c697710e5D2C52b0B71eA00B` are **superseded** earlier gateways (dormant). The live gateway is `0x3003f0Fb…`.
 
 ### Contract responsibilities
 
@@ -55,9 +57,11 @@ frontend reads for Plans and Movements. It also controls which gateway contracts
 write send-now attempts through `setSwapContract(address,bool)`.
 
 `ChocoGateway` is the settlement entry point. For send-now it pulls approved USDC from the user,
-collects the protocol fee, routes USDC through Mento as `USDC -> USDm -> KESm`, sends KESm to the
-recipient, and logs the movement to `ChocoLedger`. For scheduled plans, the keeper calls the same
-gateway route only when a plan is due.
+collects the protocol fee, swaps `USDC -> USDm` via Mento then `USDm -> KESm` via Uniswap V3 (the
+Mento USDm↔KESm oracle is unavailable, so hop 2 must use UniV3), sends KESm to the recipient, and
+logs the movement to `ChocoLedger`. For scheduled plans the gateway holds one run's USDC at plan
+creation (`fundRun`) and the keeper calls `settleScheduledRun` only when a plan is due — it reads the
+recipient and amount from the ledger, so the keeper can trigger a run but never redirect it.
 
 ### Funds flow
 
@@ -67,7 +71,7 @@ User wallet
   -> send now or wait for scheduled execution
   -> ChocoGateway pulls USDC only at execution time
   -> fee recipient receives the protocol fee
-  -> Mento routes USDC -> USDm -> KESm
+  -> USDC -> USDm via Mento, then USDm -> KESm via Uniswap V3
   -> recipient receives KESm directly
   -> ChocoLedger records the movement event
 ```
@@ -86,20 +90,35 @@ Required production env vars:
 
 ```bash
 VITE_LEDGER_ADDRESS=0xd8F54CCbc314014443DEbAA8558B09D4ccC57A9E
-VITE_LEDGER_DEPLOY_BLOCK=<ledger deployment block>
-VITE_CKES_SWAP_CONTRACT_ADDRESS=0xBB1ebeDf01C6Df335aA186748d9B08Df8fB6F8c8
-VITE_CKES_SWAP_DEPLOY_BLOCK=<gateway deployment block>
-VITE_CKES_SWAP_CONTRACT_ADDRESSES=0xBB1ebeDf01C6Df335aA186748d9B08Df8fB6F8c8
-VITE_SETTLEMENT_SPENDER_ADDRESS=0xBB1ebeDf01C6Df335aA186748d9B08Df8fB6F8c8
+VITE_LEDGER_DEPLOY_BLOCK=69697824
+# All four gateway/escrow/settlement vars point at the ONE live ChocoGateway:
+VITE_CKES_SWAP_CONTRACT_ADDRESS=0x3003f0Fb134ED3c66Ac95A6AbE59FA3E2BA792E7
+VITE_CKES_SWAP_UNIV3_ADDRESS=0x3003f0Fb134ED3c66Ac95A6AbE59FA3E2BA792E7
+VITE_CKES_SWAP_DEPLOY_BLOCK=70180540
+VITE_CKES_SWAP_CONTRACT_ADDRESSES=0x3003f0Fb134ED3c66Ac95A6AbE59FA3E2BA792E7
+VITE_SCHEDULE_ESCROW_ADDRESS=0x3003f0Fb134ED3c66Ac95A6AbE59FA3E2BA792E7
+VITE_SETTLEMENT_SPENDER_ADDRESS=0x3003f0Fb134ED3c66Ac95A6AbE59FA3E2BA792E7
 VITE_FEE_CURRENCY_ADDRESS=0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B
 ```
 
 ### Verification note
 
-The active contracts must be source-verified before final hackathon submission. At the time this
-README was updated, Blockscout returned no published source code for the active `ChocoLedger` and
-`ChocoGateway` addresses above, so they should be treated as not verified until the explorer shows
-the Solidity source and compiler metadata.
+The active contracts are **not yet source-verified**. Both are single self-contained `.sol` files
+compiled with **solc 0.8.26, optimizer enabled (200 runs), default evmVersion**. To verify:
+
+**Hardhat → Celoscan** (needs a free key in `CELOSCAN_API_KEY`), from `contracts/`:
+
+```bash
+npx hardhat verify --network celo --constructor-args verify-gateway-args.cjs \
+  0x3003f0Fb134ED3c66Ac95A6AbE59FA3E2BA792E7
+npx hardhat verify --network celo \
+  0xd8F54CCbc314014443DEbAA8558B09D4ccC57A9E 0xCAA38B341d421E1D3e6F5a9F011130B7cB0AA80F
+```
+
+**Blockscout** (no key): open each address → *Contract → Verify & Publish → Solidity (single file)*,
+paste `contracts/src/ChocoGateway.sol` / `ChocoLedger.sol`, select compiler `v0.8.26` + optimizer/200,
+and paste the ABI-encoded constructor args (gateway args are in `contracts/verify-gateway-args.cjs`;
+ledger arg is the keeper `0xCAA38B341d421E1D3e6F5a9F011130B7cB0AA80F`).
 ## Frontend architecture
 
 ```
