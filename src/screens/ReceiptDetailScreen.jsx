@@ -53,13 +53,17 @@ export function ReceiptDetailScreen({ transaction }) {
         <div className="rds-hero">
           <div className="rds-hero-top">
             <span className="rds-hero-kicker">Choco receipt</span>
-            {statusLabel && <span className="sheet-chip">{statusLabel}</span>}
           </div>
           <div className="rds-hero-recipient">{recipientName}</div>
           <div className="rds-hero-amount">
             {amountLabel || "-"} <small>{assetLabel}</small>
           </div>
-          {transaction.date && <div className="rds-hero-date">{transaction.date}</div>}
+          {(transaction.date || statusLabel) && (
+            <div className="rds-hero-meta">
+              {transaction.date && <span className="rds-hero-date">{transaction.date}</span>}
+              {statusLabel && <span className="sheet-chip rds-status-chip">{statusLabel}</span>}
+            </div>
+          )}
         </div>
 
         <div className="rds-qr">

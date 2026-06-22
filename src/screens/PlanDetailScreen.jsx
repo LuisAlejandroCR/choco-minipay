@@ -37,13 +37,13 @@ export function PlanDetailScreen({ plan, onEdit, onDelete, operationStatus = "",
       )}
 
       <div className="screen-hero">
-        <span className="screen-hero-label">Plan</span>
+        <span className="screen-hero-label">Plan details</span>
         <div className="screen-hero-row">
-          <div>
+          <div className="plan-detail-hero-copy">
             <h2 className="screen-hero-title">{plan.recipient}</h2>
             <p className="screen-hero-detail">{plan.amount} {plan.asset}</p>
+            <span className={`plan-status-label ${execution.tone}`}>{execution.label}</span>
           </div>
-          <span className={`plan-status-label ${execution.tone}`}>{execution.label}</span>
         </div>
       </div>
 
