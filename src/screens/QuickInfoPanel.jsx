@@ -23,9 +23,14 @@ function ReportIssueAction({ reportHash }) {
     }
   }
   return (
-    <button type="button" className="quick-info-copy" onClick={copyDetails}>
-      <Copy size={15} /> {copied ? "Copied — paste it to support" : "Copy issue details (with tx hash)"}
-    </button>
+    <div className="quick-info-report-actions">
+      <button type="button" className="quick-info-copy" onClick={copyDetails}>
+        <Copy size={15} /> {copied ? "Copied - open support" : "Copy issue details (with tx hash)"}
+      </button>
+      <a className="quick-info-support-link" href="/support.html">
+        <MessageCircleQuestionMark size={15} /> Open support
+      </a>
+    </div>
   );
 }
 
