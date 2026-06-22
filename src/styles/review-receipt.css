@@ -1238,12 +1238,3 @@
   color: var(--muted);
 }
 
-.qr-preview-copy {
-  margin: 0;
-  max-width: 220px;
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 650;
-  line-height: 1.35;
-  text-align: center;
-}

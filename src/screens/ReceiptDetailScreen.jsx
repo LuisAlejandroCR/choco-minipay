@@ -141,7 +141,6 @@ export function ReceiptDetailScreen({ transaction }) {
               <X size={18} strokeWidth={2.6} />
             </button>
             <QrCanvas data={verifyUrl} size={220} />
-            <p className="qr-preview-copy">Scan this QR to verify the transaction on-chain.</p>
           </div>
         </div>
       )}
