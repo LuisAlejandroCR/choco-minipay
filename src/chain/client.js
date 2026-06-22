@@ -83,7 +83,14 @@ export function assertAddress(address, label) {
 }
 
 export function makePublicClient() {
-  return createPublicClient({ chain: celo, transport: http(CELO_MAINNET.rpcUrl) });
+  // Generous timeout + retries. MiniPay's WebView on emerging-market connections is slower than a
+  // desktop browser and forno occasionally rate-limits, which surfaced as a transient "temporarily
+  // unavailable" on the Confirm screen even when the send itself succeeds. These are read-only RPC
+  // calls, so retrying is always safe.
+  return createPublicClient({
+    chain: celo,
+    transport: http(CELO_MAINNET.rpcUrl, { timeout: 20_000, retryCount: 4, retryDelay: 500 }),
+  });
 }
 
 export function makeWalletClient(account) {
