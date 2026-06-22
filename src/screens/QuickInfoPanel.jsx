@@ -105,6 +105,18 @@ export function QuickInfoPanel({ type, onClose, reportHash = "", notices = [] })
             ))}
           </div>
         )}
+        {/* Roadmap is kept visually separate from the live notifications above. */}
+        {type === "future" && panel.roadmap && (
+          <div className="quick-info-roadmap">
+            <span className="quick-info-roadmap-eyebrow">{panel.roadmap.eyebrow}</span>
+            <strong>{panel.roadmap.title}</strong>
+            <div className="quick-info-list">
+              {panel.roadmap.items.map((item) => (
+                <div key={item}><Check size={15} /><span>{item}</span></div>
+              ))}
+            </div>
+          </div>
+        )}
         {/* On the report panel the copy action is the first, primary instruction. */}
         {type === "report" && <ReportIssueAction reportHash={reportHash} />}
         {panel.items.length > 0 && (
