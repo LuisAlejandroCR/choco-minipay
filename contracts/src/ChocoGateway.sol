@@ -76,6 +76,11 @@ contract ChocoGateway {
     // --- Held funds: owner => scheduleId => USDC reserved for the next run ----
     mapping(address => mapping(uint256 => uint256)) public lockedOf;
 
+    // --- Per-schedule last settlement (audit M1: gates settleScheduledRun to one run per period,
+    //     killing the settle -> lockFor -> settle loop a compromised keeper could use to drain). ---
+    mapping(uint256 => uint64) public lastSettledAt;
+    uint64 public constant MIN_SETTLE_INTERVAL = 27 days;
+
     event UsdcToCkesSwap(address indexed payer, address indexed recipient, uint256 usdcIn, uint256 usdmSpent, uint256 ckesOut, uint256 feeUsdc);
     event RunLocked(address indexed owner, uint256 indexed scheduleId, uint256 usdcAmount, address indexed fundedBy);
     event RunSettled(address indexed owner, uint256 indexed scheduleId, address recipient, uint256 usdcIn, uint256 ckesOut);
@@ -91,7 +96,9 @@ contract ChocoGateway {
     uint256 private _entered;
     modifier nonReentrant() { require(_entered == 0, "reentrant"); _entered = 1; _; _entered = 0; }
     modifier onlyAdmin() { require(msg.sender == admin, "not admin"); _; }
-    modifier onlyKeeper() { require(msg.sender == keeper || msg.sender == admin, "not keeper"); _; }
+    // audit M1: keeper is STRICT (no `|| admin`) so a compromised admin alone cannot settle/lock —
+    // settlement requires the dedicated keeper key. Admin still rotates the keeper via setKeeper.
+    modifier onlyKeeper() { require(msg.sender == keeper, "not keeper"); _; }
 
     constructor(
         address brokerAddress, address exchangeProviderAddress, bytes32 usdcToUsdmExchangeId,
@@ -114,7 +121,9 @@ contract ChocoGateway {
         feeRecipient = newRecipient; feeBps = newFeeBps; emit FeeUpdated(newRecipient, newFeeBps);
     }
     function setKeeper(address newKeeper) external onlyAdmin {
-        require(newKeeper != address(0), "bad keeper"); keeper = newKeeper; emit KeeperUpdated(newKeeper);
+        require(newKeeper != address(0), "bad keeper");
+        require(newKeeper != admin, "keeper==admin"); // audit M1: keep the roles separated
+        keeper = newKeeper; emit KeeperUpdated(newKeeper);
     }
     function transferAdmin(address newAdmin) external onlyAdmin {
         require(newAdmin != address(0), "bad admin"); admin = newAdmin;
@@ -143,6 +152,7 @@ contract ChocoGateway {
         external nonReentrant returns (uint256 ckesAmountOut)
     {
         if (usdcAmountIn == 0) revert ZeroAmount();
+        require(ckesMinOut > 0, "no min out"); // audit M4: forbid a 0 floor (sandwich -> ~0 KESm delivered)
         require(recipient != address(0), "bad recipient");
         require(usdc.transferFrom(msg.sender, address(this), usdcAmountIn), "usdc pull");
 
@@ -180,6 +190,11 @@ contract ChocoGateway {
     function fundRun(uint256 scheduleId, uint256 usdcAmount) external nonReentrant {
         if (usdcAmount == 0) revert ZeroAmount();
         if (lockedOf[msg.sender][scheduleId] != 0) revert AlreadyLocked();
+        // audit: tie the lock to a real, active schedule the caller owns (no orphaned locks) and cap it
+        // at the schedule's funded amount (no over-lock).
+        IChocoLedger.Schedule memory s = ledger.getSchedule(scheduleId);
+        require(s.owner == msg.sender && s.active && !s.cancelled, "bad schedule");
+        require(usdcAmount <= s.sourceAmount, "over-lock");
         require(usdc.transferFrom(msg.sender, address(this), usdcAmount), "usdc pull");
         lockedOf[msg.sender][scheduleId] = usdcAmount;
         emit RunLocked(msg.sender, scheduleId, usdcAmount, msg.sender);
@@ -189,6 +204,11 @@ contract ChocoGateway {
     function lockFor(address owner, uint256 scheduleId, uint256 usdcAmount) external onlyKeeper nonReentrant {
         if (usdcAmount == 0) revert ZeroAmount();
         if (lockedOf[owner][scheduleId] != 0) revert AlreadyLocked();
+        // audit M1: bound the keeper-initiated lock to the schedule's own funded amount so a compromised
+        // keeper can't over-pull an owner's standing USDC allowance.
+        IChocoLedger.Schedule memory s = ledger.getSchedule(scheduleId);
+        require(s.owner == owner && s.active && !s.cancelled, "bad schedule");
+        require(usdcAmount <= s.sourceAmount, "over-lock");
         require(usdc.transferFrom(owner, address(this), usdcAmount), "usdc pull");
         lockedOf[owner][scheduleId] = usdcAmount;
         emit RunLocked(owner, scheduleId, usdcAmount, msg.sender);
@@ -211,10 +231,13 @@ contract ChocoGateway {
         IChocoLedger.Schedule memory s = ledger.getSchedule(scheduleId);
         require(s.active && !s.cancelled, "inactive");
         if (s.sourceAsset != address(usdc)) revert NotUsdcPlan();
+        // audit M1: at most one settlement per period — blocks the settle -> lockFor -> settle drain loop.
+        require(block.timestamp >= lastSettledAt[scheduleId] + MIN_SETTLE_INTERVAL, "too soon");
 
         uint256 held = lockedOf[s.owner][scheduleId];
         if (held == 0) revert NothingLocked();
-        lockedOf[s.owner][scheduleId] = 0; // effects before interactions; held USDC already in this contract
+        lockedOf[s.owner][scheduleId] = 0;          // effects before interactions; held USDC already here
+        lastSettledAt[scheduleId] = uint64(block.timestamp);
 
         (uint256 fee, uint256 netUsdc, ) = _swapExactOut(held, s.recipient, s.destinationAmount, s.owner);
         ckesAmountOut = s.destinationAmount;
