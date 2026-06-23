@@ -92,14 +92,13 @@ export default function App() {
     { enabled: ["plan", "plans", "history"].includes(visibleScreen) },
   );
 
-  // Auto-update when the app regains focus/visibility (e.g. a keeper settlement landed while it was
-  // backgrounded), so the user sees the current balance + plans without reopening.
+  // Auto-update balances when the app regains focus. (useChocoLedger already refreshes plans/history
+  // on visibility/focus, so we only add the balance read here to avoid a double ledger refresh.)
   useEffect(() => {
     if (!wallet.address) return undefined;
     function onVisible() {
       if (document.visibilityState !== "visible") return;
       void refreshBalances(wallet.address);
-      void refreshLedgerFresh?.();
     }
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("focus", onVisible);

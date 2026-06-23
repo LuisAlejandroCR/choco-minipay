@@ -10,6 +10,7 @@ import {
   mapScheduleToPlan,
   mergeSendNowHistory,
   logOrder,
+  tailAddress,
 } from "./history-mappers.js";
 import {
   readSendNowHistory,
@@ -117,9 +118,21 @@ export async function readOwnerLedger(owner) {
     })
     .sort((a, b) => b.onchainId - a.onchainId);
 
+  // Enrich held movements with the plan's recipient so they show the contact name (resolved by
+  // attachContactLabels) instead of a bare plan id.
+  const enrichedEscrow = escrowHistory.map((movement) => {
+    const sched = movement.scheduleId ? scheduleById.get(String(movement.scheduleId)) : null;
+    if (!sched?.recipient) return movement;
+    return {
+      ...movement,
+      recipient: tailAddress(sched.recipient),
+      recipientAddress: sched.recipient,
+      toAddress: sched.recipient,
+    };
+  });
   const history = [
     ...composeMovementHistory({ sendNowHistory, settlements, scheduleById, timeByBlock }),
-    ...escrowHistory,
+    ...enrichedEscrow,
   ].sort((a, b) => b.sortKey - a.sortKey);
 
   const result = { plans, history };
