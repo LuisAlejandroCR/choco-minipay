@@ -44,6 +44,10 @@ interface IChocoLedger {
         uint64 firstRunAt; bool active; bool cancelled; bytes32 commandHash; bytes32 receiptLabelHash;
     }
     function getSchedule(uint256 id) external view returns (Schedule memory);
+    function createMonthlyScheduleFor(
+        address owner, address recipient, address sourceAsset, uint256 sourceAmount, uint256 destinationAmount,
+        uint8 dayOfMonth, uint64 firstRunAt, bytes32 commandHash, bytes32 receiptLabelHash
+    ) external returns (uint256);
     function logAttemptFor(
         address payer, uint8 kind, address recipientWallet, uint256 usdcAmount, uint256 ckesAmount, string calldata note
     ) external returns (uint256);
@@ -210,6 +214,32 @@ contract ChocoGateway {
         require(usdc.transferFrom(msg.sender, address(this), usdcAmount), "usdc pull");
         lockedOf[msg.sender][scheduleId] = usdcAmount;
         emit RunLocked(msg.sender, scheduleId, usdcAmount, msg.sender);
+    }
+
+    /// @notice Create a USDC plan on the ledger AND lock its first run's USDC in ONE user transaction
+    ///         (one signature, vs. the previous create-then-fund two-signature flow). The schedule is
+    ///         owned by msg.sender. USDC-source plans only; the gateway is already an authorized swap
+    ///         contract on the ledger, which is what gates createMonthlyScheduleFor.
+    function createAndFundRun(
+        address recipient,
+        uint256 sourceAmount,
+        uint256 destinationAmount,
+        uint8   dayOfMonth,
+        uint64  firstRunAt,
+        bytes32 commandHash,
+        bytes32 receiptLabelHash
+    ) external nonReentrant returns (uint256 scheduleId) {
+        if (sourceAmount == 0) revert ZeroAmount();
+        // The ledger validates recipient / destinationAmount / dayOfMonth and sets the owner to msg.sender.
+        scheduleId = ledger.createMonthlyScheduleFor(
+            msg.sender, recipient, address(usdc), sourceAmount, destinationAmount,
+            dayOfMonth, firstRunAt, commandHash, receiptLabelHash
+        );
+        // Lock the first run. The schedule is brand new, so lockedOf is zero and the amount equals the
+        // schedule's sourceAmount by construction — no AlreadyLocked / over-lock checks needed here.
+        require(usdc.transferFrom(msg.sender, address(this), sourceAmount), "usdc pull");
+        lockedOf[msg.sender][scheduleId] = sourceAmount;
+        emit RunLocked(msg.sender, scheduleId, sourceAmount, msg.sender);
     }
 
     /// @notice Keeper reserves the next run from the owner's standing allowance (auto-lock after a run).

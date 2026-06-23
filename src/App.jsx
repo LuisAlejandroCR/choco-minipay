@@ -554,23 +554,10 @@ export default function App() {
               }}
             />
           )}
-          {transfer.showSuccessModal && transfer.lastReceipt && (
-            <TransactionSuccessScreen
-              transaction={transfer.lastReceipt}
-              onViewDetails={() => {
-                transfer.setShowSuccessModal(false);
-                // commitReceipt already navigated to the right detail: send-now opens the movement
-                // receipt; a scheduled plan stays on its plan detail.
-                if (transfer.lastReceipt?.deliveryMode === "schedule") {
-                  goTo("planDetail");
-                } else if (transfer.lastReceipt) {
-                  setSelectedTransactionId(transfer.lastReceipt.id);
-                  setSelectedTransactionFallback(transfer.lastReceipt);
-                  goTo("receiptDetail");
-                }
-              }}
-              onDismiss={() => transfer.setShowSuccessModal(false)}
-            />
+          {/* Pure confetti effect (browser only — gated in useTransfer). commitReceipt has already
+              navigated to the receipt/plan detail, so this just plays over it and auto-clears. */}
+          {transfer.showSuccessModal && (
+            <TransactionSuccessScreen onDone={() => transfer.setShowSuccessModal(false)} />
           )}
           {visibleScreen === "receiptDetail" && activeTransaction && (
             <ReceiptDetailScreen

@@ -1,9 +1,8 @@
 import { decodeEventLog, keccak256, toHex } from "viem";
 import { ADDRESSES, assertAddress, makePublicClient, makeWalletClient } from "./client.js";
 import { REGISTRY_ABI, REGISTRY_EVENTS_ABI } from "./abis.js";
-import { fundScheduleRun, isEscrowConfigured } from "./escrow.js";
+import { createAndFundScheduleRun, isEscrowConfigured } from "./escrow.js";
 import {
-  approveTokenIfNeeded,
   destinationAmountForIntent,
   sourceAmountForIntent,
   sourceAssetAddressForIntent,
@@ -36,21 +35,38 @@ export async function createScheduleViaRegistry({ account, recipient, intent }) 
   const sourceAsset = sourceAssetAddressForIntent(intent);
   assertAddress(sourceAsset, "Source asset");
 
-  // Escrow mode (USDC-funded plans): the next run's USDC is locked in ChocoScheduleEscrow instead
-  // of relying on a standing settlement-spender allowance, so the run can't fail on insufficient
-  // funds. Dormant until VITE_SCHEDULE_ESCROW_ADDRESS is set — legacy behavior is unchanged.
-  // The new ChocoLedger+ChocoGateway pair has no settlement-spender concept: the gateway settles
-  // from its own locked funds (escrow model), so there is no standing approval to pre-grant.
-  const escrowMode = isEscrowConfigured() && sourceAsset.toLowerCase() === String(ADDRESSES.usdc).toLowerCase();
-
-  const walletClient = makeWalletClient(account);
-  const publicClient = makePublicClient();
-
-  const approveHash = null; // no settlement-spender in the new contract pair
-
   const receiptLabel = String(intent.receiptLabel || "").trim().toLowerCase();
   const receiptLabelHash = receiptLabel ? keccak256(toHex(receiptLabel)) : `0x${"0".repeat(64)}`;
+  const commandHash = keccak256(toHex(intent.rawCommand));
+  const destinationAmount = destinationAmountForIntent(intent);
 
+  // Escrow mode (USDC-funded plans): the first run's USDC is locked in the gateway. The new
+  // ChocoLedger+ChocoGateway pair has no settlement-spender concept — the gateway settles from its
+  // own locked funds — so there is no standing approval to pre-grant.
+  const escrowMode = isEscrowConfigured() && sourceAsset.toLowerCase() === String(ADDRESSES.usdc).toLowerCase();
+
+  // One-signature path: createAndFundRun creates the plan on the ledger AND locks its first run in a
+  // single tx, so the user signs once (plus a one-time USDC approval the first time they schedule).
+  // The MonthlyScheduleCreated event is still emitted by the ledger, so the id extraction is unchanged.
+  if (escrowMode) {
+    const { approveHash, hash, receipt } = await createAndFundScheduleRun({
+      account,
+      recipient,
+      sourceAmount: amount,
+      destinationAmount,
+      dayOfMonth: intent.dayOfMonth,
+      firstRunAt: intent.firstRunAt,
+      commandHash,
+      receiptLabelHash,
+    });
+    const scheduleId = extractScheduleId(receipt, ledgerOrRegistry, account);
+    return { approveHash, hash, fundHash: hash, scheduleId: scheduleId === null ? null : scheduleId.toString() };
+  }
+
+  // Legacy path (cKES-source plans, or escrow not configured): create on the ledger only. These plans
+  // settle from the owner's standing allowance, so there is no separate funding step.
+  const walletClient = makeWalletClient(account);
+  const publicClient = makePublicClient();
   const hash = await walletClient.writeContract({
     address: ledgerOrRegistry,
     abi: REGISTRY_ABI,
@@ -59,27 +75,17 @@ export async function createScheduleViaRegistry({ account, recipient, intent }) 
       recipient,
       sourceAsset,
       amount,
-      destinationAmountForIntent(intent),
+      destinationAmount,
       intent.dayOfMonth,
       BigInt(intent.firstRunAt),
-      keccak256(toHex(intent.rawCommand)),
+      commandHash,
       receiptLabelHash,
     ],
     feeCurrency: ADDRESSES.feeCurrency, // use the configured MiniPay fee currency adapter
   });
   const receipt = await publicClient.waitForTransactionReceipt({ hash });
-
-  // Keep the created schedule id so the UI can open the exact plan immediately.
   const scheduleId = extractScheduleId(receipt, ledgerOrRegistry, account);
-
-  // Lock the first run's USDC immediately so the plan is funded and the keeper can settle it.
-  let fundHash = null;
-  if (escrowMode && scheduleId !== null) {
-    const funded = await fundScheduleRun({ account, scheduleId, usdcPerRun: amount });
-    fundHash = funded.hash;
-  }
-
-  return { approveHash, hash, fundHash, scheduleId: scheduleId === null ? null : scheduleId.toString() };
+  return { approveHash: null, hash, fundHash: null, scheduleId: scheduleId === null ? null : scheduleId.toString() };
 }
 
 export async function cancelScheduleViaRegistry({ account, id }) {
