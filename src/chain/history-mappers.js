@@ -187,21 +187,22 @@ export function mapEscrowToMovement(log, timestamp, kind) {
   return {
     id: `${isRefund ? "refund" : "held"}-${log.transactionHash}-${log.logIndex}`,
     planId: `schedule-${planNo}`,
-    recipient: `Plan #${planNo}`,
+    scheduleId: planNo, // used to enrich with the plan's recipient (contact name) in readOwnerLedger
+    recipient: "Scheduled plan",
     recipientAddress: "",
     amount: usdc.toLocaleString("en-US", { maximumFractionDigits: 4 }),
     amountMinor: usdc,
     asset: APP_CONFIG.assets.source,
     payAsset: APP_CONFIG.assets.source,
     payAmount: usdc,
-    schedule: isRefund ? "Returned to your wallet" : `Reserved for plan #${planNo}`,
+    schedule: isRefund ? "Returned to your wallet" : "Reserved for the next run",
     date: formatChainDate(timestamp),
     status: isRefund ? "Returned" : "Reserved",
     hash: log.transactionHash,
     type: isRefund ? "Returned to wallet" : "Reserved for next run",
     deliveryMode: "held",
     from: a.owner,
-    to: `Plan #${planNo}`,
+    to: "Scheduled plan",
     toAddress: "",
     routeEstimate: isRefund
       ? `${usdc} ${APP_CONFIG.assets.source} returned to your wallet`

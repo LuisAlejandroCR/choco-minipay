@@ -4,8 +4,9 @@
 // Pure functions where possible; on-chain reads use the public client.
 
 import { formatUnits, isAddress, parseUnits } from "viem";
-import { ADDRESSES, ERC20_ABI, MENTO_BROKER_ABI, getApprovalTarget, makePublicClient, readUsdcBalance, routeQuoteMessage, selectTransferRouteExactOut } from "./celo.js";
+import { ADDRESSES, MENTO_BROKER_ABI, makePublicClient, readUsdcBalance, routeQuoteMessage, selectTransferRouteExactOut } from "./celo.js";
 import { APP_CONFIG } from "./app-config.js";
+import { estimateTransferFeeUsdc } from "./cepolia-fees.js";
 
 
 // Readiness verdicts (UX-only — never written on-chain). The audit contract is for events that
@@ -116,59 +117,6 @@ export async function quoteUsdcToCkes(usdcAmountFloat) {
     address: ADDRESSES.mentoBroker, abi: MENTO_BROKER_ABI, functionName: "getAmountOut",
     args: [ADDRESSES.mentoProvider, APP_CONFIG.mento.usdmToCkes, ADDRESSES.usdm, ADDRESSES.kesm, usdmOut],
   });
-}
-
-// Estimate the USDC network fee for one Choco gateway transfer, using the CIP-64 fee-currency
-// approach. The gateway settles the whole route (USDC → USDm via Mento, USDm → KESm via Uniswap V3,
-// deliver KESm, refund USDm surplus) in ONE swapAndSendExact tx, so the cost is just:
-//   1. approve USDC → gateway   (first send only; the allowance stays warm afterwards)
-//   2. swapAndSendExact         (everything else, in a single tx)
-//
-// Celopedia CIP-64 rules (builder-guide.md):
-//   • Pass feeCurrency to estimateContractGas — the node prices gas in the fee token.
-//   • eth_gasPrice with the feeCurrency adapter returns the price already in fee-token units
-//     (18-dec USDC), so formatUnits(totalGas × gasPrice, 18) is the USDC cost directly.
-//
-// Settle gas is calibrated from verified mainnet tx 0x9a4a… (618,573 gas), rounded up for headroom.
-// The old 5-op Mento model (~844k) over-stated the fee by ~70 %.
-const GATEWAY_SETTLE_GAS = 650000n;
-
-async function estimateTransferFeeUsdc(account, usdcAmountRaw) {
-  const publicClient = makePublicClient();
-  const feeCurrency = ADDRESSES.feeCurrency;
-
-  // approve USDC → gateway is the only approval; the gateway runs both hops internally.
-  let approveGas = 46000n;
-  const approvalTarget = getApprovalTarget({
-    deliveryMode: "now",
-    intent: { sourceAsset: APP_CONFIG.assets.source },
-  });
-  if (account && isAddress(account) && usdcAmountRaw > 0n) {
-    try {
-      approveGas = await publicClient.estimateContractGas({
-        address: ADDRESSES.usdc,
-        abi: ERC20_ABI,
-        functionName: "approve",
-        args: [approvalTarget?.address || ADDRESSES.mentoBroker, usdcAmountRaw],
-        account,
-        feeCurrency,
-      });
-    } catch {}
-  }
-
-  const totalGas = approveGas + GATEWAY_SETTLE_GAS;
-
-  // eth_gasPrice with feeCurrency returns the price denominated in the fee adapter
-  // (18-dec USDC), so formatUnits(total, 18) gives the USDC cost directly.
-  try {
-    const gasPriceHex = await publicClient.request({
-      method: "eth_gasPrice",
-      params: [feeCurrency],
-    });
-    return Number(formatUnits(totalGas * BigInt(gasPriceHex), 18));
-  } catch {
-    return 0.004; // fallback: one approve + one gateway settle at a typical gas price
-  }
 }
 
 // Cepolia readiness summary for the Confirm Send screen. All numeric values are returned both as
