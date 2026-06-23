@@ -3,7 +3,7 @@ import { APP_CONFIG } from "../lib/app-config.js";
 import { ADDRESSES, assertAddress, makePublicClient, makeWalletClient } from "./client.js";
 import { CKES_SWAP_ABI, ERC20_ABI, MENTO_BROKER_ABI } from "./abis.js";
 import { approveTokenIfNeeded, usdcAmountForIntent, sourceAmountForIntent } from "./tokens.js";
-import { hasAnyExecutableRoute, selectTransferRouteExactOut, selectTransferRouteForwardIn } from "./routes.js";
+import { hasAnyExecutableRoute, selectTransferRouteExactOutWithRetry, selectTransferRouteForwardIn } from "./routes.js";
 
 function readErc20Balance(publicClient, token, account) {
   return publicClient.readContract({ address: token, abi: ERC20_ABI, functionName: "balanceOf", args: [account] });
@@ -76,7 +76,9 @@ export async function sendNow({ account, recipient, intent }) {
     // Exact-output path: user typed a cKES amount — deliver it precisely, return surplus.
     if (intent.amountKes) {
       const ckesExact = parseUnits(String(Number(intent.amountKes)), 18);
-      const selectedRoute = await selectTransferRouteExactOut({ ckesAmountRaw: ckesExact, publicClient });
+      // Retry transient quote failures (e.g. Mento "no valid median" right after a prior send) so a
+      // brief oracle hiccup at confirm time doesn't fail an otherwise-valid transfer.
+      const selectedRoute = await selectTransferRouteExactOutWithRetry({ ckesAmountRaw: ckesExact, publicClient });
       if (!selectedRoute.ok) {
         throw new Error(selectedRoute.message);
       }

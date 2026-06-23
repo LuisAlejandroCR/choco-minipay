@@ -107,6 +107,17 @@ export async function selectTransferRouteExactOut({ ckesAmountRaw, publicClient 
   };
 }
 
+// Retry the inverse quote a few times — transient oracle hiccups (e.g. Mento "no valid median" right
+// after a swap) clear within a second or two. Same return shape as selectTransferRouteExactOut.
+export async function selectTransferRouteExactOutWithRetry({ ckesAmountRaw, attempts = 3, delayMs = 500, publicClient = makePublicClient() }) {
+  let result = await selectTransferRouteExactOut({ ckesAmountRaw, publicClient });
+  for (let attempt = 1; !result.ok && attempt < attempts; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    result = await selectTransferRouteExactOut({ ckesAmountRaw, publicClient });
+  }
+  return result;
+}
+
 // Forward quote: given a fixed USDC input, find the route that can execute it and return cKES out.
 // Used by the fixed-input swap path (when the user specifies USDC amount instead of a cKES target).
 export async function selectTransferRouteForwardIn({ usdcAmountRaw, publicClient = makePublicClient() }) {
