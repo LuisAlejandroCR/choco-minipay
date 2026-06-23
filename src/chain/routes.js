@@ -107,12 +107,14 @@ export async function selectTransferRouteExactOut({ ckesAmountRaw, publicClient 
   };
 }
 
-// Retry the inverse quote a few times — transient oracle hiccups (e.g. Mento "no valid median" right
-// after a swap) clear within a second or two. Same return shape as selectTransferRouteExactOut.
-export async function selectTransferRouteExactOutWithRetry({ ckesAmountRaw, attempts = 3, delayMs = 500, publicClient = makePublicClient() }) {
+// Retry the inverse quote with backoff. Right after a send, forno can briefly rate-limit the burst of
+// reads (receipt poll + balance + ledger refresh) and/or the Mento leg report goes momentarily stale,
+// so the *second* transfer's quote needs a few seconds to recover — a 1s window wasn't enough. The
+// retries only run when the quote actually fails, so a normal first-try quote stays instant.
+export async function selectTransferRouteExactOutWithRetry({ ckesAmountRaw, attempts = 6, publicClient = makePublicClient() }) {
   let result = await selectTransferRouteExactOut({ ckesAmountRaw, publicClient });
   for (let attempt = 1; !result.ok && attempt < attempts; attempt += 1) {
-    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    await new Promise((resolve) => setTimeout(resolve, Math.min(1500, 400 * attempt)));
     result = await selectTransferRouteExactOut({ ckesAmountRaw, publicClient });
   }
   return result;
