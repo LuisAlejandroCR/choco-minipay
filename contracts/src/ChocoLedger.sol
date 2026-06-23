@@ -154,6 +154,45 @@ contract ChocoLedger {
         bytes32 commandHash,
         bytes32 receiptLabelHash
     ) external returns (uint256 id) {
+        return _createMonthlySchedule(
+            msg.sender, recipient, sourceAsset, sourceAmount,
+            destinationAmount, dayOfMonth, firstRunAt, commandHash, receiptLabelHash
+        );
+    }
+
+    /// @notice Create a schedule on behalf of `owner`. Restricted to authorized gateways so a plan can
+    ///         be created AND funded in a single user transaction (one signature). The gateway passes
+    ///         its own caller as `owner`, so the schedule is owned by that user — never by the gateway.
+    function createMonthlyScheduleFor(
+        address owner,
+        address recipient,
+        address sourceAsset,
+        uint256 sourceAmount,
+        uint256 destinationAmount,
+        uint8   dayOfMonth,
+        uint64  firstRunAt,
+        bytes32 commandHash,
+        bytes32 receiptLabelHash
+    ) external returns (uint256 id) {
+        require(authorizedSwapContracts[msg.sender], "not authorized");
+        require(owner != address(0), "bad owner");
+        return _createMonthlySchedule(
+            owner, recipient, sourceAsset, sourceAmount,
+            destinationAmount, dayOfMonth, firstRunAt, commandHash, receiptLabelHash
+        );
+    }
+
+    function _createMonthlySchedule(
+        address owner,
+        address recipient,
+        address sourceAsset,
+        uint256 sourceAmount,
+        uint256 destinationAmount,
+        uint8   dayOfMonth,
+        uint64  firstRunAt,
+        bytes32 commandHash,
+        bytes32 receiptLabelHash
+    ) internal returns (uint256 id) {
         require(recipient         != address(0), "bad recipient");
         require(sourceAsset       != address(0), "bad asset");
         require(sourceAmount      > 0,           "bad source amount");
@@ -163,7 +202,7 @@ contract ChocoLedger {
         uint64 start = firstRunAt < uint64(block.timestamp) ? uint64(block.timestamp) : firstRunAt;
         id = ++scheduleCount;
         schedules[id] = Schedule({
-            owner:             msg.sender,
+            owner:             owner,
             recipient:         recipient,
             sourceAsset:       sourceAsset,
             sourceAmount:      sourceAmount,
@@ -177,7 +216,7 @@ contract ChocoLedger {
         });
 
         emit MonthlyScheduleCreated(
-            id, msg.sender, recipient, sourceAsset,
+            id, owner, recipient, sourceAsset,
             sourceAmount, destinationAmount, dayOfMonth, start, commandHash
         );
     }
