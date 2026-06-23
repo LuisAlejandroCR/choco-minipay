@@ -2,112 +2,16 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="description" content="Standalone Choco MiniPay phone preview." />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content="Choco — full clickable MiniPay remittance demo (splash → pitch → plans → send → receipt)." />
     <title>Choco Demo</title>
-    <!-- 1:1 mirror of choco-azure's left pane: reuses its real stylesheet verbatim. -->
-    <link rel="stylesheet" href="demo.css" />
-    <style>
-      /* Standalone: choco-azure renders this phone as the left column of a 2-col .stage.
-         Here we show the phone on its own, so collapse .stage to a single centered column. */
-      .stage { grid-template-columns: min(430px, 100%); }
-    </style>
+    <!-- Full clickable demo: the actual choco-azure app (source: Celo/choco mvp static), built and
+         vendored here. Rebuild with `npx vite build` in that repo, then copy dist/assets/* into
+         public/demo-assets/ and update the two filenames below. -->
+    <script type="module" src="/demo-assets/index-lmtH1WM9.js"></script>
+    <link rel="stylesheet" href="/demo-assets/index-6y_fuXPf.css" />
   </head>
   <body>
-    <main class="stage">
-      <section class="miniapp" aria-label="Choco Mini App">
-        <div class="statusbar">
-          <span>9:41</span>
-          <div class="status-icons" aria-hidden="true">
-            <div class="signal"><span></span><span></span><span></span><span></span></div>
-            <div class="wifi"></div>
-            <div class="battery"></div>
-          </div>
-        </div>
-
-        <div class="topbar">
-          <button class="icon-button" type="button" aria-label="Back to home">
-            <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-          </button>
-          <div class="app-title">Home</div>
-          <div class="topbar-actions" aria-label="Feature and support shortcuts">
-            <button class="header-icon future" type="button" aria-label="Future development" title="Future development">
-              <svg xmlns="http://www.w3.org/2000/svg" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></svg>
-            </button>
-            <button class="header-icon" type="button" aria-label="Support" title="Support">
-              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
-            </button>
-          </div>
-        </div>
-
-        <div class="app-panel tone-plan">
-          <div class="screen plan-screen">
-            <div class="home-hero">
-              <div class="home-actions">
-                <button type="button" aria-label="Profile">
-                  <span class="choco-mark tiny" aria-label="Choco logo">
-                    <span class="cacao-shadow"></span>
-                    <span class="cacao-pod"></span>
-                    <span class="cacao-ridge ridge-a"></span>
-                    <span class="cacao-ridge ridge-b"></span>
-                    <span class="cacao-ridge ridge-c"></span>
-                    <span class="cacao-nib nib-a"></span>
-                    <span class="cacao-nib nib-b"></span>
-                  </span>
-                </button>
-                <span class="home-title-pill">Choco</span>
-                <button type="button" aria-label="Support">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
-                </button>
-              </div>
-              <div class="balance-copy">
-                <span>Next plan</span>
-                <strong>50,000</strong>
-                <p>KESm to Mom - Every 1st - 9:00 AM</p>
-              </div>
-            </div>
-
-            <button class="home-start-action" type="button">
-              <span class="home-start-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/></svg>
-              </span>
-              <span><b>New transfer</b><small>Send now or schedule with voice</small></span>
-              <svg xmlns="http://www.w3.org/2000/svg" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-            </button>
-
-            <section class="home-list" aria-label="Home plan list">
-              <div class="section-heading"><span>Plans</span></div>
-              <button class="plan-row compact-row" type="button">
-                <div class="plan-row-icon">
-                  <span class="choco-mark tiny" aria-label="Choco logo">
-                    <span class="cacao-shadow"></span>
-                    <span class="cacao-pod"></span>
-                    <span class="cacao-ridge ridge-a"></span>
-                    <span class="cacao-ridge ridge-b"></span>
-                    <span class="cacao-ridge ridge-c"></span>
-                    <span class="cacao-nib nib-a"></span>
-                    <span class="cacao-nib nib-b"></span>
-                  </span>
-                </div>
-                <div><b>Mom</b><span>50,000 KESm - Every 1st - 9:00 AM</span></div>
-                <small>Active</small>
-              </button>
-            </section>
-
-            <nav class="bottom-nav" aria-label="Mini App navigation">
-              <button class="active" type="button">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>Home
-              </button>
-              <button type="button">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></svg>Plans
-              </button>
-              <button type="button">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>History
-              </button>
-            </nav>
-          </div>
-        </div>
-      </section>
-    </main>
+    <div id="root"></div>
   </body>
 </html>
