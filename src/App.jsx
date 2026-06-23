@@ -81,7 +81,10 @@ export default function App() {
   // --- Pull-to-refresh + auto-update: one refresh updates balance + plans + history together ---
   const panelRef = useRef(null);
   const pullRefresh = useCallback(async () => {
-    await Promise.all([refreshBalances(wallet.address), Promise.resolve(refreshLedgerFresh?.())]);
+    // Await only the fast balance read so the spinner is brief; the ledger refresh runs in the
+    // background and fills the list in when it resolves.
+    void refreshLedgerFresh?.();
+    await refreshBalances(wallet.address);
   }, [wallet.address]); // eslint-disable-line react-hooks/exhaustive-deps
   const { pullDistance, refreshing: ptrRefreshing } = usePullToRefresh(
     panelRef,

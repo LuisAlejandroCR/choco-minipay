@@ -13,7 +13,7 @@ function runConfetti(canvas) {
   canvas.width = canvas.offsetWidth;
   canvas.height = canvas.offsetHeight;
 
-  const particles = Array.from({ length: 90 }, () => ({
+  const particles = Array.from({ length: 50 }, () => ({
     x: Math.random() * canvas.width,
     y: -Math.random() * 120,
     size: Math.random() * 9 + 4,
@@ -43,10 +43,7 @@ function runConfetti(canvas) {
       p.x += p.speedX;
       p.y += p.speedY;
       p.rotation += p.rotSpeed;
-      if (p.y > canvas.height + 20) {
-        p.y = -20;
-        p.x = Math.random() * canvas.width;
-      }
+      // Fall once, top -> down (no recycle), so it's a single gentle drop rather than a dense shower.
       ctx.save();
       ctx.translate(p.x, p.y);
       ctx.rotate((p.rotation * Math.PI) / 180);

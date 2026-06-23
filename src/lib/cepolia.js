@@ -21,6 +21,22 @@ export const READINESS_REASON = {
   ROUTE_UNAVAILABLE: "ROUTE_UNAVAILABLE",
 };
 
+// Quote reads (Mento getAmountOut + UniV3 slot0) occasionally fail on a transient RPC/oracle hiccup.
+// Retry a few times before declaring the route unavailable, so the review screen doesn't flash
+// "temporarily unavailable" (and block confirm) for a transfer that works on the next attempt.
+async function withQuoteRetry(fn, attempts = 3, delayMs = 400) {
+  let lastError;
+  for (let i = 0; i < attempts; i += 1) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (i < attempts - 1) await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+  throw lastError;
+}
+
 // Cepolia Skill — readiness check before Review. Returns { ok, reason, message, required, available }.
 // Never signs or logs anything; this is pure validation. Failures are surfaced as UX messages
 // (e.g. "Fund your account with USDC before continuing").
@@ -41,7 +57,7 @@ export async function verifyReadiness({ account, intent }) {
     let required = parseUnits(Number(intent.sourceAmount).toFixed(6), 6);
     if (Number(intent.amountKes) > 0) {
       try {
-        const exactRequired = await quoteExactOutputUsdc(parseUnits(String(Number(intent.amountKes)), 18));
+        const exactRequired = await withQuoteRetry(() => quoteExactOutputUsdc(parseUnits(String(Number(intent.amountKes)), 18)));
         if (exactRequired > 0n) required = exactRequired;
       } catch (error) {
         return {
@@ -183,7 +199,7 @@ export async function summariseTransfer({ account, recipient, intent, walletRead
   let usdcRaw = usdcRequested > 0 ? parseUnits(Number(usdcRequested).toFixed(6), 6) : 0n;
   if (ckesRequested > 0) {
     try {
-      const exactRequired = await quoteExactOutputUsdc(ckesRaw);
+      const exactRequired = await withQuoteRetry(() => quoteExactOutputUsdc(ckesRaw));
       if (exactRequired > 0n) usdcRaw = exactRequired;
     } catch (error) {
       routeUnavailable = true;
