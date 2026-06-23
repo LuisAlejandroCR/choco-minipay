@@ -178,6 +178,38 @@ export function mapAttemptToMovement(log, timestamp) {
   };
 }
 
+// Escrow lifecycle → movement. kind: "lock" (USDC reserved for the next run) or "refund" (returned).
+export function mapEscrowToMovement(log, timestamp, kind) {
+  const a = log.args;
+  const usdc = unitsToNumber(a.usdcAmount, 6);
+  const planNo = String(a.scheduleId);
+  const isRefund = kind === "refund";
+  return {
+    id: `${isRefund ? "refund" : "held"}-${log.transactionHash}-${log.logIndex}`,
+    planId: `schedule-${planNo}`,
+    recipient: `Plan #${planNo}`,
+    recipientAddress: "",
+    amount: usdc.toLocaleString("en-US", { maximumFractionDigits: 4 }),
+    amountMinor: usdc,
+    asset: APP_CONFIG.assets.source,
+    payAsset: APP_CONFIG.assets.source,
+    payAmount: usdc,
+    schedule: isRefund ? "Returned to your wallet" : `Reserved for plan #${planNo}`,
+    date: formatChainDate(timestamp),
+    status: isRefund ? "Returned" : "Reserved",
+    hash: log.transactionHash,
+    type: isRefund ? "Returned to wallet" : "Reserved for next run",
+    deliveryMode: "held",
+    from: a.owner,
+    to: `Plan #${planNo}`,
+    toAddress: "",
+    routeEstimate: isRefund
+      ? `${usdc} ${APP_CONFIG.assets.source} returned to your wallet`
+      : `${usdc} ${APP_CONFIG.assets.source} held for the next run`,
+    sortKey: timestamp || 0,
+  };
+}
+
 export function isSendNowAttempt(log) {
   const note = String(log.args?.note || "").toLowerCase();
   return note.includes("send-now");

@@ -4,3 +4,4 @@ export * from "./abis/tokens.js";   // ERC20_ABI, TRANSFER_EVENT_ABI
 export * from "./abis/mento.js";    // MENTO_BROKER_ABI
 export * from "./abis/ledger.js";   // REGISTRY_ABI, REGISTRY_EVENTS_ABI, ATTEMPT_EVENT_ABI
 export * from "./abis/gateway.js";  // CKES_SWAP_ABI, SWAP_EVENT_ABI
+export * from "./abis/escrow.js";   // ESCROW_EVENTS_ABI (RunLocked, RunRefunded)

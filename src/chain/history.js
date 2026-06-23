@@ -17,6 +17,7 @@ import {
   readAttemptHistory,
 } from "./history/send-now.js";
 import { readScheduleDataWithFallback } from "./history/schedules.js";
+import { readEscrowHistory } from "./history/escrow.js";
 import { withTimeout } from "./history/sources.js";
 
 // Re-export so existing consumers of history.js continue to work unchanged.
@@ -55,7 +56,7 @@ export async function readOwnerLedger(owner) {
   // - sendNow: Transfer + Swaps simultaneously (2–3 sequential streams, ~1 forno req each at a time)
   // - schedule: Created + Cancelled + Paused + Resumed simultaneously (4 sequential streams)
   // Peak: ~6 concurrent forno requests — well within forno's limit.
-  const [sendNowFallback, sendNowReceiptFallback, scheduleData, ledgerAttempts] = await Promise.all([
+  const [sendNowFallback, sendNowReceiptFallback, scheduleData, ledgerAttempts, escrowHistory] = await Promise.all([
     withTimeout(readSendNowHistory(publicClient, owner, sendNowFromBlock), []).catch(() => []),
     // The explorer/receipts path is bounded by the wallet's tx count (one txlist call), not by
     // block range, so it can afford to scan from the full ledger-era block. This is what surfaces
@@ -72,6 +73,8 @@ export async function readOwnerLedger(owner) {
       // correct and bounded. Schedule settlements still scan from the full ledger range below.
       ? withTimeout(readAttemptHistory(publicClient, owner, sendNowFromBlock, ledgerOrRegistry), []).catch(() => [])
       : Promise.resolve([]),
+    // Held funds: gateway RunLocked/RunRefunded for this owner, from the swap/escrow deploy block.
+    withTimeout(readEscrowHistory(publicClient, owner, sendNowFromBlock), []).catch(() => []),
   ]);
   const sendNowHistory = mergeSendNowHistory(
     ledgerAttempts,
@@ -79,7 +82,10 @@ export async function readOwnerLedger(owner) {
   );
 
   if (!scheduleData) {
-    return { plans: [], history: sendNowHistory.sort((a, b) => b.sortKey - a.sortKey) };
+    return {
+      plans: [],
+      history: [...sendNowHistory, ...escrowHistory].sort((a, b) => b.sortKey - a.sortKey),
+    };
   }
 
   const { created, cancelled, paused, resumed, settlements } = scheduleData;
@@ -111,7 +117,10 @@ export async function readOwnerLedger(owner) {
     })
     .sort((a, b) => b.onchainId - a.onchainId);
 
-  const history = composeMovementHistory({ sendNowHistory, settlements, scheduleById, timeByBlock });
+  const history = [
+    ...composeMovementHistory({ sendNowHistory, settlements, scheduleById, timeByBlock }),
+    ...escrowHistory,
+  ].sort((a, b) => b.sortKey - a.sortKey);
 
   const result = { plans, history };
   _cache = { owner: ownerLower, result, ts: Date.now() };

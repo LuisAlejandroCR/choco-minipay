@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertCircle, ArrowDownLeft, CalendarDays, Clock, ReceiptText, RefreshCw, Search } from "lucide-react";
+import { AlertCircle, ArrowDownLeft, CalendarDays, Clock, Lock, ReceiptText, RefreshCw, Search, Undo2 } from "lucide-react";
 import { ChocoMark } from "../components/ChocoMark.jsx";
 import { shortAddress } from "../lib/celo.js";
 
@@ -38,16 +38,27 @@ function isScheduleEvent(tx) {
   return tx.deliveryMode === "schedule";
 }
 
+function isHeldEvent(tx) {
+  return tx.deliveryMode === "held";
+}
+
 function TxDot({ tx }) {
   if (tx.status === "Failed") return <span className="tx-dot failed" aria-label="Failed"><AlertCircle size={16} /></span>;
+  if (isHeldEvent(tx)) return (
+    <span className="tx-dot plan" aria-label={tx.status === "Returned" ? "Returned" : "Held"}>
+      {tx.status === "Returned" ? <Undo2 size={16} /> : <Lock size={16} />}
+    </span>
+  );
   if (isScheduleEvent(tx)) return <span className="tx-dot plan" aria-label="Scheduled"><CalendarDays size={16} /></span>;
   if (!tx.sortKey) return <span className="tx-dot plan" aria-label="Pending"><Clock size={16} /></span>;
   return <span className="tx-dot sent" aria-label="Sent"><ArrowDownLeft size={16} /></span>;
 }
 
 function TxAmount({ tx }) {
-  const cls = tx.status === "Failed" ? "tx-amount failed" : isScheduleEvent(tx) ? "tx-amount plan" : "tx-amount sent";
-  const prefix = tx.status === "Failed" ? "" : "-";
+  const cls = tx.status === "Failed"
+    ? "tx-amount failed"
+    : (isScheduleEvent(tx) || isHeldEvent(tx)) ? "tx-amount plan" : "tx-amount sent";
+  const prefix = tx.status === "Failed" ? "" : tx.status === "Returned" ? "+" : "-";
   return (
     <div className={cls}>
       <span>{prefix}{tx.amount}</span>
@@ -60,12 +71,14 @@ const TYPE_FILTERS = [
   { id: "all", label: "All" },
   { id: "sent", label: "Send now" },
   { id: "schedules", label: "Plan runs" },
+  { id: "held", label: "Held" },
 ];
 
 function applyFilters(transactions, typeFilter, query) {
   let result = transactions;
-  if (typeFilter === "sent") result = result.filter((tx) => !isScheduleEvent(tx) && tx.status !== "Failed");
+  if (typeFilter === "sent") result = result.filter((tx) => !isScheduleEvent(tx) && !isHeldEvent(tx) && tx.status !== "Failed");
   if (typeFilter === "schedules") result = result.filter((tx) => isScheduleEvent(tx));
+  if (typeFilter === "held") result = result.filter((tx) => isHeldEvent(tx));
   if (query.trim()) {
     const q = query.trim().toLowerCase();
     result = result.filter(
@@ -83,7 +96,7 @@ function shortWallet(address) {
 }
 
 function movementDescription(tx) {
-  return isScheduleEvent(tx) ? tx.schedule || tx.type : tx.type;
+  return (isScheduleEvent(tx) || isHeldEvent(tx)) ? tx.schedule || tx.type : tx.type;
 }
 
 function movementTime(tx) {
@@ -113,7 +126,9 @@ export function HistoryScreen({
       ? "No receipts yet"
       : typeFilter === "schedules"
         ? "No plan runs"
-        : "No send-now movements";
+        : typeFilter === "held"
+          ? "No held funds"
+          : "No send-now movements";
 
   return (
     <div className="screen history-screen">
