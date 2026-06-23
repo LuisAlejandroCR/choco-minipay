@@ -126,7 +126,7 @@ Constructor args (ABI-encoded, passed as `constructorArguements`): the 12 gatewa
 | Route | Purpose |
 |---|---|
 | `/` | MiniPay app entry point |
-| `/demo.html` | Standalone Choco phone preview for demos and sharing. It intentionally includes only the left-side app preview, not the old remittance landing page, script, or video embed. Demo cards mention Choco as a 2nd-place winner and link to the [official Celo Colombia Hackathon results](https://hackathon.celocolombia.org/resultados?token=99e4149611fb48ee8cbfe2de). |
+| `/demo.html` | Standalone Choco demo for demos and sharing. It keeps the full archived demo page structure and updates the project cards to current Choco status, including Choco as a 2nd-place winner with the [official Celo Colombia Hackathon results](https://hackathon.celocolombia.org/resultados?token=99e4149611fb48ee8cbfe2de). |
 | `/agent.json` | ERC-8004 agent metadata |
 | `/privacy.html`, `/terms.html`, `/support.html`, `/stats.html` | Public support and compliance pages |
 ## Frontend architecture

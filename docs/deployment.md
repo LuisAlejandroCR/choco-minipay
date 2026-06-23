@@ -4,10 +4,10 @@
 
 | Environment | URL | Purpose |
 |-------------|-----|---------|
-| **Demo preview** | `https://usechoco.app/demo.html` | Standalone left-side Choco phone preview |
+| **Demo preview** | `https://usechoco.app/demo.html` | Standalone Choco demo with current project cards |
 | **Production** | `https://usechoco.app/` | Live mainnet deployment |
 
-The canonical public domain is `https://usechoco.app/`. The standalone Choco phone preview lives at `https://usechoco.app/demo.html` and intentionally excludes the old remittance landing copy, script, and video embed.
+The canonical public domain is `https://usechoco.app/`. The standalone Choco demo lives at `https://usechoco.app/demo.html`; it keeps the full archived demo page structure while updating the visible project cards to current Choco status and the official 2nd-place Celo Colombia Hackathon result.
 
 
 ## Active Celo Mainnet contracts
@@ -207,7 +207,7 @@ gateway addresses are both present in `VITE_CKES_SWAP_CONTRACT_ADDRESSES`. The a
 
 ## Demo route
 
-`/demo.html` is served from the same Vercel production deployment as a static preview route. It contains only the Choco phone preview used for demos and sharing; it does not include the old remittance page, script, right-side cards, or video embed.
+`/demo.html` is served from the same Vercel production deployment as a static preview route. It keeps the archived clickable Choco demo bundle for demos and sharing, and overlays only current project information: active Celo Mainnet status, USDC to KESm corridor, on-chain contracts, and the official 2nd-place Celo Colombia Hackathon result.
 
 ## Rollback
 

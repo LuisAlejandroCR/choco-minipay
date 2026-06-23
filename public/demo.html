@@ -3,11 +3,82 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="description" content="Choco — full clickable MiniPay remittance demo (splash → pitch → plans → send → receipt)." />
-    <title>Choco Demo</title>
+    <meta name="description" content="Choco - clickable MiniPay remittance demo and Celo Colombia Hackathon 2nd-place winner." />
+    <title>Choco Demo - 2nd-place Celo Colombia Hackathon winner</title>
     <!-- Full clickable demo: the actual choco-azure app (source: Celo/choco mvp static), built and
          vendored here. Rebuild with `npx vite build` in that repo, then copy dist/assets/* into
          public/demo-assets/ and update the two filenames below. -->
+    <style data-choco-demo-info>
+      .project-panel .info-card.result-card a {
+        color: inherit;
+        display: block;
+        text-decoration: none;
+      }
+      .project-panel .info-card.result-card a span {
+        display: block;
+      }
+    </style>
+    <script data-choco-demo-info>
+      window.addEventListener("DOMContentLoaded", () => {
+        const resultUrl = "https://hackathon.celocolombia.org/resultados?token=99e4149611fb48ee8cbfe2de";
+        const cards = [
+          {
+            title: "2nd-place winner",
+            body: "Recognized in the Celo Colombia Hackathon. View the official results.",
+            href: resultUrl,
+          },
+          {
+            title: "Current corridor",
+            body: "USDC to KESm on Celo Mainnet for the US to Kenya remittance flow.",
+          },
+          {
+            title: "Current contracts",
+            body: "Active ChocoLedger and ChocoGateway record plans, sends, and receipts on-chain.",
+          },
+          {
+            title: "Agent flow",
+            body: "Text or voice, Agent Choco prepares the route, wallet signs, and Choco returns a receipt.",
+          },
+        ];
+
+        const renderInfo = () => {
+          const panel = document.querySelector(".project-panel");
+          const grid = panel?.querySelector(".scope-grid");
+          if (!panel || !grid) return false;
+
+          const badge = panel.querySelector(".agent-badge");
+          if (badge) badge.textContent = "Celo Colombia Hackathon - 2nd place";
+
+          const heading = panel.querySelector("h1");
+          if (heading) heading.textContent = "Choco for MiniPay.";
+
+          const summary = Array.from(panel.children).find((child) => child.tagName === "P");
+          if (summary) {
+            summary.textContent = "Choco turns a text or voice command into a wallet-signed USDC to KESm transfer or schedule. Funds stay in the user's wallet until a send-now action is signed or a scheduled run executes.";
+          }
+
+          const existingCards = Array.from(grid.querySelectorAll(".info-card"));
+          cards.forEach((item, index) => {
+            const card = existingCards[index] || document.createElement("div");
+            card.className = `info-card${item.href ? " result-card" : ""}`;
+            if (!existingCards[index]) grid.appendChild(card);
+            if (item.href) {
+              card.innerHTML = `<a href="${item.href}" target="_blank" rel="noreferrer"><b>${item.title}</b><span>${item.body}</span></a>`;
+            } else {
+              card.innerHTML = `<b>${item.title}</b><span>${item.body}</span>`;
+            }
+          });
+
+          return true;
+        };
+
+        if (renderInfo()) return;
+        const observer = new MutationObserver(() => {
+          if (renderInfo()) observer.disconnect();
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+      });
+    </script>
     <script type="module" src="/demo-assets/index-lmtH1WM9.js"></script>
     <link rel="stylesheet" href="/demo-assets/index-6y_fuXPf.css" />
   </head>
