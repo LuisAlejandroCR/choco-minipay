@@ -115,6 +115,7 @@ export function useTransfer({
       : reviewMode === "update" ? "Plan updated" : "Plan authorized";
     const transaction = buildTransactionFromPlan(committedPlan, type, wallet.address, recipientAddress);
     setLastReceipt(transaction);
+    setShowSuccessModal(true); // celebration overlay — shows on both MiniPay and the browser
     if (plan.deliveryMode === "schedule") {
       const fallbackId = scheduleId ? `schedule-${scheduleId}` : `schedule-${Date.now()}`;
       onPlanCreated?.({
