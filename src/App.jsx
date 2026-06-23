@@ -264,10 +264,15 @@ export default function App() {
   }, [wallet.address]);
 
   // When buildPlan lands on "review" and a duplicate exists, redirect to the guard screen.
+  // Gate on status === "review": the duplicate check is a PRE-confirm gate. Once the user confirms,
+  // confirmAction creates the plan on-chain (sign 1) and the ledger refresh pulls it into `plans`,
+  // so findSimilarPlan would match the just-created plan and wrongly re-fire the guard during
+  // fundRun (sign 2). While a confirm is in flight the status is "pending"/"success", so skip it.
   useEffect(() => {
     if (visibleScreen !== "review" || reviewMode === "update" || !duplicateAttempt) return;
+    if (appStatus.status !== "review") return; // not while a confirm/submit is in flight
     goTo("duplicateGuard");
-  }, [visibleScreen, duplicateAttempt, reviewMode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [visibleScreen, duplicateAttempt, reviewMode, appStatus.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Event handlers ---
   async function connectWallet() {

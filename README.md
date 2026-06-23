@@ -45,10 +45,10 @@ or scheduled run is executed.
 
 | Contract | Current address | Role | Verification status |
 |---|---|---|---|
-| ChocoLedger | `0x5A33C24eBF81fb215ee39f801D94895c8A7CE2C9` | Plan registry and unified event log for send-now attempts, schedule creation, and executed plan receipts | ✅ Verified on Blockscout (block 70235501) |
-| ChocoGateway | `0xcF4DC6118482C04ac25A95742202745aE7DB193E` | USDC→USDm via Mento, then USDm→KESm via Uniswap V3; held funds for scheduled plans (`fundRun`/`settleScheduledRun`), protocol fee, recipient delivery, and ledger logging | Verification pending — source + constructor args confirmed (block 70235509) |
+| ChocoLedger | `0xB2f969dAbaC42A146dE231F241990a94b21e9789` | Plan registry and unified event log for send-now attempts, schedule creation, and executed plan receipts | ✅ Verified on [Celoscan](https://celoscan.io/address/0xB2f969dAbaC42A146dE231F241990a94b21e9789#code) + [Blockscout](https://celo.blockscout.com/address/0xB2f969dAbaC42A146dE231F241990a94b21e9789?tab=contract) (block 70272150) |
+| ChocoGateway | `0x8271442a1a902c69415657926FDe8ae277dD2255` | USDC→USDm via Mento, then USDm→KESm via Uniswap V3; held funds for scheduled plans (`fundRun`/`settleScheduledRun`), protocol fee, recipient delivery, and ledger logging | ✅ Verified on [Celoscan](https://celoscan.io/address/0x8271442a1a902c69415657926FDe8ae277dD2255#code) + [Blockscout](https://celo.blockscout.com/address/0x8271442a1a902c69415657926FDe8ae277dD2255?tab=contract) (block 70272159) |
 
-> **Superseded (dormant):** old ledger `0xd8F54CCbc314014443DEbAA8558B09D4ccC57A9E` + old gateway `0x3003f0Fb134ED3c66Ac95A6AbE59FA3E2BA792E7` — that pair had an incompatible 12-vs-13-field schedule struct that broke scheduled settlement — plus earlier gateways `0xBB1ebeDf…` / `0xF51E842b…`. The live pair is the verified ledger `0x5A33C24e…` + gateway `0xcF4DC6…`.
+> **Superseded (dormant):** the audit-hardened pair above replaces ledger `0x5A33C24eBF81fb215ee39f801D94895c8A7CE2C9` + gateway `0xcF4DC6118482C04ac25A95742202745aE7DB193E` (pre-audit, 13-field schedule struct). Earlier still: ledger `0xd8F54CCbc314014443DEbAA8558B09D4ccC57A9E` + gateway `0x3003f0Fb134ED3c66Ac95A6AbE59FA3E2BA792E7` (incompatible 12-vs-13-field struct that broke scheduled settlement), plus gateways `0xBB1ebeDf…` / `0xF51E842b…`.
 
 ### Contract responsibilities
 
@@ -89,39 +89,37 @@ intent parsing, contact resolution, wallet confirmation, settlement, and on-chai
 Required production env vars:
 
 ```bash
-VITE_LEDGER_ADDRESS=0x5A33C24eBF81fb215ee39f801D94895c8A7CE2C9
-VITE_LEDGER_DEPLOY_BLOCK=70235501
+VITE_LEDGER_ADDRESS=0xB2f969dAbaC42A146dE231F241990a94b21e9789
+VITE_LEDGER_DEPLOY_BLOCK=70272150
 # All four gateway/escrow/settlement vars point at the ONE live ChocoGateway:
-VITE_CKES_SWAP_CONTRACT_ADDRESS=0xcF4DC6118482C04ac25A95742202745aE7DB193E
-VITE_CKES_SWAP_UNIV3_ADDRESS=0xcF4DC6118482C04ac25A95742202745aE7DB193E
-VITE_CKES_SWAP_DEPLOY_BLOCK=70235509
-VITE_CKES_SWAP_CONTRACT_ADDRESSES=0xcF4DC6118482C04ac25A95742202745aE7DB193E
-VITE_SCHEDULE_ESCROW_ADDRESS=0xcF4DC6118482C04ac25A95742202745aE7DB193E
-VITE_SETTLEMENT_SPENDER_ADDRESS=0xcF4DC6118482C04ac25A95742202745aE7DB193E
+VITE_CKES_SWAP_CONTRACT_ADDRESS=0x8271442a1a902c69415657926FDe8ae277dD2255
+VITE_CKES_SWAP_UNIV3_ADDRESS=0x8271442a1a902c69415657926FDe8ae277dD2255
+VITE_CKES_SWAP_DEPLOY_BLOCK=70272159
+VITE_CKES_SWAP_CONTRACT_ADDRESSES=0x8271442a1a902c69415657926FDe8ae277dD2255
+VITE_SCHEDULE_ESCROW_ADDRESS=0x8271442a1a902c69415657926FDe8ae277dD2255
+VITE_SETTLEMENT_SPENDER_ADDRESS=0x8271442a1a902c69415657926FDe8ae277dD2255
 VITE_FEE_CURRENCY_ADDRESS=0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B
 ```
 
 ### Verification note
 
-**ChocoGateway is source-verified on Blockscout.** ChocoLedger deployed from an uncommitted source
-revision, so its exact bytes are not in git and a full-match verify is not possible (it holds no
-funds — it is the event log; a partial/Sourcify match or re-verify on its next redeploy is the path).
-Both contracts are single self-contained `.sol` files compiled with **solc 0.8.26, optimizer enabled
-(200 runs), default evmVersion**. To (re)verify via Blockscout's Etherscan-compatible API or the UI:
+**Both contracts are source-verified on Celoscan and Blockscout.** Each is a single self-contained
+`.sol` file (interfaces inline) compiled with **solc 0.8.26 (`v0.8.26+commit.8a97fa7a`), optimizer
+enabled (200 runs), default evmVersion**.
 
-**Hardhat → Celoscan** (needs a free key in `CELOSCAN_API_KEY`), from `contracts/`:
+The reliable method is the Etherscan-compatible `verifysourcecode` API with
+**`codeformat=solidity-standard-json-input`** — single-file submission fails the metadata match
+because the deployed bytecode was compiled with both files as named source units. The exact compiler
+input is what `contracts/scripts/compile.cjs` produces: `sources` = `ChocoGateway.sol` +
+`ChocoLedger.sol`, `settings.optimizer = { enabled: true, runs: 200 }`, no `evmVersion`.
 
-```bash
-npx hardhat verify --network celo --constructor-args verify-gateway-args.cjs \
-  0x3003f0Fb134ED3c66Ac95A6AbE59FA3E2BA792E7
-npx hardhat verify --network celo \
-  0xd8F54CCbc314014443DEbAA8558B09D4ccC57A9E 0xCAA38B341d421E1D3e6F5a9F011130B7cB0AA80F
-```
+- **Celoscan** — Etherscan **V2** API: `POST https://api.etherscan.io/v2/api?chainid=42220` (needs a
+  free key in `CELOSCAN_API_KEY`; the legacy V1 `api.celoscan.io` endpoint is deprecated).
+- **Blockscout** — `POST https://celo.blockscout.com/api` (no key).
 
-**Blockscout** (no key): open each address → *Contract → Verify & Publish → Solidity (single file)*,
-paste `contracts/src/ChocoGateway.sol` / `ChocoLedger.sol`, select compiler `v0.8.26` + optimizer/200,
-and paste the ABI-encoded constructor args (gateway args are in `contracts/verify-gateway-args.cjs`;
-ledger arg is the keeper `0xCAA38B341d421E1D3e6F5a9F011130B7cB0AA80F`).
+Constructor args (ABI-encoded, passed as `constructorArguements`): the 12 gateway values are in
+`contracts/verify-gateway-args.cjs`; the ledger's single arg is the keeper
+`0xCAA38B341d421E1D3e6F5a9F011130B7cB0AA80F`.
 
 ## Public routes
 
