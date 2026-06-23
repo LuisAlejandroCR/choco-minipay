@@ -14,7 +14,7 @@ Decisions taken for this pass:
 
 - **ERC-8004 identity**: fresh Celo Mainnet registration (new `agentId`), metadata points to production URL (`usechoco.app`).
 - **Settlement**: direct Mento Broker for USDC, no custom router — one Choco contract only.
-- **URLs**: production at `usechoco.app`; lightweight Choco app preview at `usechoco.app/demo.html`.
+- **URLs**: production at `usechoco.app`; full Choco demo preview at `usechoco.app/demo.html`, with current cards and the official Celo Colombia Hackathon 2nd-place result link.
 
 ---
 
