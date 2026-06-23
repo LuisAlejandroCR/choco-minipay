@@ -22,3 +22,4 @@ contracts/typechain-types/
 Thumbs.db
 .agents/
 ops/
+contracts/verify/*.json 
