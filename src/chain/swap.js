@@ -28,6 +28,21 @@ function confirmTransactionInBackground(publicClient, hash) {
   });
 }
 
+// Gateway sends do two swaps and then `_log -> ledger.logAttemptFor` inside a try/catch. Under the
+// EVM 63/64 gas rule a wallet's auto-estimate can starve that sub-call, so the AttemptLogged audit
+// entry — the ONLY history record for a send-now — silently OOGs while the transfer still succeeds.
+// Pass an explicit gas limit with headroom so logAttemptFor completes. You only pay for gas USED.
+const SEND_GAS_FLOOR = 1_200_000n;
+async function sendGasLimit(publicClient, params) {
+  try {
+    const est = await publicClient.estimateContractGas(params);
+    const buffered = (est * 3n) / 2n;
+    return buffered > SEND_GAS_FLOOR ? buffered : SEND_GAS_FLOOR;
+  } catch {
+    return SEND_GAS_FLOOR;
+  }
+}
+
 // Send now. cKES transfers go wallet → recipient directly. USDC routes USDC → USDm → cKES through
 // the Mento Broker (each hop signed by the wallet), then the received cKES is delivered to the recipient.
 export async function sendNow({ account, recipient, intent }) {
@@ -98,11 +113,16 @@ export async function sendNow({ account, recipient, intent }) {
         throw routeError(error);
       }
 
+      const swapGas = await sendGasLimit(publicClient, {
+        account, address: swapContract, abi: CKES_SWAP_ABI,
+        functionName: "swapAndSendExact", args: [recipient, usdcNeeded, ckesExact],
+      });
       const hash = await walletClient.writeContract({
         address: swapContract,
         abi: CKES_SWAP_ABI,
         functionName: "swapAndSendExact",
         args: [recipient, usdcNeeded, ckesExact],
+        gas: swapGas,
         feeCurrency: ADDRESSES.feeCurrency,
       });
       confirmTransactionInBackground(publicClient, hash);
@@ -143,11 +163,16 @@ export async function sendNow({ account, recipient, intent }) {
       throw routeError(error);
     }
 
+    const swapGas = await sendGasLimit(publicClient, {
+      account, address: swapContractIn, abi: CKES_SWAP_ABI,
+      functionName: "swapAndSend", args: [recipient, usdcAmount, ckesMinOut],
+    });
     const hash = await walletClient.writeContract({
       address: swapContractIn,
       abi: CKES_SWAP_ABI,
       functionName: "swapAndSend",
       args: [recipient, usdcAmount, ckesMinOut],
+      gas: swapGas,
       feeCurrency: ADDRESSES.feeCurrency,
     });
     confirmTransactionInBackground(publicClient, hash);
