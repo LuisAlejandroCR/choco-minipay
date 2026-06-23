@@ -87,9 +87,10 @@ export function mapScheduleToPlan(log, lastSettlementAt = 0, active = true) {
 }
 
 // When one contact (recipient address) has 2+ plans, their plan rows and Held entries otherwise read
-// identically ("Mom", "Mom"). Tag each with a MINIMAL distinguishing suffix — amount, then +day,
-// then +on-chain id — so they render e.g. "Mom · 50,000 KESm" vs "Mom · 30,000 KESm". Mutates each
-// plan's `nameSuffix` and returns a Map(onchainId → suffix) so the matching Held movements reuse it.
+// identically ("dad", "dad"). Number a contact's plans 1..N by creation order (on-chain id) so they
+// render "dad · Plan 1" / "dad · Plan 2". Recomputed on every ledger read, so deleting a plan renumbers
+// the rest (the counter drops by one). Mutates each plan's `nameSuffix` (+ numeric `planNumber`) and
+// returns a Map(onchainId → suffix) so the matching Held movements reuse the same label.
 export function assignPlanDisambiguators(plans = []) {
   const groups = new Map();
   for (const plan of plans) {
@@ -100,19 +101,16 @@ export function assignPlanDisambiguators(plans = []) {
   }
   const suffixByScheduleId = new Map();
   for (const group of groups.values()) {
-    if (group.length < 2) continue; // only ambiguous when a contact has more than one plan
-    const amountUnique = new Set(group.map((p) => p.amount)).size === group.length;
-    const amountDayUnique = new Set(group.map((p) => `${p.amount}|${p.dayLabel}`)).size === group.length;
-    for (const plan of group) {
-      let suffix = `${plan.amount} ${plan.asset}`;
-      if (!amountUnique) {
-        suffix = amountDayUnique
-          ? `${suffix} · ${plan.dayLabel}`
-          : `${suffix} · ${plan.dayLabel} · #${plan.onchainId}`;
-      }
-      plan.nameSuffix = suffix;
-      suffixByScheduleId.set(Number(plan.onchainId), suffix);
-    }
+    if (group.length < 2) continue; // only number them when a contact has more than one plan
+    [...group]
+      .sort((a, b) => a.onchainId - b.onchainId)
+      .forEach((plan, index) => {
+        const planNumber = index + 1;
+        const suffix = `Plan ${planNumber}`;
+        plan.planNumber = planNumber;
+        plan.nameSuffix = suffix;
+        suffixByScheduleId.set(Number(plan.onchainId), suffix);
+      });
   }
   return suffixByScheduleId;
 }

@@ -2,7 +2,7 @@ import { formatUnits, parseUnits } from "viem";
 import { APP_CONFIG } from "../lib/app-config.js";
 import { ADDRESSES, assertAddress, makePublicClient, makeWalletClient } from "./client.js";
 import { CKES_SWAP_ABI, ERC20_ABI, MENTO_BROKER_ABI } from "./abis.js";
-import { approveTokenIfNeeded, usdcAmountForIntent, sourceAmountForIntent } from "./tokens.js";
+import { applyExactOutputBuffer, approveTokenIfNeeded, usdcAmountForIntent, sourceAmountForIntent } from "./tokens.js";
 import { hasAnyExecutableRoute, selectTransferRouteExactOutWithRetry, selectTransferRouteForwardIn } from "./routes.js";
 
 function readErc20Balance(publicClient, token, account) {
@@ -76,16 +76,18 @@ export async function sendNow({ account, recipient, intent }) {
     // Exact-output path: user typed a cKES amount — deliver it precisely, return surplus.
     if (intent.amountKes) {
       const ckesExact = parseUnits(String(Number(intent.amountKes)), 18);
-      // Retry transient quote failures (e.g. Mento "no valid median" right after a prior send) so a
-      // brief oracle hiccup at confirm time doesn't fail an otherwise-valid transfer.
+      // The route quote only feeds the max-USDC cap; the simulate below runs the REAL swap and is the
+      // true guard. So a transient quote failure (Mento "no valid median" / forno rate-limit right after
+      // a prior send — the cause of the "second transfer" break) must NOT block the send: fall back to
+      // the user's buffered USDC estimate as the cap. swapAndSendExact delivers exactly ckesExact and
+      // refunds any surplus, so an over-estimate is safe, and the simulate still catches a true outage.
       const selectedRoute = await selectTransferRouteExactOutWithRetry({ ckesAmountRaw: ckesExact, publicClient });
-      if (!selectedRoute.ok) {
-        throw new Error(selectedRoute.message);
-      }
-      const usdcNeeded = selectedRoute.usdcAmountIn;
-      // Use the contract selected by the route system — may be the primary (Mento) or
-      // the backup (Uniswap V3) depending on which route succeeded the quote.
-      const swapContract = selectedRoute.contractAddress;
+      const usdcNeeded = selectedRoute.ok ? selectedRoute.usdcAmountIn : applyExactOutputBuffer(usdcAmount);
+      const swapContract = selectedRoute.ok
+        ? selectedRoute.contractAddress
+        : (ADDRESSES.ckesSwapUniV3 || ADDRESSES.ckesSwap);
+      if (!(usdcNeeded > 0n)) throw new Error(selectedRoute.message || "Enter a KESm amount before sending.");
+      assertAddress(swapContract, "Swap contract");
       const usdcBalance = await readErc20Balance(publicClient, ADDRESSES.usdc, account);
       if (usdcBalance < usdcNeeded) {
         throw new Error(`Insufficient USDC balance. Choco needs ${formatUsdc(usdcNeeded)} for this route, but your wallet has ${formatUsdc(usdcBalance)}.`);
@@ -103,17 +105,27 @@ export async function sendNow({ account, recipient, intent }) {
         throw new Error(`USDC approval is lower than the route cost. Approved ${formatUsdc(allowance)}, needed ${formatUsdc(usdcNeeded)}.`);
       }
 
-      try {
-        await publicClient.simulateContract({
-          account,
-          address: swapContract,
-          abi: CKES_SWAP_ABI,
-          functionName: "swapAndSendExact",
-          args: [recipient, usdcNeeded, ckesExact],
-        });
-      } catch (error) {
-        throw routeError(error);
+      // Pre-flight simulate, retried: it runs the gateway's full swap, which touches the Mento
+      // USDC↔USDm leg that can momentarily report "no valid median" right after a prior send. Retry a
+      // few times so a transient blip doesn't block an otherwise-valid send.
+      let simError;
+      let simulated = false;
+      for (let attempt = 0; attempt < 4 && !simulated; attempt += 1) {
+        if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 600 * attempt));
+        try {
+          await publicClient.simulateContract({
+            account,
+            address: swapContract,
+            abi: CKES_SWAP_ABI,
+            functionName: "swapAndSendExact",
+            args: [recipient, usdcNeeded, ckesExact],
+          });
+          simulated = true;
+        } catch (error) {
+          simError = error;
+        }
       }
+      if (!simulated) throw routeError(simError);
 
       const swapGas = await sendGasLimit(publicClient, {
         account, address: swapContract, abi: CKES_SWAP_ABI,

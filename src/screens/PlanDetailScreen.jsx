@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { CalendarDays, Pencil, Trash2 } from "lucide-react";
 import { DetailLine } from "../components/SheetPrimitives.jsx";
-import { getPlanExecutionState, getTimingLabel } from "../utils/planUtils.js";
+import { getPlanExecutionState, getTimingLabel, recipientLabel } from "../utils/planUtils.js";
 
 export function PlanDetailScreen({ plan, onEdit, onDelete, operationStatus = "", operationMessage = "", onClearError }) {
   const execution = getPlanExecutionState(plan);
@@ -40,7 +40,7 @@ export function PlanDetailScreen({ plan, onEdit, onDelete, operationStatus = "",
         <span className="screen-hero-label">Plan details</span>
         <div className="screen-hero-row">
           <div className="plan-detail-hero-copy">
-            <h2 className="screen-hero-title">{plan.recipient}</h2>
+            <h2 className="screen-hero-title">{recipientLabel(plan)}</h2>
             <p className="screen-hero-detail">{plan.amount} {plan.asset}</p>
             <span className={`plan-status-label ${execution.tone}`}>{execution.label}</span>
           </div>

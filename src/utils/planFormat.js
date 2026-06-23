@@ -29,6 +29,12 @@ export function formatHistoryDate(timestamp) {
   return `${month}/${day}`;
 }
 
+// Display name for a plan/movement row: the contact (or short address) plus its disambiguation suffix
+// ("Plan 1" / "Plan 2") when that contact has more than one plan.
+export function recipientLabel(item) {
+  return item?.nameSuffix ? `${item.recipient} · ${item.nameSuffix}` : (item?.recipient ?? "");
+}
+
 export function formatDemoTime(totalSeconds) {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = String(totalSeconds % 60).padStart(2, "0");
