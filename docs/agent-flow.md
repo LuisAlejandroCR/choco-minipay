@@ -110,13 +110,22 @@ to avoid asking the user to sign just to record a non-event.
 | Audit trail | ChocoLedger: `AttemptLogged` events |
 | User session / receipts | Nowhere — all state derived from wallet + chain |
 
+
+## Current production contracts
+
+| Contract | Address | Deploy block | Purpose |
+|---|---|---:|---|
+| ChocoLedger | `0x15659C181f31e5A463BcaB7E2cc706B0b336967C` | 70322672 | Source of truth for authorized plans, settlements, and audit events |
+| ChocoGateway | `0x900F0c07b08483e860B4055892528dAE08eE56b3` | 70322683 | Active send-now and scheduled settlement gateway |
+
+Older gateways stay in historical event reads only so previous receipts can still be rebuilt.
 ## Configuration
 
 ```bash
-VITE_CKES_SWAP_CONTRACT_ADDRESS=0x...   # ChocoGateway address
-VITE_CKES_SWAP_DEPLOY_BLOCK=...         # earliest block among configured gateways
-VITE_CKES_SWAP_CONTRACT_ADDRESSES=0x...,0x...
-VITE_LEDGER_ADDRESS=0x...               # ChocoLedger address
+VITE_CKES_SWAP_CONTRACT_ADDRESS=0x900F0c07b08483e860B4055892528dAE08eE56b3   # ChocoGateway address
+VITE_CKES_SWAP_DEPLOY_BLOCK=70322683         # earliest block among configured gateways
+VITE_CKES_SWAP_CONTRACT_ADDRESSES=0x900F0c07b08483e860B4055892528dAE08eE56b3,0x8271442a1a902c69415657926FDe8ae277dD2255
+VITE_LEDGER_ADDRESS=0x15659C181f31e5A463BcaB7E2cc706B0b336967C               # ChocoLedger address
 VITE_SUPABASE_URL=                      # optional — leave blank to disable contact persistence
 VITE_SUPABASE_ANON_KEY=
 ```

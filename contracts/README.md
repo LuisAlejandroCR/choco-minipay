@@ -32,10 +32,10 @@ User wallet
 
 ### Active contracts
 
-| Contract | Purpose | Deploy script |
-|---|---|---|
-| **ChocoGateway** | Fee collection, USDC→KESm swap, on-chain tx storage | `deploy:gateway` |
-| **ChocoLedger** | Unified history: schedules + settlements + send-now audit | `deploy:ledger` |
+| Contract | Active address | Deploy block | Purpose | Deploy script |
+|---|---|---:|---|---|
+| **ChocoGateway** | `0x900F0c07b08483e860B4055892528dAE08eE56b3` | 70322683 | Fee collection, USDC→KESm swap, on-chain tx storage | `deploy:gateway` |
+| **ChocoLedger** | `0x15659C181f31e5A463BcaB7E2cc706B0b336967C` | 70322672 | Unified history: schedules + settlements + send-now audit | `deploy:ledger` |
 
 ### Legacy contracts (do not redeploy)
 
@@ -117,12 +117,12 @@ Add to Vercel (or `.env.local` for local dev):
 
 ```bash
 # Active
-VITE_LEDGER_ADDRESS=0x...
-VITE_LEDGER_DEPLOY_BLOCK=...
-VITE_SETTLEMENT_SPENDER_ADDRESS=0x...   # keeper/executor spender
-VITE_CKES_SWAP_CONTRACT_ADDRESS=0x...   # points to ChocoGateway
-VITE_CKES_SWAP_DEPLOY_BLOCK=...         # earliest block among configured gateways
-VITE_CKES_SWAP_CONTRACT_ADDRESSES=0x...,0x...
+VITE_LEDGER_ADDRESS=0x15659C181f31e5A463BcaB7E2cc706B0b336967C
+VITE_LEDGER_DEPLOY_BLOCK=70322672
+VITE_SETTLEMENT_SPENDER_ADDRESS=0x900F0c07b08483e860B4055892528dAE08eE56b3   # active ChocoGateway spender
+VITE_CKES_SWAP_CONTRACT_ADDRESS=0x900F0c07b08483e860B4055892528dAE08eE56b3   # points to ChocoGateway
+VITE_CKES_SWAP_DEPLOY_BLOCK=70322683         # active gateway deploy block
+VITE_CKES_SWAP_CONTRACT_ADDRESSES=0x900F0c07b08483e860B4055892528dAE08eE56b3,0x8271442a1a902c69415657926FDe8ae277dD2255
 VITE_FEE_CURRENCY_ADDRESS=0x...         # Celo fee currency (cUSD or native)
 
 # Fee config (informational; actual values are in the deployed Gateway)

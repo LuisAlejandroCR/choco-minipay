@@ -1,6 +1,6 @@
 # Mainnet Deployment Checklist
 
-> **Current state (June 2025):** ChocoGateway + ChocoLedger deployed on Celo Mainnet. Vercel
+> **Current state (June 2026):** ChocoLedger `0x15659C181f31e5A463BcaB7E2cc706B0b336967C` (block 70322672) + ChocoGateway `0x900F0c07b08483e860B4055892528dAE08eE56b3` (block 70322683) are the active Celo Mainnet pair. Vercel
 > env vars up to date. Frontend split into feature hooks (`useTransfer`, `useContactResolution`)
 > and chain modules (`src/chain/`). Exact-output swap (`swapAndSendExact`) live.
 > Historical architecture blocks below are preserved for context.
