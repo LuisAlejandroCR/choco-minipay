@@ -34,6 +34,14 @@ export function humanisePlanError(error) {
   return "Something went wrong. Please try again.";
 }
 
+// Resolve the selected entity for a detail screen: prefer the live list row, else a locally-stashed
+// fallback (used optimistically right after creation, before the chain read catches up).
+export function pickById(list, id, fallback) {
+  return (list || []).find((item) => item.id === id)
+    || (fallback?.id === id ? fallback : null)
+    || null;
+}
+
 function isUsefulTransactionValue(value) {
   if (value === 0) return true;
   return value !== undefined && value !== null && value !== "" && value !== "Recipient" && value !== "Unknown" && value !== "Pending";

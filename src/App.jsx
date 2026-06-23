@@ -46,7 +46,7 @@ import { ProcessingScreen } from "./screens/ProcessingScreen.jsx";
 import { DuplicateGuardScreen } from "./screens/DuplicateGuardScreen.jsx";
 import { ReviewScreen } from "./screens/ReviewScreen.jsx";
 import { TransactionSuccessScreen } from "./screens/TransactionSuccessScreen.jsx";
-import { humanisePlanError, mergeTransactionDetails } from "./utils/appHelpers.js";
+import { humanisePlanError, mergeTransactionDetails, pickById } from "./utils/appHelpers.js";
 
 export default function App() {
   // --- Core app state ---
@@ -117,10 +117,7 @@ export default function App() {
   const registryReady = Boolean(ADDRESSES.ledger || ADDRESSES.registry);
   const settlementReady = Boolean(ADDRESSES.settlementSpender);
   const activePlan = useMemo(
-    () => plans.find((item) => item.id === selectedPlanId)
-      || (selectedPlanFallback?.id === selectedPlanId ? selectedPlanFallback : null)
-      || plans[0]
-      || null,
+    () => pickById(plans, selectedPlanId, selectedPlanFallback) || plans[0] || null,
     [plans, selectedPlanFallback, selectedPlanId],
   );
   const previewPlan = useMemo(
@@ -184,8 +181,7 @@ export default function App() {
   const activeTransaction = useMemo(
     () => {
       const selected =
-        transactions.find((item) => item.id === selectedTransactionId) ||
-        (selectedTransactionFallback?.id === selectedTransactionId ? selectedTransactionFallback : null) ||
+        pickById(transactions, selectedTransactionId, selectedTransactionFallback) ||
         (transfer.lastReceipt?.id === selectedTransactionId ? transfer.lastReceipt : null);
       // The locally-built receipt (id `tx-<timestamp>`) never matches a chain-indexed row, so once
       // the on-chain movement for this hash is loaded, prefer it: it is authoritative and fully
