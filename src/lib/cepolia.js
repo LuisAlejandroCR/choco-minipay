@@ -60,12 +60,10 @@ export async function verifyReadiness({ account, intent }) {
       try {
         const exactRequired = await withQuoteRetry(() => quoteExactOutputUsdc(parseUnits(String(Number(intent.amountKes)), 18)));
         if (exactRequired > 0n) required = exactRequired;
-      } catch (error) {
-        return {
-          ok: false,
-          reason: READINESS_REASON.ROUTE_UNAVAILABLE,
-          message: routeQuoteMessage(error),
-        };
+      } catch {
+        // Transient route-quote failure (e.g. Mento "no valid median" right after a prior send): keep
+        // the intent's stated USDC amount for the balance check instead of aborting the send. sendNow
+        // re-quotes (with its own retry) at confirm time, so the precise amount is resolved there.
       }
     }
     const available = await readUsdcBalance(account);
@@ -150,8 +148,13 @@ export async function summariseTransfer({ account, recipient, intent, walletRead
       const exactRequired = await withQuoteRetry(() => quoteExactOutputUsdc(ckesRaw));
       if (exactRequired > 0n) usdcRaw = exactRequired;
     } catch (error) {
-      routeUnavailable = true;
-      routeUnavailableMessage = routeQuoteMessage(error);
+      // sendNow re-quotes the route independently at confirm time, so a transient review-quote failure
+      // (e.g. Mento "no valid median" right after a prior send) must NOT block confirm while we still
+      // have a usable amount to show. Only block when there's no price at all (nothing to confirm).
+      if (usdcRaw === 0n) {
+        routeUnavailable = true;
+        routeUnavailableMessage = routeQuoteMessage(error);
+      }
     }
   }
   const walletPaysFloat = Number(formatUnits(usdcRaw, 6));
