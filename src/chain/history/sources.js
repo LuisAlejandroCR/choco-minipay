@@ -3,7 +3,7 @@
 // schedule readers (and the orchestrator in ../history.js) can import from one place.
 import { decodeEventLog, toEventHash } from "viem";
 import { APP_CONFIG } from "../../lib/app-config.js";
-import { ATTEMPT_EVENT_ABI, REGISTRY_EVENTS_ABI } from "../abis.js";
+import { ATTEMPT_EVENT_ABI, ESCROW_EVENTS_ABI, REGISTRY_EVENTS_ABI } from "../abis.js";
 import { uniqueAddresses } from "../history-mappers.js";
 
 export const LOG_CHUNK_SIZE = 900n; // forno rejects ranges >~1000 blocks
@@ -64,7 +64,7 @@ function hexToNumber(value) {
 // Look up an event ABI across the registry + attempt-log ABIs, so the explorer-log path can decode
 // AttemptLogged (the canonical send-now record) as well as the schedule events.
 function eventAbiByName(eventName) {
-  return [...REGISTRY_EVENTS_ABI, ...ATTEMPT_EVENT_ABI]
+  return [...REGISTRY_EVENTS_ABI, ...ATTEMPT_EVENT_ABI, ...ESCROW_EVENTS_ABI]
     .find((item) => item.type === "event" && item.name === eventName);
 }
 
