@@ -2,6 +2,7 @@ import { useState } from "react";
 import { AlertCircle, ArrowDownLeft, CalendarDays, Clock, Lock, ReceiptText, RefreshCw, Search, Undo2 } from "lucide-react";
 import { ChocoMark } from "../components/ChocoMark.jsx";
 import { shortAddress } from "../lib/celo.js";
+import { recipientLabel } from "../utils/planUtils.js";
 
 function dayKey(sortKey) {
   if (!sortKey) return "Pending";
@@ -185,7 +186,7 @@ export function HistoryScreen({
                 >
                   <TxDot tx={item} />
                   <div className="tx-details">
-                    <b>{item.recipient}{item.nameSuffix ? ` · ${item.nameSuffix}` : ""}</b>
+                    <b>{recipientLabel(item)}</b>
                     <span>{movementDescription(item)}</span>
                   </div>
                   <div className="tx-right">

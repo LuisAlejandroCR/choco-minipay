@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Check, Plus, Search } from "lucide-react";
 import { ChocoMark } from "../components/ChocoMark.jsx";
-import { getPlanExecutionState, getSimilarPlanIds, getTimingLabel } from "../utils/planUtils.js";
+import { getPlanExecutionState, getSimilarPlanIds, getTimingLabel, recipientLabel } from "../utils/planUtils.js";
 
 const STATUS_FILTERS = [
   { id: "all", label: "All" },
@@ -98,7 +98,7 @@ export function PlansScreen({ plans, loading = false, onSelectPlan, onNewPlan, o
                 <button className="plan-row" type="button" key={item.id} onClick={() => onSelectPlan(item.id)}>
                   <div className="plan-row-icon"><ChocoMark size="tiny" /></div>
                   <div>
-                    <b>{item.recipient}{item.nameSuffix ? ` · ${item.nameSuffix}` : ""}</b>
+                    <b>{recipientLabel(item)}</b>
                     <span>{item.amount} {item.asset} · {getTimingLabel(item)}</span>
                   </div>
                   <small className={isSimilar ? "warning" : execution.tone}>{isSimilar ? "Similar" : execution.label}</small>

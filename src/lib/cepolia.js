@@ -4,7 +4,7 @@
 // Pure functions where possible; on-chain reads use the public client.
 
 import { formatUnits, isAddress, parseUnits } from "viem";
-import { ADDRESSES, MENTO_BROKER_ABI, makePublicClient, readUsdcBalance, routeQuoteMessage, selectTransferRouteExactOut } from "./celo.js";
+import { ADDRESSES, MENTO_BROKER_ABI, makePublicClient, readUsdcBalance, selectTransferRouteExactOut } from "./celo.js";
 import { APP_CONFIG } from "./app-config.js";
 import { estimateTransferFeeUsdc } from "./cepolia-fees.js";
 
@@ -147,14 +147,10 @@ export async function summariseTransfer({ account, recipient, intent, walletRead
     try {
       const exactRequired = await withQuoteRetry(() => quoteExactOutputUsdc(ckesRaw));
       if (exactRequired > 0n) usdcRaw = exactRequired;
-    } catch (error) {
-      // sendNow re-quotes the route independently at confirm time, so a transient review-quote failure
-      // (e.g. Mento "no valid median" right after a prior send) must NOT block confirm while we still
-      // have a usable amount to show. Only block when there's no price at all (nothing to confirm).
-      if (usdcRaw === 0n) {
-        routeUnavailable = true;
-        routeUnavailableMessage = routeQuoteMessage(error);
-      }
+    } catch {
+      // Display-only quote: sendNow re-quotes AND falls back to the user's estimate at confirm time, so
+      // a transient review-quote failure must never block confirm or flash the "unavailable" banner —
+      // keep showing the fallback estimate. (routeUnavailable stays false; the send is the real gate.)
     }
   }
   const walletPaysFloat = Number(formatUnits(usdcRaw, 6));

@@ -3,7 +3,7 @@ import { ArrowRight, CircleDollarSign, Eye, EyeOff, ExternalLink, ShieldCheck, X
 import { ChocoMark } from "../components/ChocoMark.jsx";
 import { formatWalletAddress } from "../modules/wallet/useMiniPayWallet.js";
 import { scheduledLocalDateForPlan } from "../lib/schedule-time.js";
-import { getPlanExecutionState, getTimingLabel } from "../utils/planUtils.js";
+import { getPlanExecutionState, getTimingLabel, recipientLabel } from "../utils/planUtils.js";
 import { demoPromptContent } from "../content/demoFlow.js";
 
 function DemoPrompt({ liveDemoUrl, onDismiss, onRunDemo }) {
@@ -173,7 +173,7 @@ export function PlanScreen({
             >
               <div className="plan-row-icon"><ChocoMark size="tiny" /></div>
               <div>
-                <b>{item.recipient}{item.nameSuffix ? ` · ${item.nameSuffix}` : ""}</b>
+                <b>{recipientLabel(item)}</b>
                 <span>{item.amount} {item.asset} · {getTimingLabel(item)}</span>
               </div>
               <small className={execution.tone}>{execution.label}</small>
