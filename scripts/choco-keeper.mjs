@@ -280,7 +280,13 @@ export async function runDueSchedules({
       }
       out.log(`#${schedule.id} settling held run (${formatToken(locked, 6)} USDC) via gateway...`);
       // Only the scheduleId — the gateway reads recipient + destination amount from the ledger.
-      const settleTx = await escrowWriter.settleScheduledRun(schedule.id);
+      // Explicit gas limit: the two swaps burn ~630k, then `_log -> ledger.logAttemptFor` runs inside a
+      // try/catch. Under the EVM 63/64 rule a tight limit (~728k) starves that sub-call, so the audit
+      // entry silently OOGs ("not enough gas for reentrancy sentry" — caught; settlement still succeeds)
+      // and the run isn't counted. A higher limit lets logAttemptFor finish. You only pay for gas USED.
+      const settleEst = await escrowWriter.settleScheduledRun.estimateGas(schedule.id).catch(() => 0n);
+      const settleGas = settleEst > 0n && (settleEst * 3n) / 2n > 1_200_000n ? (settleEst * 3n) / 2n : 1_200_000n;
+      const settleTx = await escrowWriter.settleScheduledRun(schedule.id, { gasLimit: settleGas });
       escrowTxHash = settleTx.hash;
       out.log(`#${schedule.id} escrow tx: ${escrowTxHash}`);
       await settleTx.wait();
