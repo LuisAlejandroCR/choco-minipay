@@ -6,9 +6,9 @@ execution-trace, invariant, periphery, first-principles, asymmetry, boundary + t
 hunters) cross-checked against a manual review, then deduped and severity-gated per the auditor's judging rules.
 **Date:** 2026-06.
 
-> **Live pair (immutable):** ChocoLedger `0x5A33C24eBF81fb215ee39f801D94895c8A7CE2C9`,
-> ChocoGateway `0xcF4DC6118482C04ac25A95742202745aE7DB193E`. The fixes below land in source for the **next**
-> `scripts/deploy-all.mjs` run; the live contracts cannot be patched in place.
+> **Active pair (immutable):** ChocoLedger `0x15659C181f31e5A463BcaB7E2cc706B0b336967C` (block 70322672),
+> ChocoGateway `0x900F0c07b08483e860B4055892528dAE08eE56b3` (block 70322683). The previous verified pair
+> `0xB2f969dAbaC42A146dE231F241990a94b21e9789` + `0x8271442a1a902c69415657926FDe8ae277dD2255` is now superseded/dormant.
 
 ## Verdict
 

@@ -9,6 +9,15 @@
 
 The canonical public domain is `https://usechoco.app/`. The standalone Choco phone preview lives at `https://usechoco.app/demo.html` and intentionally excludes the old remittance landing copy, script, and video embed.
 
+
+## Active Celo Mainnet contracts
+
+| Contract | Address | Deploy block |
+|---|---|---:|
+| ChocoLedger | `0x15659C181f31e5A463BcaB7E2cc706B0b336967C` | 70322672 |
+| ChocoGateway | `0x900F0c07b08483e860B4055892528dAE08eE56b3` | 70322683 |
+
+Use the active pair for new plans, send-now transfers, and schedule execution. Keep superseded gateway addresses only in historical read lists when rebuilding older movements.
 ## Local Development
 
 ```powershell
@@ -97,12 +106,12 @@ VITE_USDM_ADDRESS=0x765DE816845861e75A25fCA122bb6898B8B1282a
 VITE_KESM_ADDRESS=0x456a3D042C0DbD3db53D5489e98dFb038553B0d0
 
 # Choco contracts (from step 1)
-VITE_LEDGER_ADDRESS=<ChocoLedger address printed by deploy:ledger>
-VITE_LEDGER_DEPLOY_BLOCK=<block number printed by deploy:ledger>
-VITE_SETTLEMENT_SPENDER_ADDRESS=<keeper/executor spender address>
-VITE_CKES_SWAP_CONTRACT_ADDRESS=<ChocoGateway address printed by deploy:gateway>
-VITE_CKES_SWAP_DEPLOY_BLOCK=<earliest block among configured ChocoGateway addresses>
-VITE_CKES_SWAP_CONTRACT_ADDRESSES=<active gateway>,<legacy gateway if any>
+VITE_LEDGER_ADDRESS=0x15659C181f31e5A463BcaB7E2cc706B0b336967C
+VITE_LEDGER_DEPLOY_BLOCK=70322672
+VITE_SETTLEMENT_SPENDER_ADDRESS=0x900F0c07b08483e860B4055892528dAE08eE56b3
+VITE_CKES_SWAP_CONTRACT_ADDRESS=0x900F0c07b08483e860B4055892528dAE08eE56b3
+VITE_CKES_SWAP_DEPLOY_BLOCK=70322683
+VITE_CKES_SWAP_CONTRACT_ADDRESSES=0x900F0c07b08483e860B4055892528dAE08eE56b3,0x8271442a1a902c69415657926FDe8ae277dD2255
 VITE_DEFAULT_SCHEDULE_TIME=04:00
 
 # Supabase (from step 2, optional — leave blank to disable contact persistence)

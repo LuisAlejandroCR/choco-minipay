@@ -45,10 +45,10 @@ or scheduled run is executed.
 
 | Contract | Current address | Role | Verification status |
 |---|---|---|---|
-| ChocoLedger | `0xB2f969dAbaC42A146dE231F241990a94b21e9789` | Plan registry and unified event log for send-now attempts, schedule creation, and executed plan receipts | ✅ Verified on [Celoscan](https://celoscan.io/address/0xB2f969dAbaC42A146dE231F241990a94b21e9789#code) + [Blockscout](https://celo.blockscout.com/address/0xB2f969dAbaC42A146dE231F241990a94b21e9789?tab=contract) (block 70272150) |
-| ChocoGateway | `0x8271442a1a902c69415657926FDe8ae277dD2255` | USDC→USDm via Mento, then USDm→KESm via Uniswap V3; held funds for scheduled plans (`fundRun`/`settleScheduledRun`), protocol fee, recipient delivery, and ledger logging | ✅ Verified on [Celoscan](https://celoscan.io/address/0x8271442a1a902c69415657926FDe8ae277dD2255#code) + [Blockscout](https://celo.blockscout.com/address/0x8271442a1a902c69415657926FDe8ae277dD2255?tab=contract) (block 70272159) |
+| ChocoLedger | `0x15659C181f31e5A463BcaB7E2cc706B0b336967C` | Plan registry and unified event log for send-now attempts, schedule creation, and executed plan receipts | Active on [Celoscan](https://celoscan.io/address/0x15659C181f31e5A463BcaB7E2cc706B0b336967C) + [Blockscout](https://celo.blockscout.com/address/0x15659C181f31e5A463BcaB7E2cc706B0b336967C) (block 70322672) |
+| ChocoGateway | `0x900F0c07b08483e860B4055892528dAE08eE56b3` | USDC→USDm via Mento, then USDm→KESm via Uniswap V3; held funds for scheduled plans (`fundRun`/`settleScheduledRun`), protocol fee, recipient delivery, and ledger logging | Active on [Celoscan](https://celoscan.io/address/0x900F0c07b08483e860B4055892528dAE08eE56b3) + [Blockscout](https://celo.blockscout.com/address/0x900F0c07b08483e860B4055892528dAE08eE56b3) (block 70322683) |
 
-> **Superseded (dormant):** the audit-hardened pair above replaces ledger `0x5A33C24eBF81fb215ee39f801D94895c8A7CE2C9` + gateway `0xcF4DC6118482C04ac25A95742202745aE7DB193E` (pre-audit, 13-field schedule struct). Earlier still: ledger `0xd8F54CCbc314014443DEbAA8558B09D4ccC57A9E` + gateway `0x3003f0Fb134ED3c66Ac95A6AbE59FA3E2BA792E7` (incompatible 12-vs-13-field struct that broke scheduled settlement), plus gateways `0xBB1ebeDf…` / `0xF51E842b…`.
+> **Superseded (dormant):** previous verified pair ledger `0xB2f969dAbaC42A146dE231F241990a94b21e9789` + gateway `0x8271442a1a902c69415657926FDe8ae277dD2255` (blocks 70272150 / 70272159). Earlier: ledger `0x5A33C24eBF81fb215ee39f801D94895c8A7CE2C9` + gateway `0xcF4DC6118482C04ac25A95742202745aE7DB193E` (pre-audit, 13-field schedule struct). Earlier still: ledger `0xd8F54CCbc314014443DEbAA8558B09D4ccC57A9E` + gateway `0x3003f0Fb134ED3c66Ac95A6AbE59FA3E2BA792E7` (incompatible 12-vs-13-field struct that broke scheduled settlement), plus gateways `0xBB1ebeDf...` / `0xF51E842b...`.
 
 ### Contract responsibilities
 
@@ -89,21 +89,21 @@ intent parsing, contact resolution, wallet confirmation, settlement, and on-chai
 Required production env vars:
 
 ```bash
-VITE_LEDGER_ADDRESS=0xB2f969dAbaC42A146dE231F241990a94b21e9789
-VITE_LEDGER_DEPLOY_BLOCK=70272150
+VITE_LEDGER_ADDRESS=0x15659C181f31e5A463BcaB7E2cc706B0b336967C
+VITE_LEDGER_DEPLOY_BLOCK=70322672
 # All four gateway/escrow/settlement vars point at the ONE live ChocoGateway:
-VITE_CKES_SWAP_CONTRACT_ADDRESS=0x8271442a1a902c69415657926FDe8ae277dD2255
-VITE_CKES_SWAP_UNIV3_ADDRESS=0x8271442a1a902c69415657926FDe8ae277dD2255
-VITE_CKES_SWAP_DEPLOY_BLOCK=70272159
-VITE_CKES_SWAP_CONTRACT_ADDRESSES=0x8271442a1a902c69415657926FDe8ae277dD2255
-VITE_SCHEDULE_ESCROW_ADDRESS=0x8271442a1a902c69415657926FDe8ae277dD2255
-VITE_SETTLEMENT_SPENDER_ADDRESS=0x8271442a1a902c69415657926FDe8ae277dD2255
+VITE_CKES_SWAP_CONTRACT_ADDRESS=0x900F0c07b08483e860B4055892528dAE08eE56b3
+VITE_CKES_SWAP_UNIV3_ADDRESS=0x900F0c07b08483e860B4055892528dAE08eE56b3
+VITE_CKES_SWAP_DEPLOY_BLOCK=70322683
+VITE_CKES_SWAP_CONTRACT_ADDRESSES=0x900F0c07b08483e860B4055892528dAE08eE56b3,0x8271442a1a902c69415657926FDe8ae277dD2255
+VITE_SCHEDULE_ESCROW_ADDRESS=0x900F0c07b08483e860B4055892528dAE08eE56b3
+VITE_SETTLEMENT_SPENDER_ADDRESS=0x900F0c07b08483e860B4055892528dAE08eE56b3
 VITE_FEE_CURRENCY_ADDRESS=0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B
 ```
 
 ### Verification note
 
-**Both contracts are source-verified on Celoscan and Blockscout.** Each is a single self-contained
+**The previous pair is source-verified on Celoscan and Blockscout; verify each new active deployment after redeploy.** Each contract is a single self-contained
 `.sol` file (interfaces inline) compiled with **solc 0.8.26 (`v0.8.26+commit.8a97fa7a`), optimizer
 enabled (200 runs), default evmVersion**.
 
