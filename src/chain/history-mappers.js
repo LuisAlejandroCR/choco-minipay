@@ -86,6 +86,54 @@ export function mapScheduleToPlan(log, lastSettlementAt = 0, active = true) {
   };
 }
 
+// When one contact (recipient address) has 2+ plans, their plan rows and Held entries otherwise read
+// identically ("Mom", "Mom"). Tag each with a MINIMAL distinguishing suffix — amount, then +day,
+// then +on-chain id — so they render e.g. "Mom · 50,000 KESm" vs "Mom · 30,000 KESm". Mutates each
+// plan's `nameSuffix` and returns a Map(onchainId → suffix) so the matching Held movements reuse it.
+export function assignPlanDisambiguators(plans = []) {
+  const groups = new Map();
+  for (const plan of plans) {
+    if (!isAddress(plan.recipientAddress || "")) continue;
+    const key = String(plan.recipientAddress).toLowerCase();
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(plan);
+  }
+  const suffixByScheduleId = new Map();
+  for (const group of groups.values()) {
+    if (group.length < 2) continue; // only ambiguous when a contact has more than one plan
+    const amountUnique = new Set(group.map((p) => p.amount)).size === group.length;
+    const amountDayUnique = new Set(group.map((p) => `${p.amount}|${p.dayLabel}`)).size === group.length;
+    for (const plan of group) {
+      let suffix = `${plan.amount} ${plan.asset}`;
+      if (!amountUnique) {
+        suffix = amountDayUnique
+          ? `${suffix} · ${plan.dayLabel}`
+          : `${suffix} · ${plan.dayLabel} · #${plan.onchainId}`;
+      }
+      plan.nameSuffix = suffix;
+      suffixByScheduleId.set(Number(plan.onchainId), suffix);
+    }
+  }
+  return suffixByScheduleId;
+}
+
+// Held movements only carry a scheduleId; resolve each to its plan's recipient (so contact labels
+// attach instead of a bare plan id) and the same disambiguation suffix the plan list uses. Pure.
+export function enrichEscrowHistory(escrowHistory = [], scheduleById = new Map(), suffixByScheduleId = new Map()) {
+  return escrowHistory.map((movement) => {
+    const sched = movement.scheduleId ? scheduleById.get(String(movement.scheduleId)) : null;
+    if (!sched?.recipient) return movement;
+    const nameSuffix = suffixByScheduleId.get(Number(movement.scheduleId));
+    return {
+      ...movement,
+      recipient: tailAddress(sched.recipient),
+      recipientAddress: sched.recipient,
+      toAddress: sched.recipient,
+      ...(nameSuffix ? { nameSuffix } : {}),
+    };
+  });
+}
+
 function readScheduleAddress(schedule, primary, fallback = "") {
   return schedule?.[primary] || (fallback ? schedule?.[fallback] : "") || "";
 }

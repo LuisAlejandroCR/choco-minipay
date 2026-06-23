@@ -173,7 +173,7 @@ export function PlanScreen({
             >
               <div className="plan-row-icon"><ChocoMark size="tiny" /></div>
               <div>
-                <b>{item.recipient}</b>
+                <b>{item.recipient}{item.nameSuffix ? ` · ${item.nameSuffix}` : ""}</b>
                 <span>{item.amount} {item.asset} · {getTimingLabel(item)}</span>
               </div>
               <small className={execution.tone}>{execution.label}</small>

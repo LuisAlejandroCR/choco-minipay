@@ -98,7 +98,7 @@ export function PlansScreen({ plans, loading = false, onSelectPlan, onNewPlan, o
                 <button className="plan-row" type="button" key={item.id} onClick={() => onSelectPlan(item.id)}>
                   <div className="plan-row-icon"><ChocoMark size="tiny" /></div>
                   <div>
-                    <b>{item.recipient}</b>
+                    <b>{item.recipient}{item.nameSuffix ? ` · ${item.nameSuffix}` : ""}</b>
                     <span>{item.amount} {item.asset} · {getTimingLabel(item)}</span>
                   </div>
                   <small className={isSimilar ? "warning" : execution.tone}>{isSimilar ? "Similar" : execution.label}</small>

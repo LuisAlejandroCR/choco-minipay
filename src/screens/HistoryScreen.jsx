@@ -185,7 +185,7 @@ export function HistoryScreen({
                 >
                   <TxDot tx={item} />
                   <div className="tx-details">
-                    <b>{item.recipient}</b>
+                    <b>{item.recipient}{item.nameSuffix ? ` · ${item.nameSuffix}` : ""}</b>
                     <span>{movementDescription(item)}</span>
                   </div>
                   <div className="tx-right">

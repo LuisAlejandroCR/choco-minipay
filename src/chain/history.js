@@ -10,7 +10,8 @@ import {
   mapScheduleToPlan,
   mergeSendNowHistory,
   logOrder,
-  tailAddress,
+  assignPlanDisambiguators,
+  enrichEscrowHistory,
 } from "./history-mappers.js";
 import {
   readSendNowHistory,
@@ -118,18 +119,10 @@ export async function readOwnerLedger(owner) {
     })
     .sort((a, b) => b.onchainId - a.onchainId);
 
-  // Enrich held movements with the plan's recipient so they show the contact name (resolved by
-  // attachContactLabels) instead of a bare plan id.
-  const enrichedEscrow = escrowHistory.map((movement) => {
-    const sched = movement.scheduleId ? scheduleById.get(String(movement.scheduleId)) : null;
-    if (!sched?.recipient) return movement;
-    return {
-      ...movement,
-      recipient: tailAddress(sched.recipient),
-      recipientAddress: sched.recipient,
-      toAddress: sched.recipient,
-    };
-  });
+  // Tag plans (and their Held entries) with a distinguishing suffix when a contact has 2+ plans, then
+  // resolve each Held movement to its plan's recipient + suffix (so contact labels/names attach).
+  const suffixByScheduleId = assignPlanDisambiguators(plans);
+  const enrichedEscrow = enrichEscrowHistory(escrowHistory, scheduleById, suffixByScheduleId);
   const history = [
     ...composeMovementHistory({ sendNowHistory, settlements, scheduleById, timeByBlock }),
     ...enrichedEscrow,
