@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Bell, Flag, MessageCircleQuestionMark } from "lucide-react";
 import { useMiniPayWallet } from "./modules/wallet/useMiniPayWallet.js";
 import { useChocoLedger } from "./modules/ledger/useChocoLedger.js";
@@ -11,6 +11,8 @@ import { DEFAULT_COMMANDS, defaultPlan } from "./data/chocoScenario.js";
 import { getWalletStatusLabel, resolveVisibleScreen } from "./lib/access-control.js";
 import { APP_CONFIG } from "./lib/app-config.js";
 import { getTransactionExplorerUrl } from "./lib/transactions.js";
+import { usePullToRefresh } from "./modules/ui/usePullToRefresh.js";
+import { PullToRefreshIndicator } from "./components/PullToRefreshIndicator.jsx";
 import {
   SPLASH_DURATION_MS,
   buildSafePreviewPlan,
@@ -75,6 +77,34 @@ export default function App() {
     if (!address) return;
     setBalances(await readStablecoinBalances(address));
   }
+
+  // --- Pull-to-refresh + auto-update: one refresh updates balance + plans + history together ---
+  const panelRef = useRef(null);
+  const pullRefresh = useCallback(async () => {
+    await Promise.all([refreshBalances(wallet.address), Promise.resolve(refreshLedgerFresh?.())]);
+  }, [wallet.address]); // eslint-disable-line react-hooks/exhaustive-deps
+  const { pullDistance, refreshing: ptrRefreshing } = usePullToRefresh(
+    panelRef,
+    pullRefresh,
+    { enabled: ["plan", "plans", "history"].includes(visibleScreen) },
+  );
+
+  // Auto-update when the app regains focus/visibility (e.g. a keeper settlement landed while it was
+  // backgrounded), so the user sees the current balance + plans without reopening.
+  useEffect(() => {
+    if (!wallet.address) return undefined;
+    function onVisible() {
+      if (document.visibilityState !== "visible") return;
+      void refreshBalances(wallet.address);
+      void refreshLedgerFresh?.();
+    }
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, [wallet.address]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function goTo(nextScreen) {
     setScreen(resolveVisibleScreen(nextScreen, walletHasAddress));
@@ -336,7 +366,7 @@ export default function App() {
       setSelectedPlanId("");
       setSelectedPlanFallback(null);
       goTo("plans");
-      window.setTimeout(() => { void refreshLedgerFresh(); }, 2000);
+      window.setTimeout(() => { void refreshLedgerFresh(); void refreshBalances(wallet.address); }, 2000);
     } catch (error) {
       appStatus.setStatus("error");
       appStatus.setMessage(humanisePlanError(error));
@@ -437,7 +467,8 @@ export default function App() {
           </div>
         </div>
 
-        <div className={`app-panel tone-${screen}`}>
+        <div className={`app-panel tone-${screen}`} ref={panelRef}>
+          <PullToRefreshIndicator pullDistance={pullDistance} refreshing={ptrRefreshing} />
           {visibleScreen === "splash" && <SplashScreen onStart={() => setScreen("pitch")} />}
           {visibleScreen === "pitch" && <PitchScreen onClose={() => setScreen("plan")} />}
           {visibleScreen === "plan" && (
@@ -526,7 +557,11 @@ export default function App() {
               transaction={transfer.lastReceipt}
               onViewDetails={() => {
                 transfer.setShowSuccessModal(false);
-                if (transfer.lastReceipt) {
+                // commitReceipt already navigated to the right detail: send-now opens the movement
+                // receipt; a scheduled plan stays on its plan detail.
+                if (transfer.lastReceipt?.deliveryMode === "schedule") {
+                  goTo("planDetail");
+                } else if (transfer.lastReceipt) {
                   setSelectedTransactionId(transfer.lastReceipt.id);
                   setSelectedTransactionFallback(transfer.lastReceipt);
                   goTo("receiptDetail");
