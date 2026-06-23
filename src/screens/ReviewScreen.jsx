@@ -1,10 +1,7 @@
-import { CalendarCheck2, CalendarDays, Check, CircleDollarSign, CreditCard, Pencil, Trash2, Wallet, Zap } from "lucide-react";
-import { isAddress } from "viem";
+import { CalendarCheck2, CalendarDays, CircleDollarSign, CreditCard, Wallet, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
-import { ContactCapture } from "../components/ContactCapture.jsx";
-import { ContactPicker } from "../components/ContactPicker.jsx";
+import { ReviewContactSection } from "../components/ReviewContactSection.jsx";
 import { APP_CONFIG } from "../lib/app-config.js";
-import { shortAddress } from "../lib/celo.js";
 import { summariseTransfer } from "../lib/cepolia.js";
 
 export function ReviewScreen({
@@ -32,9 +29,6 @@ export function ReviewScreen({
   contactLookupMessage = "",
 }) {
   const [cepoliaSummary, setCepoliaSummary] = useState(null);
-  const [editAddr, setEditAddr] = useState("");
-  const [showEdit, setShowEdit] = useState(false);
-  const [pendingDel, setPendingDel] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -49,23 +43,6 @@ export function ReviewScreen({
       .catch(() => { if (active) setCepoliaSummary(null); });
     return () => { active = false; };
   }, [plan?.intent?.rawCommand, plan?.intent?.sourceAmount, plan?.intent?.amountKes, recipientAddress, walletAccount, walletReady]);
-
-  useEffect(() => {
-    setShowEdit(false);
-    setEditAddr("");
-    setPendingDel(false);
-  }, [resolvedContact?.address]);
-
-  function shortAddr(a) {
-    return shortAddress(a);
-  }
-
-  function handleSaveEdit() {
-    if (!isAddress(editAddr)) return;
-    onEditContact?.(editAddr);
-    setShowEdit(false);
-    setEditAddr("");
-  }
 
   const isSendNow = plan.deliveryMode === "now";
   const receiptLabel = plan.receiptLabel || plan.recipient || plan.intent?.receiptLabel || "Recipient";
@@ -85,10 +62,6 @@ export function ReviewScreen({
       : isSendNow
         ? "Confirm send"
         : "Authorize plan";
-  const canCaptureContact = !supabaseReady || contactLookupStatus === "missing";
-  const contactErrorNeedsWallet = !walletReady || /wallet/i.test(contactLookupMessage);
-  const contactErrorActionLabel = contactErrorNeedsWallet ? "Connect wallet" : "Retry saved contacts";
-  const onContactErrorAction = contactErrorNeedsWallet ? onConnect : onPickContact;
   const quoteReady = cepoliaSummary?.readyToConfirm !== false;
   const actionBlocked = !actionReady || !quoteReady;
 
@@ -99,112 +72,6 @@ export function ReviewScreen({
         ? "Wallet signs after confirmation. Saved contacts are visible only to your connected wallet."
         : "Wallet signs after confirmation. Choco reads your wallet balance only - no contact data is stored."
       : "Wallet authorizes this plan once. Funds stay in your wallet until the scheduled execution.";
-
-  const contactSection = contactResolutionRequired ? (
-    <section className="contact-resolution-card" aria-label="Recipient contact">
-      {resolvedContact?.address ? (
-        <>
-          {showEdit ? (
-            <div>
-              <span>Contact</span>
-              <b>{resolvedContact.label}</b>
-              <input
-                className="contact-picker-input"
-                type="text"
-                inputMode="text"
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck="false"
-                value={editAddr}
-                onChange={(e) => setEditAddr(e.target.value)}
-                placeholder="New wallet address..."
-                aria-label="New wallet address"
-              />
-              <div className="contact-picker-edit-actions">
-                <button type="button" className="cp-btn-save" onClick={handleSaveEdit} disabled={!isAddress(editAddr)}>
-                  <Check size={14} /> Save
-                </button>
-                <button type="button" className="cp-btn-cancel" onClick={() => { setShowEdit(false); setEditAddr(""); }}>
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="contact-resolved-row">
-              <div className="contact-resolved-info">
-                <span>Recipient contact</span>
-                <small>{shortAddr(resolvedContact.address)}</small>
-              </div>
-              <div className="contact-resolved-actions">
-                <button
-                  type="button"
-                  className="contact-select-pill"
-                  onClick={() => { setPendingDel(false); onPickContact(); }}
-                >
-                  Change
-                </button>
-                <button
-                  type="button"
-                  className="cp-icon"
-                  onClick={() => { setShowEdit(true); setEditAddr(""); setPendingDel(false); }}
-                  aria-label="Edit contact address"
-                >
-                  <Pencil size={14} />
-                </button>
-                <button
-                  type="button"
-                  className={`cp-icon${pendingDel ? " cp-icon-danger" : ""}`}
-                  onClick={() => { if (pendingDel) { onRemoveContact?.(); } else { setPendingDel(true); } }}
-                  aria-label={pendingDel ? "Confirm delete contact" : "Delete contact"}
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            </div>
-          )}
-        </>
-      ) : contactLookupStatus === "checking" ? (
-        <div>
-          <span>Contact</span>
-          <b>Looking up {receiptLabel}...</b>
-        </div>
-      ) : contactLookupStatus === "error" ? (
-        <>
-          <div>
-            <span>Contact</span>
-            <b>Could not check saved contacts</b>
-            <small>{contactLookupMessage || "Try loading saved contacts again before entering a new address."}</small>
-          </div>
-          <button type="button" onClick={onContactErrorAction}>
-            {contactErrorActionLabel}
-          </button>
-        </>
-      ) : (
-        <>
-          <div>
-            <span>Contact</span>
-            <b>Select {receiptLabel}</b>
-          </div>
-          <ContactPicker
-            inline
-            ownerWallet={walletAccount}
-            onSelect={(c) => onResolveContact(c.address, { label: c.label, source: "contacts", contactId: c.contactId, saveContact: false })}
-            onClose={() => {}}
-          />
-          {canCaptureContact && (
-            <>
-              <div className="contact-or-divider"><span>or enter address</span></div>
-              <ContactCapture
-                alias={receiptLabel}
-                supabaseReady={supabaseReady}
-                onSubmit={(address, opts) => onResolveContact(address, { label: receiptLabel, phone: "", saveContact: opts?.saveContact })}
-              />
-            </>
-          )}
-        </>
-      )}
-    </section>
-  ) : null;
 
   return (
     <div className="screen review-screen">
@@ -221,7 +88,22 @@ export function ReviewScreen({
         </div>
       </div>
 
-      {contactSection}
+      {contactResolutionRequired && (
+        <ReviewContactSection
+          resolvedContact={resolvedContact}
+          receiptLabel={receiptLabel}
+          walletAccount={walletAccount}
+          walletReady={walletReady}
+          supabaseReady={supabaseReady}
+          contactLookupStatus={contactLookupStatus}
+          contactLookupMessage={contactLookupMessage}
+          onConnect={onConnect}
+          onPickContact={onPickContact}
+          onResolveContact={onResolveContact}
+          onEditContact={onEditContact}
+          onRemoveContact={onRemoveContact}
+        />
+      )}
 
       <div className="rds-fields">
         <div className="rds-field">
