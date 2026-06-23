@@ -1,0 +1,31 @@
+// Mento V2 Broker — the only swap surface Choco touches directly. No custom router contract.
+// Mainnet has no direct USDC/cKES pool, so USDC settles in two oracle-priced hops: USDC -> USDm -> cKES.
+export const MENTO_BROKER_ABI = [
+  {
+    type: "function",
+    name: "getAmountOut",
+    stateMutability: "view",
+    inputs: [
+      { name: "exchangeProvider", type: "address" },
+      { name: "exchangeId", type: "bytes32" },
+      { name: "tokenIn", type: "address" },
+      { name: "tokenOut", type: "address" },
+      { name: "amountIn", type: "uint256" },
+    ],
+    outputs: [{ name: "amountOut", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "swapIn",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "exchangeProvider", type: "address" },
+      { name: "exchangeId", type: "bytes32" },
+      { name: "tokenIn", type: "address" },
+      { name: "tokenOut", type: "address" },
+      { name: "amountIn", type: "uint256" },
+      { name: "amountOutMin", type: "uint256" },
+    ],
+    outputs: [{ name: "amountOut", type: "uint256" }],
+  },
+];
