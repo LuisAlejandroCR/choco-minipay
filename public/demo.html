@@ -17,6 +17,25 @@
       .project-panel .info-card.result-card a span {
         display: block;
       }
+      .project-panel .panel-actions {
+        display: grid;
+        gap: 10px;
+        margin: 16px 0 22px;
+      }
+      .project-panel .panel-actions a,
+      .project-panel .panel-actions button {
+        align-items: center;
+        display: inline-flex;
+        justify-content: center;
+        min-height: 48px;
+        width: 100%;
+      }
+      .project-panel .panel-actions .primary-demo-action {
+        background: #f5e4c8;
+        border-color: rgba(245, 228, 200, 0.72);
+        color: #1b0d07;
+        font-weight: 800;
+      }
     </style>
     <script data-choco-demo-info>
       window.addEventListener("DOMContentLoaded", () => {
@@ -56,6 +75,35 @@
           if (summary) {
             summary.textContent = "Choco turns a text or voice command into a wallet-signed USDC to KESm transfer or schedule. Funds stay in the user's wallet until a send-now action is signed or a scheduled run executes.";
           }
+
+          let actions = panel.querySelector(".panel-actions");
+          if (!actions) {
+            actions = document.createElement("div");
+            actions.className = "panel-actions";
+          }
+
+          Array.from(actions.querySelectorAll("a, button")).forEach((action) => {
+            const text = action.textContent?.trim() || "";
+            const href = action.getAttribute?.("href") || "";
+            if (/registry|erc-?8004|agent registry/i.test(`${text} ${href}`)) {
+              action.remove();
+            }
+          });
+
+          let openAppAction = Array.from(actions.querySelectorAll("a, button")).find((action) => {
+            const text = action.textContent?.trim() || "";
+            const href = action.getAttribute?.("href") || "";
+            return /open app|open choco|launch app/i.test(`${text} ${href}`);
+          });
+          if (!openAppAction) {
+            openAppAction = document.createElement("a");
+            openAppAction.href = "/";
+            actions.appendChild(openAppAction);
+          }
+          openAppAction.textContent = "Open Choco app";
+          openAppAction.classList.add("primary-demo-action");
+          actions.prepend(openAppAction);
+          if (summary) summary.insertAdjacentElement("afterend", actions);
 
           const existingCards = Array.from(grid.querySelectorAll(".info-card"));
           cards.forEach((item, index) => {
