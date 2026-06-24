@@ -5,6 +5,12 @@ import { sendNow, createScheduleViaRegistry } from "../../lib/celo.js";
 import { verifyReadiness } from "../../lib/cepolia.js";
 import { buildSafePreviewPlan, buildTransactionFromPlan } from "../../utils/planUtils.js";
 
+// Order matters. We reach this only AFTER the transfer amount is balance-checked (sendNow + verifyReadiness)
+// and the route has quoted, so a failure here is almost always a transient network/RPC blip or a momentary
+// on-chain hiccup — never an "is the amount affordable" problem. So: identify a network issue FIRST (before
+// the swap catch-all, which would otherwise swallow a "fetch failed" that also mentions the swap), scope the
+// only "insufficient" case to the network fee (the amount is already covered), and default everything else
+// to a calm, retryable "didn't go through" rather than the alarming "temporarily unavailable".
 function humaniseTransferError(error) {
   const msg = String(error?.message || error || "");
   if (/user rejected|user denied|rejected the request/i.test(msg)) {
@@ -13,19 +19,18 @@ function humaniseTransferError(error) {
   if (/invalid signature|eip.?2612/i.test(msg)) {
     return "The permit signature was rejected or expired. Please try again.";
   }
-  if (/insufficient.*funds|insufficient.*balance/i.test(msg)) {
-    return "Insufficient balance for this transfer or network fee.";
+  if (/network|fetch|timeout|timed out|connection|econn|rate limit|429|503|504|http request failed|load failed/i.test(msg)) {
+    return "Network issue — check your connection and try again.";
   }
-  if (/no valid median|gateway|route|quote|swap|mento|reverted|execution reverted|could not execute/i.test(msg)) {
-    return "This transfer is temporarily unavailable. Try again later.";
+  if (/insufficient.*funds|insufficient.*balance|insufficient.*gas/i.test(msg)) {
+    return "Not enough USDC to cover the network fee. Add a little USDC and try again.";
   }
   if (/allowance.*lower|approval.*lower|approval|approve/i.test(msg)) {
-    return "Approval failed. Confirm the wallet approval and try again.";
+    return "Approval didn't complete. Confirm the wallet approval and try again.";
   }
-  if (/network|fetch|timeout/i.test(msg)) {
-    return "Network error. Check your connection and try again.";
-  }
-  return "Transfer failed. Please try again or contact support.";
+  // Route / swap / simulate blips (Mento "no valid median", a momentary revert): the route still quotes,
+  // so this is a transient hiccup — a retry almost always goes through.
+  return "The send didn't go through. Please try again.";
 }
 
 // Owns the full transfer lifecycle: plan building, pre-flight checks, on-chain execution,
