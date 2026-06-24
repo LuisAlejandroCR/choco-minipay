@@ -5,10 +5,27 @@ import { CKES_SWAP_ABI, ERC20_ABI, MENTO_BROKER_ABI } from "./abis.js";
 import { applyExactOutputBuffer, approveTokenIfNeeded, usdcAmountForIntent, sourceAmountForIntent } from "./tokens.js";
 import { hasAnyExecutableRoute, selectTransferRouteExactOutWithRetry, selectTransferRouteForwardIn } from "./routes.js";
 
-// When a send-now needs a USDC approval, approve this many sends' worth at once so the next several
-// sends reuse the warm allowance (one approval per batch instead of one per send). The gateway only
-// ever pulls the actual amount and refunds surplus, so a larger allowance to our own contract is safe.
+// When a send-now needs a USDC approval, approve this many sends' worth so the next several sends reuse the
+// warm allowance (one approval per batch instead of one per send). The gateway only ever pulls the actual
+// amount and refunds surplus, so a slightly larger allowance to our own contract is safe.
 const SEND_APPROVE_BATCH = 10n;
+
+// HARD CEILING on the batch (in USDC, 6-dec). This is the trust guard: the multiplier scales with the send,
+// so a 50k-KESm (~$390) transfer would otherwise request a ~$3,900 approval. Capping the batch at a small
+// absolute amount means a LARGE send approves EXACTLY what it spends ("approve $390 to send $390" — no
+// multiple), while small/frequent sends still batch up to this ceiling. Tune this one number to taste.
+const SEND_APPROVE_CAP = parseUnits("1.0002", 6);
+
+// Pick the approval amount: batch ~SEND_APPROVE_BATCH small sends, but never above SEND_APPROVE_CAP ($1.20),
+// never below THIS send's need (so a large send approves its exact amount — no scary multiple), and never
+// above the wallet balance. `balance` is already read for the affordability check, so this is free, and the
+// caller has ensured balance >= the single-send need, so it never under-approves.
+function batchApproveAmount(perSend, balance) {
+  const batched = perSend * SEND_APPROVE_BATCH;
+  const capped = batched < SEND_APPROVE_CAP ? batched : SEND_APPROVE_CAP; // never batch above the ceiling
+  const cover = capped > perSend ? capped : perSend;                      // but always cover this send
+  return cover < balance ? cover : balance;                              // and never exceed the balance
+}
 
 function readErc20Balance(publicClient, token, account) {
   return publicClient.readContract({ address: token, abi: ERC20_ABI, functionName: "balanceOf", args: [account] });
@@ -124,8 +141,8 @@ export async function sendNow({ account, recipient, intent }) {
         account,
         tokenAddress: ADDRESSES.usdc,
         spender: swapContract,
-        amount: usdcNeeded * SEND_APPROVE_BATCH, // approve a batch so repeat sends skip the approval
-        minAllowance: usdcNeeded,                // …but only re-approve when the live allowance can't cover this send
+        amount: batchApproveAmount(usdcNeeded, usdcBalance), // batch (capped at balance) so repeat sends skip the approval
+        minAllowance: usdcNeeded,                            // …but only re-approve when the live allowance can't cover this send
       });
 
       const allowance = await readErc20Allowance(publicClient, ADDRESSES.usdc, account, swapContract);
@@ -177,8 +194,8 @@ export async function sendNow({ account, recipient, intent }) {
       account,
       tokenAddress: ADDRESSES.usdc,
       spender: swapContractIn,
-      amount: usdcAmount * SEND_APPROVE_BATCH, // approve a batch so repeat sends skip the approval
-      minAllowance: usdcAmount,                // …but only re-approve when the live allowance can't cover this send
+      amount: batchApproveAmount(usdcAmount, usdcBalance), // batch (capped at balance) so repeat sends skip the approval
+      minAllowance: usdcAmount,                            // …but only re-approve when the live allowance can't cover this send
     });
     const allowance = await readErc20Allowance(publicClient, ADDRESSES.usdc, account, swapContractIn);
     if (allowance < usdcAmount) {
