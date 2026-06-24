@@ -31,7 +31,7 @@ export function formatChainDate(seconds) {
     month: "2-digit",
     day: "2-digit",
     year: "numeric",
-    hour: "2-digit",
+    hour: "numeric",
     minute: "2-digit",
     hour12: true,
   }).format(date);
@@ -86,23 +86,34 @@ export function mapScheduleToPlan(log, lastSettlementAt = 0, active = true) {
   };
 }
 
-// Number EVERY plan 1..N by creation order (on-chain id) so each shows "mom · Plan 1" / "dad · Plan 2"
-// across the Plans list, Home, Held movements, and Plan detail. Two Held reservations of the SAME plan
-// share its number (clearing up the "dad / dad" duplicate look — they're one plan, locked across runs);
-// distinct plans get distinct numbers. Recomputed on every ledger read, so deleting a plan renumbers the
+// Number each contact's plans 1..N by creation order (on-chain id) so they show "mom · Plan 1",
+// "dad · Plan 1", and a contact's second plan "dad · Plan 2". Numbering is PER-CONTACT (not global), so
+// a single-plan contact reads "mom · Plan 1" rather than a confusing global "Plan 2". Two Held
+// reservations of the SAME plan share its number (clearing the "dad / dad" duplicate look — they're one
+// plan, locked across runs). Recomputed on every ledger read, so deleting a plan renumbers that contact's
 // rest — the counter drops by one. Mutates each plan's `nameSuffix` + numeric `planNumber` and returns a
 // Map(onchainId → suffix) so the matching Held movements reuse the same label.
 export function assignPlanDisambiguators(plans = []) {
+  const groups = new Map();
+  for (const plan of plans) {
+    const key = isAddress(plan.recipientAddress || "")
+      ? String(plan.recipientAddress).toLowerCase()
+      : `id:${plan.onchainId}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(plan);
+  }
   const suffixByScheduleId = new Map();
-  [...plans]
-    .sort((a, b) => a.onchainId - b.onchainId)
-    .forEach((plan, index) => {
-      const planNumber = index + 1;
-      const suffix = `Plan ${planNumber}`;
-      plan.planNumber = planNumber;
-      plan.nameSuffix = suffix;
-      suffixByScheduleId.set(Number(plan.onchainId), suffix);
-    });
+  for (const group of groups.values()) {
+    group
+      .sort((a, b) => a.onchainId - b.onchainId)
+      .forEach((plan, index) => {
+        const planNumber = index + 1;
+        const suffix = `Plan ${planNumber}`;
+        plan.planNumber = planNumber;
+        plan.nameSuffix = suffix;
+        suffixByScheduleId.set(Number(plan.onchainId), suffix);
+      });
+  }
   return suffixByScheduleId;
 }
 

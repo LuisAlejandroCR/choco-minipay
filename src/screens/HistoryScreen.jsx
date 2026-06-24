@@ -2,7 +2,7 @@ import { useState } from "react";
 import { AlertCircle, ArrowDownLeft, CalendarDays, Clock, Lock, ReceiptText, RefreshCw, Search, Undo2 } from "lucide-react";
 import { ChocoMark } from "../components/ChocoMark.jsx";
 import { shortAddress } from "../lib/celo.js";
-import { recipientLabel } from "../utils/planUtils.js";
+import { formatClockTime, recipientLabel } from "../utils/planUtils.js";
 
 function dayKey(sortKey) {
   if (!sortKey) return "Pending";
@@ -32,7 +32,7 @@ function groupByDay(transactions) {
 
 function timeLabel(sortKey) {
   if (!sortKey) return "";
-  return new Date(sortKey * 1000).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+  return formatClockTime(new Date(sortKey * 1000));
 }
 
 function isScheduleEvent(tx) {

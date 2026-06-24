@@ -2,12 +2,23 @@
 
 export const SPLASH_DURATION_MS = 4000;
 
+// Canonical clock-time format for the whole app (movements, schedules, receipts): 12-hour, no leading
+// zero on the hour, local timezone — e.g. "9:42 AM". Every hour display goes through numeric-hour
+// formatting so a schedule's "9:42 AM" and a movement's time read identically (no "09:42" vs "9:42").
+export function formatClockTime(date = new Date()) {
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(date);
+}
+
 export function formatLocalTimestamp(date = new Date()) {
   const timestamp = new Intl.DateTimeFormat("en-US", {
     month: "2-digit",
     day: "2-digit",
     year: "numeric",
-    hour: "2-digit",
+    hour: "numeric",
     minute: "2-digit",
     hour12: true,
   }).format(date);
