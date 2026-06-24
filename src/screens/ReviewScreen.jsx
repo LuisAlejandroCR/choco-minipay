@@ -146,7 +146,7 @@ export function ReviewScreen({
 
       {isSendNow && usdmRefundLabel && (
         <div className="notice compact">
-          Reserves {reservedLabel}, returns the unused {usdmRefundLabel} to your wallet. Net cost shown above.
+          You pay only the net cost above — Choco reserves {reservedLabel} and returns the unused {usdmRefundLabel} to your wallet.
         </div>
       )}
       {status === "error" && message && <div className="notice danger compact">{message}</div>}
