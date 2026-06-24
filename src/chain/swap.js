@@ -28,6 +28,28 @@ function confirmTransactionInBackground(publicClient, hash) {
   });
 }
 
+// Pre-flight simulate of the swap, retried with backoff: it runs the gateway's full route, which can
+// momentarily hit a Mento "no valid median" right after a prior send. Returns { ok:true } or { ok:false, error }.
+async function simulateSwapWithRetry(publicClient, { account, swapContract, recipient, usdcNeeded, ckesExact }, attempts = 4) {
+  let lastError;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 600 * attempt));
+    try {
+      await publicClient.simulateContract({
+        account,
+        address: swapContract,
+        abi: CKES_SWAP_ABI,
+        functionName: "swapAndSendExact",
+        args: [recipient, usdcNeeded, ckesExact],
+      });
+      return { ok: true };
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  return { ok: false, error: lastError };
+}
+
 // Gateway sends do two swaps and then `_log -> ledger.logAttemptFor` inside a try/catch. Under the
 // EVM 63/64 gas rule a wallet's auto-estimate can starve that sub-call, so the AttemptLogged audit
 // entry — the ONLY history record for a send-now — silently OOGs while the transfer still succeeds.
@@ -105,27 +127,16 @@ export async function sendNow({ account, recipient, intent }) {
         throw new Error(`USDC approval is lower than the route cost. Approved ${formatUsdc(allowance)}, needed ${formatUsdc(usdcNeeded)}.`);
       }
 
-      // Pre-flight simulate, retried: it runs the gateway's full swap, which touches the Mento
-      // USDC↔USDm leg that can momentarily report "no valid median" right after a prior send. Retry a
-      // few times so a transient blip doesn't block an otherwise-valid send.
-      let simError;
-      let simulated = false;
-      for (let attempt = 0; attempt < 4 && !simulated; attempt += 1) {
-        if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 600 * attempt));
-        try {
-          await publicClient.simulateContract({
-            account,
-            address: swapContract,
-            abi: CKES_SWAP_ABI,
-            functionName: "swapAndSendExact",
-            args: [recipient, usdcNeeded, ckesExact],
-          });
-          simulated = true;
-        } catch (error) {
-          simError = error;
-        }
+      const sim = await simulateSwapWithRetry(publicClient, { account, swapContract, recipient, usdcNeeded, ckesExact });
+      if (!sim.ok) {
+        // The approve already succeeded THIS round, so a transient simulate failure (Mento "no valid
+        // median" right after a prior send) must NOT strand the user with a paid approval and no
+        // transfer. Proceed to the swap — it lands seconds later, by which time the leg has typically
+        // recovered, and a rare on-chain revert is cheaper than a wasted approve. When the allowance was
+        // already warm (no approve this round) nothing was committed, so block and let the user retry.
+        if (!approveHash) throw routeError(sim.error);
+        console.warn("Choco: swap simulate failed right after a fresh approval; sending anyway.", sim.error);
       }
-      if (!simulated) throw routeError(simError);
 
       const swapGas = await sendGasLimit(publicClient, {
         account, address: swapContract, abi: CKES_SWAP_ABI,
