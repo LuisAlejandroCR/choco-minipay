@@ -1,14 +1,18 @@
 import { ethers } from "ethers";
-import { isDueThisMonth, sameMonth, scheduleWindowForCurrentMonth } from "../src/lib/keeper-window.js";
+import { isDueThisMonth, scheduleWindowForCurrentMonth } from "../src/lib/keeper-window.js";
 
+// The keeper reads schedule state DIRECTLY from ChocoLedger (scheduleCount + getSchedule +
+// lastSettlementAt) instead of replaying historical events. State reads are bounded by the number of
+// schedules (tiny) rather than by chain height, so a run is a handful of eth_calls that can't time out —
+// and there's no dependency on an explorer/log index that can hiccup. The chain stays the source of
+// truth: this reads live contract storage, which is more authoritative than reconstructing state from
+// an event log (and `active`/`cancelled` already reflect pauses/resumes/cancellations).
 const LEDGER_ABI = [
   "function keeper() view returns (address)",
+  "function scheduleCount() view returns (uint256)",
+  "function lastSettlementAt(uint256) view returns (uint64)",
+  "function getSchedule(uint256) view returns (tuple(address owner,address recipient,address sourceAsset,uint256 sourceAmount,uint256 destinationAmount,uint8 dayOfMonth,uint64 firstRunAt,bool active,bool cancelled,bytes32 commandHash,bytes32 receiptLabelHash))",
   "function recordSettlement(uint256,bool,address,uint256,uint256,bytes32,string) external",
-  "event MonthlyScheduleCreated(uint256 indexed id,address indexed owner,address indexed recipient,address sourceAsset,uint256 sourceAmount,uint256 destinationAmount,uint8 dayOfMonth,uint64 firstRunAt,bytes32 commandHash)",
-  "event ScheduleCancelled(uint256 indexed id,address indexed by)",
-  "event SchedulePaused(uint256 indexed id,address indexed by)",
-  "event ScheduleResumed(uint256 indexed id,address indexed by)",
-  "event SettlementReceipt(uint256 indexed id,bool success,address sourceAsset,uint256 sourceAmount,uint256 destinationAmount,bytes32 settlementRef,string note)",
 ];
 
 // Settlement runs through ChocoGateway: the owner pre-locks one run's USDC, the keeper settles it
@@ -44,10 +48,8 @@ function formatLocal(seconds) {
   }).format(new Date(Number(seconds) * 1000));
 }
 
-function hexToNum(value) {
-  if (typeof value === "number") return value;
-  if (typeof value === "string" && value.startsWith("0x")) return parseInt(value, 16);
-  return Number(value);
+function startOfCurrentMonthSec(now = new Date()) {
+  return Math.floor(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1) / 1000);
 }
 
 function makeLogger(logger) {
@@ -68,14 +70,10 @@ export async function runDueSchedules({
   const out = makeLogger(logger);
   const ledgerAddress = requiredAddress(env.VITE_LEDGER_ADDRESS || "", "VITE_LEDGER_ADDRESS");
   const escrowAddress = env.VITE_SCHEDULE_ESCROW_ADDRESS || "";
-  const deployBlock = Number(env.VITE_LEDGER_DEPLOY_BLOCK || 0);
   const owner = String(ownerFilter || "").toLowerCase();
   const rpcUrl = env.RPC_URL || env.CELO_RPC_URL || env.VITE_CELO_RPC_URL || "https://forno.celo.org";
-  const explorerApi = env.VITE_BLOCK_EXPLORER_API_URL || "https://celo.blockscout.com/api";
   const keeperKey = env.KEEPER_KEY || "";
-  const logChunkSize = Number(env.LOG_CHUNK_SIZE || 4500); // forno caps eth_getLogs at 5000 blocks/query
 
-  if (!deployBlock) throw new Error("Set VITE_LEDGER_DEPLOY_BLOCK.");
   if (shouldSend && !keeperKey) throw new Error("Set KEEPER_KEY to the current ChocoLedger keeper private key.");
   if (shouldSend && !recordOnly) requiredAddress(escrowAddress, "VITE_SCHEDULE_ESCROW_ADDRESS");
 
@@ -86,129 +84,39 @@ export async function runDueSchedules({
   const escrowReader = escrowAddress ? new ethers.Contract(escrowAddress, ESCROW_ABI, provider) : null;
   const escrowWriter = signer && escrowAddress ? new ethers.Contract(escrowAddress, ESCROW_ABI, signer) : null;
 
-  async function queryFilterChunked(filter, fromBlock, toBlock) {
-    const logs = [];
-    const from = Math.max(0, Number(fromBlock || 0));
-    const to = Number(toBlock);
-    for (let start = from; start <= to; start += logChunkSize + 1) {
-      const end = Math.min(to, start + logChunkSize);
-      logs.push(...await ledgerReader.queryFilter(filter, start, end));
-      if (start + logChunkSize + 1 <= to) await new Promise((resolve) => setTimeout(resolve, 300));
-    }
-    return logs;
-  }
-
-  async function getEventLogsFromExplorer(eventName) {
-    if (!explorerApi || !deployBlock) return null;
-    try {
-      const topic0 = ledgerReader.interface.getEvent(eventName).topicHash;
-      const url = new URL(explorerApi);
-      url.searchParams.set("module", "logs");
-      url.searchParams.set("action", "getLogs");
-      url.searchParams.set("address", ledgerAddress);
-      url.searchParams.set("fromBlock", String(deployBlock));
-      url.searchParams.set("toBlock", "latest");
-      url.searchParams.set("topic0", topic0);
-      url.searchParams.set("sort", "asc");
-
-      const response = await fetch(url.toString());
-      if (!response.ok) return null;
-      const json = await response.json();
-      if (json.status === "0") return [];
-      if (!Array.isArray(json.result)) return null;
-
-      const iface = ledgerReader.interface;
-      return json.result.map((raw) => {
-        try {
-          const parsed = iface.parseLog({ topics: raw.topics, data: raw.data });
-          if (!parsed || parsed.name !== eventName) return null;
-          return {
-            args: parsed.args,
-            blockNumber: hexToNum(raw.blockNumber),
-            index: hexToNum(raw.logIndex || 0),
-            timestamp: hexToNum(raw.timeStamp || 0),
-          };
-        } catch {
-          return null;
-        }
-      }).filter(Boolean);
-    } catch {
-      return null;
-    }
-  }
-
-  async function getEventLogs(eventName, filter) {
-    const explorerLogs = await getEventLogsFromExplorer(eventName);
-    if (explorerLogs !== null) {
-      out.log(`  ${eventName}: ${explorerLogs.length} (Blockscout)`);
-      return explorerLogs;
-    }
-    out.log(`  ${eventName}: Blockscout unavailable, falling back to RPC chunks`);
-    const latest = await provider.getBlockNumber();
-    const rpcLogs = await queryFilterChunked(filter, deployBlock, latest);
-    return rpcLogs.map((log) => ({ args: log.args, blockNumber: log.blockNumber, index: log.index ?? 0, timestamp: 0 }));
-  }
-
-  async function currentMonthSettlementIds() {
-    const now = new Date();
-    const monthStartSec = Math.floor(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1) / 1000);
-    const explorerLogs = await getEventLogsFromExplorer("SettlementReceipt");
-    if (explorerLogs !== null) {
-      const settled = new Set();
-      for (const log of explorerLogs) {
-        if (log.timestamp >= monthStartSec) settled.add(String(log.args.id));
-      }
-      return settled;
-    }
-
-    const latest = await provider.getBlockNumber();
-    const secondsSinceMonthStart = Math.floor(Date.now() / 1000) - monthStartSec;
-    const celoBlockTime = 2;
-    const bufferBlocks = 7200;
-    const monthStartBlock = Math.max(deployBlock, latest - Math.ceil(secondsSinceMonthStart / celoBlockTime) - bufferBlocks);
-    const rpcLogs = await queryFilterChunked(ledgerReader.filters.SettlementReceipt(), monthStartBlock, latest);
-    const blockCache = new Map();
-    const settled = new Set();
-    for (const log of rpcLogs) {
-      if (!blockCache.has(log.blockNumber)) blockCache.set(log.blockNumber, await provider.getBlock(log.blockNumber));
-      const block = blockCache.get(log.blockNumber);
-      if (block && sameMonth(new Date(Number(block.timestamp) * 1000), now)) settled.add(String(log.args.id));
-    }
-    return settled;
-  }
-
-  async function readSchedules() {
-    const createdLogs = await getEventLogs("MonthlyScheduleCreated", ledgerReader.filters.MonthlyScheduleCreated());
-    const cancelledLogs = await getEventLogs("ScheduleCancelled", ledgerReader.filters.ScheduleCancelled());
-    const pausedLogs = await getEventLogs("SchedulePaused", ledgerReader.filters.SchedulePaused());
-    const resumedLogs = await getEventLogs("ScheduleResumed", ledgerReader.filters.ScheduleResumed());
-
-    const cancelledIds = new Set(cancelledLogs.map((log) => String(log.args.id)));
-    const pauseState = new Map();
-    [...pausedLogs.map((log) => ({ log, active: false })), ...resumedLogs.map((log) => ({ log, active: true }))]
-      .sort((a, b) => a.log.blockNumber - b.log.blockNumber || Number(a.log.index ?? 0) - Number(b.log.index ?? 0))
-      .forEach(({ log, active }) => pauseState.set(String(log.args.id), active));
-
-    return createdLogs
-      .filter((log) => !owner || log.args.owner.toLowerCase() === owner)
-      .map((log) => {
-        const a = log.args;
-        const id = String(a.id);
-        const cancelled = cancelledIds.has(id);
-        const active = cancelled ? false : (pauseState.get(id) ?? true);
-        return {
-          id: Number(a.id),
-          owner: a.owner,
-          recipient: a.recipient,
-          sourceAsset: a.sourceAsset,
-          sourceAmount: a.sourceAmount,
-          destinationAmount: a.destinationAmount,
-          dayOfMonth: Number(a.dayOfMonth),
-          firstRunAt: Number(a.firstRunAt),
-          active,
-          cancelled,
-        };
-      });
+  // Read every schedule's CURRENT state straight from the ledger. `active`/`cancelled` already reflect
+  // pauses/resumes/cancellations (the contract mutates them in place), and `lastSettlementAt` is the same
+  // value the contract's own once-per-period guard uses — so "already settled this month" needs no event
+  // scan. Bounded by scheduleCount; if that ever grows into the hundreds, switch these reads to Multicall3.
+  async function readSchedulesFromState() {
+    const total = Number(await ledgerReader.scheduleCount());
+    if (total === 0) return [];
+    const monthStartSec = startOfCurrentMonthSec();
+    const ids = Array.from({ length: total }, (_, i) => i + 1);
+    const rows = await Promise.all(ids.map(async (id) => {
+      const [schedule, lastSettle] = await Promise.all([
+        ledgerReader.getSchedule(id),
+        ledgerReader.lastSettlementAt(id),
+      ]);
+      return { id, schedule, lastSettle: Number(lastSettle) };
+    }));
+    return rows
+      .filter(({ schedule }) => schedule.owner !== ethers.ZeroAddress && (!owner || schedule.owner.toLowerCase() === owner))
+      .map(({ id, schedule, lastSettle }) => ({
+        id,
+        owner: schedule.owner,
+        recipient: schedule.recipient,
+        sourceAsset: schedule.sourceAsset,
+        sourceAmount: schedule.sourceAmount,
+        destinationAmount: schedule.destinationAmount,
+        dayOfMonth: Number(schedule.dayOfMonth),
+        firstRunAt: Number(schedule.firstRunAt),
+        active: schedule.active,
+        cancelled: schedule.cancelled,
+        // Same meaning as the old SettlementReceipt-event scan, but read from on-chain state: the
+        // last settle landed at or after the start of this calendar month → already done this period.
+        alreadySettledThisMonth: lastSettle >= monthStartSec,
+      }));
   }
 
   const code = await provider.getCode(ledgerAddress);
@@ -226,20 +134,16 @@ export async function runDueSchedules({
     }
   }
 
-  const [schedules, settledIds] = await Promise.all([readSchedules(), currentMonthSettlementIds()]);
+  const schedules = await readSchedulesFromState();
   const nowSec = Math.floor(Date.now() / 1000);
   // Testing aid: FORCE_SCHEDULE_ID settles that one plan immediately, bypassing only the time
   // window (still requires it to be funded and not already settled this month). Lets you create +
   // fund a plan and exercise the keeper in a close window without waiting for the real run time.
   const forceId = String(env.FORCE_SCHEDULE_ID || "").trim();
   const due = schedules
-    .map((schedule) => ({
-      ...schedule,
-      runAt: scheduleWindowForCurrentMonth(schedule),
-      alreadySettled: settledIds.has(String(schedule.id)),
-    }))
+    .map((schedule) => ({ ...schedule, runAt: scheduleWindowForCurrentMonth(schedule) }))
     .filter((schedule) => {
-      if (schedule.alreadySettled) return false;
+      if (schedule.alreadySettledThisMonth) return false;
       if (forceId && String(schedule.id) === forceId) {
         out.log(`#${schedule.id} forced (FORCE_SCHEDULE_ID) — bypassing the run-time window.`);
         return true;
