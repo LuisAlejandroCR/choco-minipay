@@ -139,8 +139,6 @@ export async function summariseTransfer({ account, recipient, intent, walletRead
     }
   }
   const ckesFloat = Number(formatUnits(ckesRaw, 18));
-  let routeUnavailable = false;
-  let routeUnavailableMessage = "";
 
   let usdcRaw = usdcRequested > 0 ? parseUnits(Number(usdcRequested).toFixed(6), 6) : 0n;
   if (ckesRequested > 0) {
@@ -150,7 +148,7 @@ export async function summariseTransfer({ account, recipient, intent, walletRead
     } catch {
       // Display-only quote: sendNow re-quotes AND falls back to the user's estimate at confirm time, so
       // a transient review-quote failure must never block confirm or flash the "unavailable" banner —
-      // keep showing the fallback estimate. (routeUnavailable stays false; the send is the real gate.)
+      // keep showing the fallback estimate. The send (with its own retry + fallback) is the real gate.
     }
   }
   const walletPaysFloat = Number(formatUnits(usdcRaw, 6));
@@ -176,8 +174,6 @@ export async function summariseTransfer({ account, recipient, intent, walletRead
     networkFeeLabel: feeLabel,
     totalCostLabel,
     liveQuote,
-    routeUnavailable,
-    routeUnavailableMessage,
-    readyToConfirm: !routeUnavailable && walletReady && isAddress(recipient || "") && usdcRequested > 0,
+    readyToConfirm: walletReady && isAddress(recipient || "") && usdcRequested > 0,
   };
 }
