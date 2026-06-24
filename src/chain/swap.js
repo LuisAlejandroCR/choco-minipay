@@ -129,13 +129,15 @@ export async function sendNow({ account, recipient, intent }) {
 
       const sim = await simulateSwapWithRetry(publicClient, { account, swapContract, recipient, usdcNeeded, ckesExact });
       if (!sim.ok) {
-        // The approve already succeeded THIS round, so a transient simulate failure (Mento "no valid
-        // median" right after a prior send) must NOT strand the user with a paid approval and no
-        // transfer. Proceed to the swap — it lands seconds later, by which time the leg has typically
-        // recovered, and a rare on-chain revert is cheaper than a wasted approve. When the allowance was
-        // already warm (no approve this round) nothing was committed, so block and let the user retry.
-        if (!approveHash) throw routeError(sim.error);
-        console.warn("Choco: swap simulate failed right after a fresh approval; sending anyway.", sim.error);
+        // Proceed when the route is fundamentally UP — i.e. the inverse quote just succeeded (on-chain
+        // audit shows quoteExactOut keeps working even while a swapAndSendExact simulate momentarily
+        // reverts on a Mento/RPC blip), or we already committed an approve this round. usdcNeeded is the
+        // buffered quote, so it's a sufficient cap; a transient simulate blip must NOT surface as the
+        // (misleading) "temporarily unavailable" and block an otherwise-valid send — the real tx lands
+        // seconds later once the blip clears. Only hard-fail when the quote ALSO failed (route genuinely
+        // down) AND nothing was committed.
+        if (!selectedRoute.ok && !approveHash) throw routeError(sim.error);
+        console.warn("Choco: swap simulate blipped but the route quoted OK / approval committed — sending anyway.", sim.error);
       }
 
       const swapGas = await sendGasLimit(publicClient, {
