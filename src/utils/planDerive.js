@@ -37,10 +37,10 @@ export function getPlanExecutionState(plan, now = new Date()) {
     settledDate.getMonth() === now.getMonth(),
   );
   if (settledThisMonth) {
-    return { status: "Run recorded", label: "Run recorded", tone: "success" };
+    return { status: "Run recorded", label: "Sent this month", tone: "success" };
   }
 
-  if (!day) return { status: "Authorized", label: "Authorized", tone: "neutral" };
+  if (!day) return { status: "Authorized", label: "Active", tone: "neutral" };
   const firstRunDate = firstRunAtMs ? new Date(firstRunAtMs) : null;
   const firstRunIsToday = Boolean(
     firstRunDate &&
@@ -51,20 +51,20 @@ export function getPlanExecutionState(plan, now = new Date()) {
 
   if (firstRunAtMs && firstRunAtMs > nowMs) {
     return firstRunIsToday
-      ? { status: "Runs today", label: "Runs today", tone: "due" }
-      : { status: "Authorized", label: "Authorized", tone: "neutral" };
+      ? { status: "Runs today", label: "Sending today", tone: "due" }
+      : { status: "Authorized", label: "Active", tone: "neutral" };
   }
 
   const scheduledToday = scheduledLocalDateForPlan(plan, now);
   const scheduledAtMs = scheduledToday?.getTime() || 0;
   const today = now.getDate();
   if (today === day && scheduledAtMs && nowMs < scheduledAtMs) {
-    return { status: "Runs today", label: "Runs today", tone: "due" };
+    return { status: "Runs today", label: "Sending today", tone: "due" };
   }
   if ((today === day && (!scheduledAtMs || nowMs >= scheduledAtMs)) || today > day) {
-    return { status: "Awaiting auto-run", label: "Awaiting run", tone: "warning" };
+    return { status: "Awaiting auto-run", label: "Sending soon", tone: "warning" };
   }
-  return { status: "Authorized", label: "Authorized", tone: "neutral" };
+  return { status: "Authorized", label: "Active", tone: "neutral" };
 }
 
 export function getRecipientContactLabel(plan) {

@@ -53,24 +53,24 @@ export function PlanDetailScreen({ plan, onEdit, onDelete, operationStatus = "",
       </div>
 
       <div className="detail-list" aria-label="Plan details">
-        <DetailLine label="Route" value={`${plan.payAsset} to ${plan.asset}`} />
+        <DetailLine label="Converts" value={`${plan.payAsset} → ${plan.asset}`} />
         <DetailLine
-          label="Execution"
+          label="Schedule"
           value={
             isPaused
-              ? "Paused on-chain"
+              ? "Paused"
               : execution.status === "Run recorded"
-                ? "This month is recorded in History"
-                : "Auto-runs on the scheduled day"
+                ? "This month's payment is done"
+                : "Sends automatically on the scheduled day"
           }
         />
-        <DetailLine label="Retries" value="3 attempts if a transfer fails" />
+        <DetailLine label="If it fails" value="Choco tries up to 3 times" />
       </div>
 
       <div className="notice compact notice-hint">
         {isPaused
-          ? "This plan is paused on-chain. Delete it or create a new plan when you are ready."
-          : "Your wallet authorized this plan once. Funds stay in your wallet until Choco runs the scheduled transfer. Delete the plan to stop future runs."}
+          ? "This plan is paused. Delete it or create a new plan when you are ready."
+          : "You approved this plan once. Your money stays in your wallet until each scheduled payment. Delete the plan to stop future payments."}
       </div>
 
       <div className="plan-actions detail-bottom-actions">

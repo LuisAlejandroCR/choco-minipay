@@ -46,7 +46,7 @@ function isHeldEvent(tx) {
 function TxDot({ tx }) {
   if (tx.status === "Failed") return <span className="tx-dot failed" aria-label="Failed"><AlertCircle size={16} /></span>;
   if (isHeldEvent(tx)) return (
-    <span className="tx-dot plan" aria-label={tx.status === "Returned" ? "Returned" : "Held"}>
+    <span className="tx-dot plan" aria-label={tx.status === "Returned" ? "Returned" : "Set aside"}>
       {tx.status === "Returned" ? <Undo2 size={16} /> : <Lock size={16} />}
     </span>
   );
@@ -71,8 +71,8 @@ function TxAmount({ tx }) {
 const TYPE_FILTERS = [
   { id: "all", label: "All" },
   { id: "sent", label: "Send now" },
-  { id: "schedules", label: "Plan runs" },
-  { id: "held", label: "Held" },
+  { id: "schedules", label: "Plan payments" },
+  { id: "held", label: "Set aside" },
 ];
 
 function applyFilters(transactions, typeFilter, query) {
@@ -103,7 +103,7 @@ function movementDescription(tx) {
 function movementTime(tx) {
   const label = timeLabel(tx.sortKey);
   if (!label) return "";
-  return isScheduleEvent(tx) ? `Ran ${label}` : label;
+  return isScheduleEvent(tx) ? `Sent ${label}` : label;
 }
 
 export function HistoryScreen({
@@ -126,10 +126,10 @@ export function HistoryScreen({
     : typeFilter === "all"
       ? "No receipts yet"
       : typeFilter === "schedules"
-        ? "No plan runs"
+        ? "No plan payments"
         : typeFilter === "held"
-          ? "No held funds"
-          : "No send-now movements";
+          ? "No money set aside"
+          : "No instant sends";
 
   return (
     <div className="screen history-screen">
@@ -206,14 +206,14 @@ export function HistoryScreen({
             {query
               ? "Try a different search term."
               : typeFilter === "all"
-                ? "Completed sends and executed plan runs will appear here."
+                ? "Completed sends and plan payments will appear here."
                 : "Try a different filter."}
           </p>
           {walletAddress ? <span className="empty-chain-hint">Checked wallet {shortWallet(walletAddress)}</span> : null}
           {ledgerError ? <span className="empty-chain-error">{ledgerError}</span> : null}
           {onRefresh ? (
             <button type="button" onClick={onRefresh} disabled={loading}>
-              <RefreshCw size={16} />Refresh from chain
+              <RefreshCw size={16} />Refresh
             </button>
           ) : null}
         </div>

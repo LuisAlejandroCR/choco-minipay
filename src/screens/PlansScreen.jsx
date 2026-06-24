@@ -88,7 +88,7 @@ export function PlansScreen({ plans, loading = false, onSelectPlan, onNewPlan, o
           )}
           <div className="plan-alert plan-info">
             <Check size={16} />
-            <span>Plans are wallet-authorized auto-runs. Funds stay in your wallet until the scheduled execution.</span>
+            <span>Plans run automatically — you approve once. Your money stays in your wallet until each scheduled payment.</span>
           </div>
           <div className="plans-list" aria-label="Plans list">
             {visible.map((item) => {
@@ -111,9 +111,9 @@ export function PlansScreen({ plans, loading = false, onSelectPlan, onNewPlan, o
         <div className="empty-plans">
           <ChocoMark size="small" />
           <h2>{query ? "No matches" : statusFilter === "all" ? "No plans yet" : `No ${statusFilter} plans`}</h2>
-          <p>{query ? "Try a different search term." : statusFilter === "all" ? "Create a scheduled transfer with text or voice. One-time sends stay in history." : "Try a different filter."}</p>
+          <p>{query ? "Try a different search term." : statusFilter === "all" ? "Create a scheduled payment with text or voice. One-time sends stay in history." : "Try a different filter."}</p>
           {!query && statusFilter === "all" && (
-            <button type="button" onClick={onNewPlan}>Schedule transfer</button>
+            <button type="button" onClick={onNewPlan}>Schedule a payment</button>
           )}
         </div>
       )}

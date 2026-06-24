@@ -10,7 +10,7 @@ export function DeletePlanScreen({ plan, onCancel, onDelete, isPending = false }
       </div>
 
       <div className="notice">
-        {plan.recipient} will no longer have the {plan.amount} {plan.asset} scheduled transfer. Any USDC held for the next run is returned to your wallet.
+        {plan.recipient} will no longer have the {plan.amount} {plan.asset} scheduled payment. Any USDC set aside for the next payment is returned to your wallet.
       </div>
 
       <button className="danger-cta" type="button" onClick={onDelete} disabled={isPending}>

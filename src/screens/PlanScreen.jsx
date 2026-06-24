@@ -73,7 +73,7 @@ export function PlanScreen({
 
   const heroSub = isWalletVerified
     ? wallet.isReadOnly
-      ? `${walletShort} — connect wallet app to sign.`
+      ? `${walletShort} — connect your wallet to confirm.`
       : nextPlan
         ? `Next: ${nextPlan.amount} ${nextPlan.asset} → ${nextPlan.recipient} · ${getTimingLabel(nextPlan)}`
         : `${walletShort} · no active plans`
@@ -131,7 +131,7 @@ export function PlanScreen({
           <div className="balance-copy">
             <span>Wallet access</span>
             <strong>Locked</strong>
-            <p>{`Verify on ${wallet.network.label} to unlock transfers, schedules, and receipts.`}</p>
+            <p>Confirm your wallet to unlock sends, schedules, and receipts.</p>
           </div>
         )}
       </div>
