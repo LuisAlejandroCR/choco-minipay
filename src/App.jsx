@@ -356,7 +356,7 @@ export default function App() {
           console.warn("Escrow refund skipped:", refundError?.message || refundError);
         }
       }
-      appStatus.setMessage("Cancelling schedule on-chain...");
+      appStatus.setMessage("Cancelling schedule...");
       await cancelScheduleViaRegistry({ account: wallet.address, id: planToDelete.onchainId });
       appStatus.setStatus("idle");
       // Optimistic remove: plan disappears immediately, background refresh confirms on-chain state.
@@ -380,7 +380,7 @@ export default function App() {
     const isPaused = planToToggle.status === "Paused" || planToToggle.active === false;
     try {
       appStatus.setStatus("pending");
-      appStatus.setMessage(isPaused ? "Resuming plan on-chain..." : "Pausing plan on-chain...");
+      appStatus.setMessage(isPaused ? "Resuming plan..." : "Pausing plan...");
       if (isPaused) {
         await resumeScheduleViaRegistry({ account: wallet.address, id: planToToggle.onchainId });
       } else {

@@ -82,12 +82,12 @@ export function ReceiptDetailScreen({ transaction }) {
                 <QrCanvas data={verifyUrl} size={116} />
               </div>
               <a className="rds-qr-link" href={verifyUrl} target="_blank" rel="noreferrer">
-                Verify on-chain <ExternalLink size={13} />
+                See proof <ExternalLink size={13} />
               </a>
             </>
           ) : (
             <div className="rds-qr-notice">
-              Verification QR appears after the wallet signs and the transaction is mined.
+              The proof code appears once your wallet confirms and the payment completes.
             </div>
           )}
         </div>

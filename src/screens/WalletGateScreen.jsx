@@ -28,14 +28,14 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
               ? "Connect from a mobile wallet"
               : needsDesktopWallet
                 ? "Connect a browser wallet"
-                : "Verify your wallet first"}
+                : "Confirm your wallet first"}
           </h2>
           <p>
             {needsMobileWallet
-              ? "Open Choco in MiniPay or another injected mobile wallet to sign actions."
+              ? "Open Choco in MiniPay or another mobile wallet to continue."
               : needsDesktopWallet
                 ? "Install or enable a browser wallet, then connect."
-                : "Choco reads balances and prepares wallet-signed actions. It never custodies funds."}
+                : "Choco reads your balance and prepares payments for your wallet to approve. It never holds your money."}
           </p>
           {wallet.error && <p className="wallet-error">{wallet.error}</p>}
         </div>

@@ -69,12 +69,12 @@ export function ReviewScreen({
   const actionBlocked = !actionReady || !quoteReady;
 
   const noticeText = !walletReady
-    ? "Connect and verify your wallet to continue."
+    ? "Connect your wallet to continue."
     : isSendNow
       ? supabaseReady
-        ? "Wallet signs after confirmation. Saved contacts are visible only to your connected wallet."
-        : "Wallet signs after confirmation. Choco reads your wallet balance only - no contact data is stored."
-      : "Wallet authorizes this plan once. Funds stay in your wallet until the scheduled execution.";
+        ? "Your wallet confirms after you review. Saved contacts are visible only to your wallet."
+        : "Your wallet confirms after you review. Choco reads your balance only - no contact data is stored."
+      : "You approve this plan once. Your money stays in your wallet until each scheduled payment.";
 
   return (
     <div className="screen review-screen">
