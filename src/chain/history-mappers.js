@@ -243,18 +243,18 @@ export function mapEscrowToMovement(log, timestamp, kind) {
     asset: APP_CONFIG.assets.source,
     payAsset: APP_CONFIG.assets.source,
     payAmount: usdc,
-    schedule: isRefund ? "Returned to your wallet" : "Reserved for the next run",
+    schedule: isRefund ? "Returned to your wallet" : "Set aside for the next payment",
     date: formatChainDate(timestamp),
-    status: isRefund ? "Returned" : "Reserved",
+    status: isRefund ? "Returned" : "Set aside",
     hash: log.transactionHash,
-    type: isRefund ? "Returned to wallet" : "Reserved for next run",
+    type: isRefund ? "Returned to wallet" : "Set aside for next payment",
     deliveryMode: "held",
     from: a.owner,
     to: "Scheduled plan",
     toAddress: "",
     routeEstimate: isRefund
       ? `${usdc} ${APP_CONFIG.assets.source} returned to your wallet`
-      : `${usdc} ${APP_CONFIG.assets.source} held for the next run`,
+      : `${usdc} ${APP_CONFIG.assets.source} set aside for the next payment`,
     sortKey: timestamp || 0,
   };
 }

@@ -23,14 +23,24 @@ export function ReceiptDetailScreen({ transaction }) {
       ? transaction.to
       : recipientName;
 
-  const shareText = [
+  // Human-first receipt for sharing with a non-crypto recipient: lead with what/who, show a real date
+  // for instant sends (the schedule line only matters for scheduled plans), reframe the tx hash as a
+  // familiar "Reference", and call the explorer link "Proof" instead of the jargon "Verify/Hash". The
+  // recipient's raw address is dropped — the name is the identifier; the proof link carries the rest.
+  const isNowSend = transaction.deliveryMode === "now";
+  const shareLines = [
     `Choco receipt: ${amountLabel || "Pending"} ${assetLabel} to ${recipientName}`,
-    `Timing: ${timingLabel}`,
     `Status: ${statusLabel || "Pending"}`,
-    `Recipient: ${recipientDetail}`,
-    `Hash: ${formatTransactionHash(transaction.hash)}`,
-    hasHash ? `Verify: ${verifyUrl}` : "Verify: pending wallet signature",
-  ].join("\n");
+  ];
+  if (isNowSend && transaction.date) shareLines.push(`Date: ${transaction.date}`);
+  else if (!isNowSend && timingLabel) shareLines.push(`Schedule: ${timingLabel}`);
+  if (hasHash) {
+    shareLines.push(`Reference: ${formatTransactionHash(transaction.hash)}`);
+    shareLines.push(`Proof: ${verifyUrl}`);
+  } else {
+    shareLines.push("Proof: pending wallet signature");
+  }
+  const shareText = shareLines.join("\n");
 
   async function shareMovement() {
     try {
