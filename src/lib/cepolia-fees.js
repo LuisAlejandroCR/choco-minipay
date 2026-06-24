@@ -20,23 +20,39 @@ export async function estimateTransferFeeUsdc(account, usdcAmountRaw) {
   const publicClient = makePublicClient();
   const feeCurrency = ADDRESSES.feeCurrency;
 
-  // approve USDC → gateway is the only approval; the gateway runs both hops internally.
-  let approveGas = 46000n;
+  // approve USDC → gateway is the only approval; the gateway runs both hops internally. Count it in the
+  // fee ONLY when the wallet must actually approve first — on repeat sends the allowance is already warm,
+  // so the displayed fee is just the single settle tx (and matches the wallet's own simulation, instead
+  // of over-stating it by ~46k gas every time).
+  let approveGas = 0n;
   const approvalTarget = getApprovalTarget({
     deliveryMode: "now",
     intent: { sourceAsset: APP_CONFIG.assets.source },
   });
+  const spender = approvalTarget?.address || ADDRESSES.mentoBroker;
   if (account && isAddress(account) && usdcAmountRaw > 0n) {
+    let allowance = 0n;
     try {
-      approveGas = await publicClient.estimateContractGas({
+      allowance = await publicClient.readContract({
         address: ADDRESSES.usdc,
         abi: ERC20_ABI,
-        functionName: "approve",
-        args: [approvalTarget?.address || ADDRESSES.mentoBroker, usdcAmountRaw],
-        account,
-        feeCurrency,
+        functionName: "allowance",
+        args: [account, spender],
       });
     } catch {}
+    if (allowance < usdcAmountRaw) {
+      approveGas = 46000n;
+      try {
+        approveGas = await publicClient.estimateContractGas({
+          address: ADDRESSES.usdc,
+          abi: ERC20_ABI,
+          functionName: "approve",
+          args: [spender, usdcAmountRaw],
+          account,
+          feeCurrency,
+        });
+      } catch {}
+    }
   }
 
   const totalGas = approveGas + GATEWAY_SETTLE_GAS;
