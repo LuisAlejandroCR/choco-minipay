@@ -87,7 +87,7 @@ export const APP_CONFIG = {
     destinationCountry: env.VITE_DESTINATION_COUNTRY || "Kenya",
     kesPerUsdc: Number(env.VITE_KES_PER_USDC || 129.39),
     exactOutputBufferBps: Number(env.VITE_EXACT_OUTPUT_BUFFER_BPS || 200),
-    minExactOutputBufferUsdc: Number(env.VITE_MIN_EXACT_OUTPUT_BUFFER_USDC || 0.005),
+    minExactOutputBufferUsdc: Number(env.VITE_MIN_EXACT_OUTPUT_BUFFER_USDC || 0.001),
     defaultScheduleHour: defaultScheduleTime?.hour ?? 4,
     defaultScheduleMinute: defaultScheduleTime?.minute ?? Number(env.VITE_DEFAULT_SCHEDULE_MINUTE || 0),
     minimumConfidence: Number(env.VITE_AGENT_MIN_CONFIDENCE || 0.75),

@@ -14,7 +14,21 @@ jobs:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           WORKER_URL: ${{ vars.CHOCO_WORKER_URL || 'https://choco-minipay.vercel.app/api/run-due-schedules' }}
         run: |
-          curl --fail --show-error --silent \
+          if [ -z "${CRON_SECRET}" ]; then
+            echo "::warning::CRON_SECRET is empty in GitHub Actions. If Vercel has CRON_SECRET set, the worker returns 401."
+          fi
+          echo "POST ${WORKER_URL}"
+          code=$(curl --silent --show-error --output response.json --write-out "%{http_code}" \
             --request POST \
             --header "Authorization: Bearer ${CRON_SECRET}" \
-            "${WORKER_URL}"
+            "${WORKER_URL}")
+          echo "HTTP status: ${code}"
+          echo "----- worker response -----"
+          cat response.json 2>/dev/null || true
+          echo ""
+          echo "---------------------------"
+          if [ "${code}" -lt 200 ] || [ "${code}" -ge 300 ]; then
+            echo "::error::Worker HTTP ${code}. 401=CRON_SECRET mismatch with Vercel; 500=keeper threw (check KEEPER_KEY / VITE_SCHEDULE_ESCROW_ADDRESS / VITE_LEDGER_DEPLOY_BLOCK on Vercel); 504=worker timeout."
+            exit 1
+          fi
+          echo "Worker run OK."

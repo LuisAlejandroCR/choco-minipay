@@ -183,8 +183,10 @@ export async function summariseTransfer({ account, recipient, intent, walletRead
     networkFeeLabel: feeLabel,
     totalCostLabel,
     // The gateway reserves `reservedLabel` USDC and returns the unused surplus as `usdmRefundLabel`.
+    // Only surface the refund note when it's material (>= $0.02). On small sends the surplus is dust —
+    // showing "returns ~0.001 USDm" is noise (and names a token the user didn't ask about).
     reservedLabel: `${reservedFloat.toLocaleString("en-US", { maximumFractionDigits: 4 })} USDC`,
-    usdmRefundLabel: usdmRefundFloat > 0.00005 ? `~${usdmRefundFloat.toFixed(4)} USDm` : "",
+    usdmRefundLabel: usdmRefundFloat >= 0.02 ? `~${usdmRefundFloat.toFixed(4)} USDm` : "",
     liveQuote,
     readyToConfirm: walletReady && isAddress(recipient || "") && usdcRequested > 0,
   };
