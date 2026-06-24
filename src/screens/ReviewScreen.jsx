@@ -141,7 +141,6 @@ export function ReviewScreen({
         )}
       </div>
 
-      {cepoliaSummary?.routeUnavailable && <div className="notice danger compact">{cepoliaSummary.routeUnavailableMessage}</div>}
       {status === "error" && message && <div className="notice danger compact">{message}</div>}
       {setupNotice && <div className="notice compact">{setupNotice}</div>}
 

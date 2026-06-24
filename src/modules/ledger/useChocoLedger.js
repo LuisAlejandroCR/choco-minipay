@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { clearLedgerCache, labelWithAddress, readOwnerLedger } from "../../lib/celo.js";
 import { SUPABASE_READY, listContacts } from "../../lib/contacts.js";
 
@@ -27,6 +27,12 @@ export function useChocoLedger(address) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Coalesce overlapping refreshes. Right after a send, the post-tx refresh + window focus +
+  // visibilitychange all fire within milliseconds; running them in parallel floods forno (receipt poll +
+  // balance + history getLogs) and makes the NEXT transfer's route quote fail ("temporarily
+  // unavailable"). If a read is already in flight, flag a single rerun instead of starting a parallel one.
+  const refreshStateRef = useRef({ running: false, queued: false });
+
   const refresh = useCallback(async () => {
     if (!address) {
       setPlans([]);
@@ -34,6 +40,9 @@ export function useChocoLedger(address) {
       setError("");
       return;
     }
+    const state = refreshStateRef.current;
+    if (state.running) { state.queued = true; return; }
+    state.running = true;
     setLoading(true);
     setError("");
     // Safety valve: if forno hangs with no response (not an error, just silence),
@@ -67,6 +76,8 @@ export function useChocoLedger(address) {
     } finally {
       window.clearTimeout(safetyTimer);
       setLoading(false);
+      state.running = false;
+      if (state.queued) { state.queued = false; void refresh(); } // one coalesced rerun
     }
   }, [address]);
 
@@ -76,14 +87,20 @@ export function useChocoLedger(address) {
 
   useEffect(() => {
     if (!address) return undefined;
+    let timer;
     const refreshOnReturn = () => {
       if (document.visibilityState && document.visibilityState !== "visible") return;
-      clearLedgerCache();
-      void refresh();
+      // Debounce: a wallet round-trip fires focus + visibilitychange back-to-back. Coalesce them, and
+      // re-read from the module cache (no forced re-scan) — mutations already call refreshFresh to show
+      // new data, so focus needn't hammer forno with a full history read the moment the user starts the
+      // next send. The cache self-expires (2 min), so off-app keeper settlements still surface shortly.
+      clearTimeout(timer);
+      timer = setTimeout(() => { void refresh(); }, 800);
     };
     document.addEventListener("visibilitychange", refreshOnReturn);
     window.addEventListener("focus", refreshOnReturn);
     return () => {
+      clearTimeout(timer);
       document.removeEventListener("visibilitychange", refreshOnReturn);
       window.removeEventListener("focus", refreshOnReturn);
     };
