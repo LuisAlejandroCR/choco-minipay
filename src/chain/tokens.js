@@ -67,7 +67,7 @@ export async function readStablecoinBalances(account) {
 
 // --- Approval ---
 
-export async function approveTokenIfNeeded({ account, tokenAddress, spender, amount }) {
+export async function approveTokenIfNeeded({ account, tokenAddress, spender, amount, minAllowance }) {
   assertAddress(tokenAddress, "Source asset");
   assertAddress(spender, "Settlement spender");
   const publicClient = makePublicClient();
@@ -79,7 +79,10 @@ export async function approveTokenIfNeeded({ account, tokenAddress, spender, amo
     args: [account, spender],
   });
 
-  if (allowance >= amount) return null;
+  // Re-approve only when the live allowance can't cover the actual need (minAllowance, default = amount).
+  // When we DO approve, approve the larger `amount` so back-to-back sends reuse the allowance — the
+  // second, third… send skips the approval entirely (one sign per batch instead of one per send).
+  if (allowance >= (minAllowance ?? amount)) return null;
 
   const hash = await walletClient.writeContract({
     address: tokenAddress,
