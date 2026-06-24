@@ -58,8 +58,8 @@ export async function verifyReadiness({ account, intent }) {
     let required = parseUnits(Number(intent.sourceAmount).toFixed(6), 6);
     if (Number(intent.amountKes) > 0) {
       try {
-        const exactRequired = await withQuoteRetry(() => quoteExactOutputUsdc(parseUnits(String(Number(intent.amountKes)), 18)));
-        if (exactRequired > 0n) required = exactRequired;
+        const { maxIn } = await withQuoteRetry(() => quoteExactOutputUsdc(parseUnits(String(Number(intent.amountKes)), 18)));
+        if (maxIn > 0n) required = maxIn; // balance must cover the buffered cap the contract pulls
       } catch {
         // Transient route-quote failure (e.g. Mento "no valid median" right after a prior send): keep
         // the intent's stated USDC amount for the balance check instead of aborting the send. sendNow
@@ -94,7 +94,8 @@ const SWAP_ABI = [
 async function quoteExactOutputUsdc(ckesAmountRaw) {
   const selectedRoute = await selectTransferRouteExactOut({ ckesAmountRaw });
   if (!selectedRoute.ok) throw new Error(selectedRoute.message);
-  return selectedRoute.usdcAmountIn;
+  // maxIn = the buffered cap the wallet must cover; net = the true cost (the unused buffer refunds as USDm).
+  return { maxIn: selectedRoute.usdcAmountIn, net: selectedRoute.usdcQuoted };
 }
 
 // Returns the cKES output for a given USDC amount, going through the deployed Choco swap
@@ -140,20 +141,28 @@ export async function summariseTransfer({ account, recipient, intent, walletRead
   }
   const ckesFloat = Number(formatUnits(ckesRaw, 18));
 
-  let usdcRaw = usdcRequested > 0 ? parseUnits(Number(usdcRequested).toFixed(6), 6) : 0n;
+  let usdcRaw = usdcRequested > 0 ? parseUnits(Number(usdcRequested).toFixed(6), 6) : 0n; // buffered cap (max-in)
+  let usdcNet = usdcRaw; // the TRUE cost; the unused buffer (usdcRaw - usdcNet) comes back as USDm
   if (ckesRequested > 0) {
     try {
-      const exactRequired = await withQuoteRetry(() => quoteExactOutputUsdc(ckesRaw));
-      if (exactRequired > 0n) usdcRaw = exactRequired;
+      const { maxIn, net } = await withQuoteRetry(() => quoteExactOutputUsdc(ckesRaw));
+      if (maxIn > 0n) {
+        usdcRaw = maxIn;
+        usdcNet = net > 0n ? net : maxIn;
+      }
     } catch {
       // Display-only quote: sendNow re-quotes AND falls back to the user's estimate at confirm time, so
       // a transient review-quote failure must never block confirm or flash the "unavailable" banner —
       // keep showing the fallback estimate. The send (with its own retry + fallback) is the real gate.
     }
   }
-  const walletPaysFloat = Number(formatUnits(usdcRaw, 6));
+  // "Pays" = the NET USDC the send actually costs. swapAndSendExact reserves the buffered cap (usdcRaw) and
+  // refunds the unused surplus as USDm, so the net is what truly leaves the wallet in value terms.
+  const walletPaysFloat = Number(formatUnits(usdcNet, 6));
+  const reservedFloat = Number(formatUnits(usdcRaw, 6));
+  const usdmRefundFloat = Math.max(0, reservedFloat - walletPaysFloat);
   const gasUsdcFloat = isAddress(ADDRESSES.feeCurrency || "")
-    ? await estimateTransferFeeUsdc(account, usdcRaw)
+    ? await estimateTransferFeeUsdc(account, usdcRaw) // approve/gas estimated on the cap the wallet must cover
     : 0.003;
 
   // Always show fee in USDC (converted from CELO via fee adapter)
@@ -173,6 +182,9 @@ export async function summariseTransfer({ account, recipient, intent, walletRead
     walletPaysLabel: `${walletPaysFloat.toLocaleString("en-US", { maximumFractionDigits: 4 })} USDC`,
     networkFeeLabel: feeLabel,
     totalCostLabel,
+    // The gateway reserves `reservedLabel` USDC and returns the unused surplus as `usdmRefundLabel`.
+    reservedLabel: `${reservedFloat.toLocaleString("en-US", { maximumFractionDigits: 4 })} USDC`,
+    usdmRefundLabel: usdmRefundFloat > 0.00005 ? `~${usdmRefundFloat.toFixed(4)} USDm` : "",
     liveQuote,
     readyToConfirm: walletReady && isAddress(recipient || "") && usdcRequested > 0,
   };

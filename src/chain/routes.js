@@ -59,13 +59,12 @@ async function quoteRouteExactOut(publicClient, route, ckesAmountRaw) {
   if (!isAddress(route.contractAddress || "")) {
     throw new Error("Swap contract is not configured.");
   }
-  const quoted = await publicClient.readContract({
+  return publicClient.readContract({
     address: route.contractAddress,
     abi:     CKES_SWAP_ABI,
     functionName: "quoteExactOut",
     args:    [ckesAmountRaw],
-  });
-  return applyExactOutputBuffer(quoted);
+  }); // RAW net cost; the slippage buffer is applied by selectTransferRouteExactOut below
 }
 
 async function quoteRouteForwardIn(publicClient, route, usdcAmountRaw) {
@@ -91,9 +90,10 @@ export async function selectTransferRouteExactOut({ ckesAmountRaw, publicClient 
   for (const route of TRANSFER_ROUTES) {
     if (!route.executable) continue;
     try {
-      const usdcAmountIn = await quoteRouteExactOut(publicClient, route, ckesAmountRaw);
-      if (!(usdcAmountIn > 0n)) throw new Error("Route returned an empty quote.");
-      return { ok: true, route, usdcAmountIn, contractAddress: route.contractAddress, failures };
+      const usdcQuoted = await quoteRouteExactOut(publicClient, route, ckesAmountRaw); // raw net cost
+      if (!(usdcQuoted > 0n)) throw new Error("Route returned an empty quote.");
+      const usdcAmountIn = applyExactOutputBuffer(usdcQuoted); // buffered max-in (cap); the unused surplus refunds as USDm
+      return { ok: true, route, usdcAmountIn, usdcQuoted, contractAddress: route.contractAddress, failures };
     } catch (error) {
       failures.push({ route, error, message: routeQuoteMessage(error) });
     }
