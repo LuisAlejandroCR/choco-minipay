@@ -54,6 +54,9 @@ export function ReviewScreen({
     || (plan.intent?.sourceAmountLabel ? `${walletPaysPrefix}${plan.intent.sourceAmountLabel}` : plan.payAsset || "USDC");
   const feeLabel = cepoliaSummary?.networkFeeLabel || APP_CONFIG.transfer.networkFeeLabel;
   const totalCostLabel = cepoliaSummary?.totalCostLabel || "";
+  // Exact-output sends reserve a small buffer above the net cost and refund the unused part as USDm.
+  const usdmRefundLabel = cepoliaSummary?.usdmRefundLabel || "";
+  const reservedLabel = cepoliaSummary?.reservedLabel || "";
   const timingLabel = isSendNow ? "Send once now" : plan.schedule;
   const primaryLabel = status === "pending"
     ? "Working"
@@ -141,6 +144,11 @@ export function ReviewScreen({
         )}
       </div>
 
+      {isSendNow && usdmRefundLabel && (
+        <div className="notice compact">
+          Reserves {reservedLabel}, returns the unused {usdmRefundLabel} to your wallet. Net cost shown above.
+        </div>
+      )}
       {status === "error" && message && <div className="notice danger compact">{message}</div>}
       {setupNotice && <div className="notice compact">{setupNotice}</div>}
 
