@@ -5,6 +5,11 @@ import { CKES_SWAP_ABI, ERC20_ABI, MENTO_BROKER_ABI } from "./abis.js";
 import { applyExactOutputBuffer, approveTokenIfNeeded, usdcAmountForIntent, sourceAmountForIntent } from "./tokens.js";
 import { hasAnyExecutableRoute, selectTransferRouteExactOutWithRetry, selectTransferRouteForwardIn } from "./routes.js";
 
+// When a send-now needs a USDC approval, approve this many sends' worth at once so the next several
+// sends reuse the warm allowance (one approval per batch instead of one per send). The gateway only
+// ever pulls the actual amount and refunds surplus, so a larger allowance to our own contract is safe.
+const SEND_APPROVE_BATCH = 10n;
+
 function readErc20Balance(publicClient, token, account) {
   return publicClient.readContract({ address: token, abi: ERC20_ABI, functionName: "balanceOf", args: [account] });
 }
@@ -119,7 +124,8 @@ export async function sendNow({ account, recipient, intent }) {
         account,
         tokenAddress: ADDRESSES.usdc,
         spender: swapContract,
-        amount: usdcNeeded,
+        amount: usdcNeeded * SEND_APPROVE_BATCH, // approve a batch so repeat sends skip the approval
+        minAllowance: usdcNeeded,                // …but only re-approve when the live allowance can't cover this send
       });
 
       const allowance = await readErc20Allowance(publicClient, ADDRESSES.usdc, account, swapContract);
@@ -171,7 +177,8 @@ export async function sendNow({ account, recipient, intent }) {
       account,
       tokenAddress: ADDRESSES.usdc,
       spender: swapContractIn,
-      amount: usdcAmount,
+      amount: usdcAmount * SEND_APPROVE_BATCH, // approve a batch so repeat sends skip the approval
+      minAllowance: usdcAmount,                // …but only re-approve when the live allowance can't cover this send
     });
     const allowance = await readErc20Allowance(publicClient, ADDRESSES.usdc, account, swapContractIn);
     if (allowance < usdcAmount) {
