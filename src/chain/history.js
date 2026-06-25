@@ -18,7 +18,7 @@ import {
   readSendNowHistoryFromReceipts,
   readAttemptHistory,
 } from "./history/send-now.js";
-import { readScheduleDataWithFallback } from "./history/schedules.js";
+import { readScheduleDataWithFallback, readLiveScheduleStates } from "./history/schedules.js";
 import { readEscrowHistory } from "./history/escrow.js";
 import { withTimeout } from "./history/sources.js";
 
@@ -99,6 +99,10 @@ export async function readOwnerLedger(owner) {
   const cancelledIds = new Set(cancelled.map((log) => String(log.args.id)));
   const scheduleById = new Map(created.map((log) => [String(log.args.id), log.args]));
   const ownerIds = new Set(scheduleById.keys());
+  // Explorer logs lag minutes behind, so a just-cancelled/paused plan can still look active there. Read
+  // the live cancelled/active flags from the ledger and let them override the stale events.
+  const liveStateById = await readLiveScheduleStates(publicClient, ledgerOrRegistry, [...ownerIds]).catch(() => new Map());
+  for (const [id, state] of liveStateById) { if (state.cancelled) cancelledIds.add(id); }
   const pausedById = new Map();
   [...paused.map((log) => ({ log, paused: true })), ...resumed.map((log) => ({ log, paused: false }))]
     .filter((entry) => ownerIds.has(String(entry.log.args.id)))
@@ -115,14 +119,20 @@ export async function readOwnerLedger(owner) {
     .filter((log) => !cancelledIds.has(String(log.args.id)))
     .map((log) => {
       const id = String(log.args.id);
-      return mapScheduleToPlan(log, settlementTimestampById.get(id) || 0, !pausedById.get(id));
+      const live = liveStateById.get(id);
+      const active = live ? live.active : !pausedById.get(id);
+      return mapScheduleToPlan(log, settlementTimestampById.get(id) || 0, active);
     })
     .sort((a, b) => b.onchainId - a.onchainId);
 
   // Tag plans (and their Held entries) with a distinguishing suffix when a contact has 2+ plans, then
   // resolve each Held movement to its plan's recipient + suffix (so contact labels/names attach).
   const suffixByScheduleId = assignPlanDisambiguators(plans);
-  const enrichedEscrow = enrichEscrowHistory(escrowHistory, scheduleById, suffixByScheduleId);
+  const enrichedEscrow = enrichEscrowHistory(escrowHistory, scheduleById, suffixByScheduleId)
+    // A cancelled plan's lock is refunded as part of cancelling, so drop its "set aside" entries
+    // immediately instead of waiting for the RunRefunded event to be indexed. The refund movement
+    // (status "Returned") still shows in history.
+    .filter((entry) => !(entry.status !== "Returned" && cancelledIds.has(String(entry.scheduleId))));
   const history = [
     ...composeMovementHistory({ sendNowHistory, settlements, scheduleById, timeByBlock }),
     ...enrichedEscrow,

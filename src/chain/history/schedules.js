@@ -1,7 +1,7 @@
 // Schedule data readers: reconstruct a wallet's plans + settlement receipts from chain state.
 // Explorer-logs first (fast), then a chunked RPC scan, then an explorer-txlist→receipts fallback —
 // each keeps the UI hydrated when the layer above is unavailable or rate-limited.
-import { REGISTRY_EVENTS_ABI } from "../abis.js";
+import { REGISTRY_ABI, REGISTRY_EVENTS_ABI } from "../abis.js";
 import {
   getContractEventsChunked,
   fetchExplorerLogs,
@@ -133,6 +133,29 @@ async function readScheduleDataFromReceipts(publicClient, owner, fromBlock, cont
     .filter((log) => ownerIds.has(String(log.args.id)));
 
   return { created, cancelled, paused, resumed, settlements };
+}
+
+// Read the LIVE cancelled/active flags for each schedule straight from the ledger (getSchedule). The
+// explorer logs lag a few minutes, so a just-cancelled or just-paused plan still looks active there;
+// these real-time reads override the stale events. Tolerant: a legacy registry without getSchedule (or a
+// transient RPC error) leaves that id out of the map and the caller falls back to the event-derived state.
+export async function readLiveScheduleStates(publicClient, contractAddress, ids) {
+  const states = new Map();
+  if (!contractAddress || !ids.length) return states;
+  await Promise.all(ids.map(async (id) => {
+    try {
+      const schedule = await publicClient.readContract({
+        address: contractAddress,
+        abi: REGISTRY_ABI,
+        functionName: "getSchedule",
+        args: [BigInt(id)],
+      });
+      states.set(String(id), { cancelled: Boolean(schedule.cancelled), active: Boolean(schedule.active) });
+    } catch {
+      // getSchedule unavailable (legacy registry) or a transient read error → leave to the event fallback.
+    }
+  }));
+  return states;
 }
 
 export async function readScheduleDataWithFallback(publicClient, owner, fromBlock, contractAddress) {
