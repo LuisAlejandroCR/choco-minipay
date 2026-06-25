@@ -39,6 +39,33 @@ export const REGISTRY_ABI = [
     inputs: [{ name: "id", type: "uint256" }],
     outputs: [],
   },
+  // Live schedule state — read in real time so a just-cancelled/paused plan reflects immediately
+  // instead of waiting for the explorer to index the ScheduleCancelled/Paused event (minutes of lag).
+  {
+    type: "function",
+    name: "getSchedule",
+    stateMutability: "view",
+    inputs: [{ name: "id", type: "uint256" }],
+    outputs: [
+      {
+        name: "",
+        type: "tuple",
+        components: [
+          { name: "owner", type: "address" },
+          { name: "recipient", type: "address" },
+          { name: "sourceAsset", type: "address" },
+          { name: "sourceAmount", type: "uint256" },
+          { name: "destinationAmount", type: "uint256" },
+          { name: "dayOfMonth", type: "uint8" },
+          { name: "firstRunAt", type: "uint64" },
+          { name: "active", type: "bool" },
+          { name: "cancelled", type: "bool" },
+          { name: "commandHash", type: "bytes32" },
+          { name: "receiptLabelHash", type: "bytes32" },
+        ],
+      },
+    ],
+  },
 ];
 
 // Event ABI used to rebuild plans and history straight from chain state — nothing is stored off-chain.
