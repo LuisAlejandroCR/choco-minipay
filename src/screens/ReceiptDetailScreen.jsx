@@ -10,6 +10,8 @@ export function ReceiptDetailScreen({ transaction }) {
   const hasHash = isTransactionHash(transaction.hash);
   const verifyUrl = getTransactionExplorerUrl(transaction.hash);
   const timingLabel = getTimingLabel(transaction);
+  // Held/refund movements aren't "timed" — the schedule text is really their status, so label it so.
+  const isHeldMovement = transaction.deliveryMode === "held";
   const hasApproveHash = transaction.approveHash && isTransactionHash(transaction.approveHash);
   const statusLabel = transaction.status && transaction.status !== "Pending" ? transaction.status : "";
   const recipientName = transaction.recipient && transaction.recipient !== "Recipient"
@@ -107,7 +109,7 @@ export function ReceiptDetailScreen({ transaction }) {
         <div className="rds-field">
           <div className="rds-field-label">
             <span className="rds-field-icon"><CalendarDays size={15} /></span>
-            <span className="rds-field-key">Timing</span>
+            <span className="rds-field-key">{isHeldMovement ? "Status" : "Timing"}</span>
           </div>
           <span className="rds-field-value">{timingLabel}</span>
         </div>

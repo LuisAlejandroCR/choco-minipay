@@ -30,7 +30,7 @@ export function buildPlanFromIntent(intent, basePlan = defaultPlan, selectedDeli
     corridor: intent.corridor,
     cadence: deliveryMode === "now" ? null : "monthly",
     dayLabel: intent.dayLabel,
-    schedule: deliveryMode === "now" ? "Send once now" : getScheduleLabelForIntent({ ...intent, deliveryMode }),
+    schedule: deliveryMode === "now" ? "One-time send" : getScheduleLabelForIntent({ ...intent, deliveryMode }),
     nextDate: deliveryMode === "now" ? "Today" : getNextDateForIntent({ ...intent, deliveryMode }),
     routeEstimate: formatRouteEstimate(intent.amountKes, intent.sourceAsset, KES_PER_USDC, intent.sourceAmount),
     status: intent.isReady ? (deliveryMode === "now" ? "Ready" : "Active") : "Draft",

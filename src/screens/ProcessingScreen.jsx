@@ -74,7 +74,7 @@ export function ProcessingScreen({ plan, command, duplicateAttempt, onComplete, 
 
         <div className={`agent-plan ${step >= 1 ? "lift" : ""}`}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span>{isSendNow ? "Send once now" : "Scheduled transfer"}</span>
+            <span>{isSendNow ? "One-time send" : "Scheduled payment"}</span>
             {done && confidencePct != null && (
               <span className={`sheet-chip ${chipTone}`}>{confidencePct}%</span>
             )}

@@ -57,7 +57,7 @@ export function ReviewScreen({
   // Exact-output sends reserve a small buffer above the net cost and refund the unused part as USDm.
   const usdmRefundLabel = cepoliaSummary?.usdmRefundLabel || "";
   const reservedLabel = cepoliaSummary?.reservedLabel || "";
-  const timingLabel = isSendNow ? "Send once now" : plan.schedule;
+  const timingLabel = isSendNow ? "One-time send" : plan.schedule;
   const primaryLabel = status === "pending"
     ? "Working"
     : !walletReady

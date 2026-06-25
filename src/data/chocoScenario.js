@@ -35,7 +35,7 @@ export function formatRouteEstimate(amountKes, sourceAsset = "USDC", kesPerUsdc 
 }
 
 export function getScheduleLabelForIntent(intent) {
-  if (intent.deliveryMode === "now") return "Send once now";
+  if (intent.deliveryMode === "now") return "One-time send";
   if (intent.cadence === "weekly") return formatScheduleLabel(intent.dayLabel, intent.firstRunAt);
   return formatScheduleLabel(intent.dayLabel, intent.firstRunAt);
 }
