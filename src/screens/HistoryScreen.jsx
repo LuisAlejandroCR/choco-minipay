@@ -97,7 +97,11 @@ function shortWallet(address) {
 }
 
 function movementDescription(tx) {
-  return (isScheduleEvent(tx) || isHeldEvent(tx)) ? tx.schedule || tx.type : tx.type;
+  // Held rows repeat on the "Set aside" tab, so keep their subtitle short ("Set aside") — the lock icon,
+  // recipient, amount and time already distinguish each lock. The full phrase stays in the detail receipt.
+  if (isHeldEvent(tx)) return tx.status === "Returned" ? "Returned to your wallet" : "Set aside";
+  if (isScheduleEvent(tx)) return tx.schedule || tx.type;
+  return tx.type;
 }
 
 function movementTime(tx) {

@@ -212,7 +212,7 @@ export function mapAttemptToMovement(log, timestamp) {
     asset: APP_CONFIG.assets.destination,
     payAsset: APP_CONFIG.assets.source,
     payAmount: usdcIn,
-    schedule: "Send once now",
+    schedule: "One-time send",
     date: formatChainDate(timestamp),
     status: isSuccess ? "Sent" : "Failed",
     hash: log.transactionHash,
@@ -252,9 +252,9 @@ export function mapEscrowToMovement(log, timestamp, kind) {
     from: a.owner,
     to: "Scheduled plan",
     toAddress: "",
-    routeEstimate: isRefund
-      ? `${usdc} ${APP_CONFIG.assets.source} returned to your wallet`
-      : `${usdc} ${APP_CONFIG.assets.source} set aside for the next payment`,
+    // No route line for held/refund movements — the hero amount + the status row already say it, so a
+    // "0.01 USDC set aside for the next payment" route row is pure repetition in the detail receipt.
+    routeEstimate: "",
     sortKey: timestamp || 0,
   };
 }

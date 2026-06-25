@@ -9,7 +9,7 @@ export const deliveryModes = {
 };
 
 export function getTimingLabel(item) {
-  return item.deliveryMode === "now" ? "Send once now" : item.schedule;
+  return item.deliveryMode === "now" ? "One-time send" : item.schedule;
 }
 
 export function getMovementTimestamp(plan) {
