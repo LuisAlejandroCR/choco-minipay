@@ -97,9 +97,13 @@ function shortWallet(address) {
 }
 
 function movementDescription(tx) {
-  // Held rows repeat on the "Set aside" tab, so keep their subtitle short ("Set aside") — the lock icon,
-  // recipient, amount and time already distinguish each lock. The full phrase stays in the detail receipt.
-  if (isHeldEvent(tx)) return tx.status === "Returned" ? "Returned to your wallet" : "Set aside";
+  // Held rows look alike on the "Set aside" tab (same plan, same amount). Put the time INTO the subtitle
+  // so each lock reads as the distinct moment it was set aside ("Set aside · 11:42 AM" vs "· 11:30 AM").
+  if (isHeldEvent(tx)) {
+    const base = tx.status === "Returned" ? "Returned to your wallet" : "Set aside";
+    const at = timeLabel(tx.sortKey);
+    return at ? `${base} · ${at}` : base;
+  }
   if (isScheduleEvent(tx)) return tx.schedule || tx.type;
   return tx.type;
 }
@@ -177,6 +181,12 @@ export function HistoryScreen({
           <p>Syncing with your wallet.</p>
         </div>
       ) : visible.length > 0 ? (
+        <>
+        {typeFilter === "held" && (
+          <div className="notice compact" style={{ margin: "0 0 12px" }}>
+            Each row is money set aside for one upcoming payment, at the time shown. The same plan can appear more than once.
+          </div>
+        )}
         <div className="history-list" aria-label="Transaction history">
           {groups.map(({ label, items }) => (
             <div key={label} className="tx-day-group">
@@ -195,13 +205,14 @@ export function HistoryScreen({
                   </div>
                   <div className="tx-right">
                     <TxAmount tx={item} />
-                    {item.sortKey ? <time className="tx-time">{movementTime(item)}</time> : null}
+                    {item.sortKey && !isHeldEvent(item) ? <time className="tx-time">{movementTime(item)}</time> : null}
                   </div>
                 </button>
               ))}
             </div>
           ))}
         </div>
+        </>
       ) : (
         <div className="empty-plans">
           <ReceiptText size={30} />
