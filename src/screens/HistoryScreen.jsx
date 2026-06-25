@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertCircle, ArrowDownLeft, CalendarDays, Clock, Lock, ReceiptText, RefreshCw, Search, Undo2 } from "lucide-react";
+import { AlertCircle, ArrowDownLeft, CalendarDays, Check, Clock, Lock, ReceiptText, RefreshCw, Search, Undo2 } from "lucide-react";
 import { ChocoMark } from "../components/ChocoMark.jsx";
 import { shortAddress } from "../lib/celo.js";
 import { formatClockTime, recipientLabel } from "../utils/planUtils.js";
@@ -189,8 +189,9 @@ export function HistoryScreen({
       ) : visible.length > 0 ? (
         <>
         {typeFilter === "held" && (
-          <div className="notice compact" style={{ margin: "0 0 12px" }}>
-            What's set aside now for each plan's next payment. It returns to your wallet if you cancel the plan.
+          <div className="plan-alert plan-info">
+            <Check size={16} />
+            <span>What's set aside now for each plan's next payment. It returns to your wallet if you cancel the plan.</span>
           </div>
         )}
         <div className="history-list" aria-label="Transaction history">
