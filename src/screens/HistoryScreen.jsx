@@ -79,7 +79,19 @@ function applyFilters(transactions, typeFilter, query) {
   let result = transactions;
   if (typeFilter === "sent") result = result.filter((tx) => !isScheduleEvent(tx) && !isHeldEvent(tx) && tx.status !== "Failed");
   if (typeFilter === "schedules") result = result.filter((tx) => isScheduleEvent(tx));
-  if (typeFilter === "held") result = result.filter((tx) => isHeldEvent(tx));
+  if (typeFilter === "held") {
+    // One row per plan = what's CURRENTLY set aside. A monthly plan locks once per cycle, so showing
+    // every past lock makes a single plan look like it ran/charged several times. The gateway allows
+    // only one live lock per plan, so the latest lock per plan IS the current set-aside; drop plans
+    // whose latest event is a refund (nothing is set aside anymore). Full lock history stays under "All".
+    const latestByPlan = new Map();
+    for (const tx of result.filter((t) => isHeldEvent(t))) {
+      const key = tx.planId || tx.id;
+      const prev = latestByPlan.get(key);
+      if (!prev || (tx.sortKey || 0) > (prev.sortKey || 0)) latestByPlan.set(key, tx);
+    }
+    result = [...latestByPlan.values()].filter((tx) => tx.status !== "Returned");
+  }
   if (query.trim()) {
     const q = query.trim().toLowerCase();
     result = result.filter(
@@ -97,13 +109,7 @@ function shortWallet(address) {
 }
 
 function movementDescription(tx) {
-  // Held rows look alike on the "Set aside" tab (same plan, same amount). Put the time INTO the subtitle
-  // so each lock reads as the distinct moment it was set aside ("Set aside · 11:42 AM" vs "· 11:30 AM").
-  if (isHeldEvent(tx)) {
-    const base = tx.status === "Returned" ? "Returned to your wallet" : "Set aside";
-    const at = timeLabel(tx.sortKey);
-    return at ? `${base} · ${at}` : base;
-  }
+  if (isHeldEvent(tx)) return tx.status === "Returned" ? "Returned to your wallet" : "Set aside";
   if (isScheduleEvent(tx)) return tx.schedule || tx.type;
   return tx.type;
 }
@@ -184,7 +190,7 @@ export function HistoryScreen({
         <>
         {typeFilter === "held" && (
           <div className="notice compact" style={{ margin: "0 0 12px" }}>
-            Each row is money set aside for one upcoming payment, at the time shown. The same plan can appear more than once.
+            What's set aside now for each plan's next payment. It returns to your wallet if you cancel the plan.
           </div>
         )}
         <div className="history-list" aria-label="Transaction history">
@@ -205,7 +211,7 @@ export function HistoryScreen({
                   </div>
                   <div className="tx-right">
                     <TxAmount tx={item} />
-                    {item.sortKey && !isHeldEvent(item) ? <time className="tx-time">{movementTime(item)}</time> : null}
+                    {item.sortKey ? <time className="tx-time">{movementTime(item)}</time> : null}
                   </div>
                 </button>
               ))}
