@@ -173,42 +173,66 @@ export async function runDueSchedules({
   for (const schedule of due) {
     let settlementRef = ethers.ZeroHash;
     let escrowTxHash = "";
-    if (!recordOnly) {
-      // Only funded runs settle. Unfunded plans are skipped (not reverted) so the batch — and the
-      // CI job that calls it — stays green; the app prompts the owner to lock the next run.
-      const locked = await escrowReader.lockedOf(schedule.owner, schedule.id);
-      if (locked === 0n) {
-        out.warn(`#${schedule.id} skipped: no escrow lock — owner must fund the next run.`);
-        executed.push({ id: schedule.id, skipped: true, reason: "not funded" });
-        continue;
+    let recordTx;
+    try {
+      if (!recordOnly) {
+        // Only funded runs settle. Unfunded plans are skipped (not reverted) so the batch — and the
+        // CI job that calls it — stays green; the app prompts the owner to lock the next run.
+        const locked = await escrowReader.lockedOf(schedule.owner, schedule.id);
+        if (locked === 0n) {
+          out.warn(`#${schedule.id} skipped: no escrow lock — owner must fund the next run.`);
+          executed.push({ id: schedule.id, skipped: true, reason: "not funded" });
+          continue;
+        }
+        out.log(`#${schedule.id} settling held run (${formatToken(locked, 6)} USDC) via gateway...`);
+        // Only the scheduleId — the gateway reads recipient + destination amount from the ledger.
+        // Explicit gas limit: the two swaps burn ~630k, then `_log -> ledger.logAttemptFor` runs inside a
+        // try/catch. Under the EVM 63/64 rule a tight limit (~728k) starves that sub-call, so the audit
+        // entry silently OOGs ("not enough gas for reentrancy sentry" — caught; settlement still succeeds)
+        // and the run isn't counted. A higher limit lets logAttemptFor finish. You only pay for gas USED.
+        const settleEst = await escrowWriter.settleScheduledRun.estimateGas(schedule.id).catch(() => 0n);
+        const settleGas = settleEst > 0n && (settleEst * 3n) / 2n > 1_200_000n ? (settleEst * 3n) / 2n : 1_200_000n;
+        const settleTx = await escrowWriter.settleScheduledRun(schedule.id, { gasLimit: settleGas });
+        escrowTxHash = settleTx.hash;
+        out.log(`#${schedule.id} escrow tx: ${escrowTxHash}`);
+        await settleTx.wait();
+        settlementRef = escrowTxHash;
       }
-      out.log(`#${schedule.id} settling held run (${formatToken(locked, 6)} USDC) via gateway...`);
-      // Only the scheduleId — the gateway reads recipient + destination amount from the ledger.
-      // Explicit gas limit: the two swaps burn ~630k, then `_log -> ledger.logAttemptFor` runs inside a
-      // try/catch. Under the EVM 63/64 rule a tight limit (~728k) starves that sub-call, so the audit
-      // entry silently OOGs ("not enough gas for reentrancy sentry" — caught; settlement still succeeds)
-      // and the run isn't counted. A higher limit lets logAttemptFor finish. You only pay for gas USED.
-      const settleEst = await escrowWriter.settleScheduledRun.estimateGas(schedule.id).catch(() => 0n);
-      const settleGas = settleEst > 0n && (settleEst * 3n) / 2n > 1_200_000n ? (settleEst * 3n) / 2n : 1_200_000n;
-      const settleTx = await escrowWriter.settleScheduledRun(schedule.id, { gasLimit: settleGas });
-      escrowTxHash = settleTx.hash;
-      out.log(`#${schedule.id} escrow tx: ${escrowTxHash}`);
-      await settleTx.wait();
-      settlementRef = escrowTxHash;
-    }
 
-    out.log(`#${schedule.id} recording ledger settlement...`);
-    const recordTx = await ledgerWriter.recordSettlement(
-      schedule.id,
-      true,
-      schedule.sourceAsset,
-      schedule.sourceAmount,
-      schedule.destinationAmount,
-      settlementRef,
-      recordOnly ? "scheduled batch record-only" : "scheduled escrow settlement",
-    );
-    out.log(`#${schedule.id} ledger tx: ${recordTx.hash}`);
-    await recordTx.wait();
+      // v2 (gateway records the receipt atomically via recordSettlementFor): if the ledger receipt for this
+      // period is already set, skip the keeper's recordSettlement to avoid a "too soon" revert. Against the
+      // current contracts the gateway doesn't record, so this is false and the keeper records as before.
+      const alreadyRecorded = !recordOnly
+        && Number(await ledgerReader.lastSettlementAt(schedule.id)) >= startOfCurrentMonthSec();
+      if (alreadyRecorded) {
+        out.log(`#${schedule.id} ledger receipt already recorded by the gateway (v2) — skipping keeper recordSettlement.`);
+        recordTx = { hash: settlementRef };
+      } else {
+        out.log(`#${schedule.id} recording ledger settlement...`);
+        recordTx = await ledgerWriter.recordSettlement(
+          schedule.id,
+          true,
+          schedule.sourceAsset,
+          schedule.sourceAmount,
+          schedule.destinationAmount,
+          settlementRef,
+          recordOnly ? "scheduled batch record-only" : "scheduled escrow settlement",
+        );
+        out.log(`#${schedule.id} ledger tx: ${recordTx.hash}`);
+        await recordTx.wait();
+      }
+    } catch (err) {
+      // One plan's settlement failing must NOT fail the whole batch (and the CI/worker call) — log a clear
+      // alert and move on. The run stays due and is retried on the next cron tick. (audit M-1/M-3)
+      const msg = err?.shortMessage || err?.reason || err?.message || String(err);
+      if (/too soon/i.test(msg)) {
+        out.warn(`#${schedule.id} settle skipped ("too soon"): already settled this period (MIN_SETTLE_INTERVAL ~27d). Retries next run.`);
+      } else {
+        out.error(`#${schedule.id} settle FAILED: ${msg}. Skipping this plan — if it persists (e.g. the recipient can't receive KESm), the owner should refund/cancel.`);
+      }
+      executed.push({ id: schedule.id, failed: true, reason: msg });
+      continue;
+    }
 
     // Auto-lock next month's run from the owner's standing allowance. Best-effort: if they lack
     // funds/allowance this reverts and the app surfaces a top-up notice — the run we just settled

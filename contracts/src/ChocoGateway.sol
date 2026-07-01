@@ -51,6 +51,7 @@ interface IChocoLedger {
     function logAttemptFor(
         address payer, uint8 kind, address recipientWallet, uint256 usdcAmount, uint256 ckesAmount, string calldata note
     ) external returns (uint256);
+    function recordSettlementFor(uint256 id, uint256 sourceAmount, bytes32 settlementRef, string calldata note) external;
 }
 
 /// @title ChocoGateway
@@ -90,6 +91,7 @@ contract ChocoGateway {
     event RunLocked(address indexed owner, uint256 indexed scheduleId, uint256 usdcAmount, address indexed fundedBy);
     event RunSettled(address indexed owner, uint256 indexed scheduleId, address recipient, uint256 usdcIn, uint256 ckesOut);
     event RunRefunded(address indexed owner, uint256 indexed scheduleId, uint256 usdcAmount);
+    event DeliveryFellBack(address indexed intendedRecipient, address indexed creditedTo, uint256 ckesAmount); // audit M-1 v2
     event FeeUpdated(address indexed feeRecipient, uint16 feeBps);
     event KeeperUpdated(address indexed keeper);
     event AdminTransferred(address indexed from, address indexed to); // audit L8
@@ -265,6 +267,17 @@ contract ChocoGateway {
         emit RunRefunded(msg.sender, scheduleId, amount);
     }
 
+    /// @notice Admin rescue: refund a plan's locked USDC to its OWNER (never the caller), so funds are never
+    ///         stranded if the owner can't act (abandoned wallet, or a schedule that can no longer settle).
+    ///         Pays the owner → admin cannot steal with it (audit H-2 v2).
+    function refundRunFor(address owner, uint256 scheduleId) external onlyAdmin nonReentrant {
+        uint256 amount = lockedOf[owner][scheduleId];
+        if (amount == 0) revert NothingLocked();
+        lockedOf[owner][scheduleId] = 0;
+        require(usdc.transfer(owner, amount), "usdc refund");
+        emit RunRefunded(owner, scheduleId, amount);
+    }
+
     // --- Scheduled settlement (ledger-verified — keeper cannot redirect) ------
 
     /// @notice Keeper settles a held run. Recipient + KESm amount come from the ChocoLedger schedule,
@@ -286,6 +299,9 @@ contract ChocoGateway {
         emit UsdcToCkesSwap(s.owner, s.recipient, netUsdc, usdmSpent, ckesAmountOut, fee); // audit L4: real usdmSpent
         emit RunSettled(s.owner, scheduleId, s.recipient, netUsdc, ckesAmountOut);
         _log(s.owner, s.recipient, netUsdc, ckesAmountOut, "schedule-exact-v2");
+        // audit M-2 v2: emit the ledger receipt atomically from the gateway (fund-backed) so it can't be
+        // keeper-fabricated. The keeper skips its own recordSettlement once this has run (forward-compatible).
+        ledger.recordSettlementFor(scheduleId, netUsdc, bytes32(0), "gateway-settled");
     }
 
     // --- Internal ------------------------------------------------------------
@@ -307,11 +323,17 @@ contract ChocoGateway {
         require(usdc.approve(address(broker), 0), "usdc reset"); // audit L1: clear leftover allowance
 
         require(usdm.approve(address(router), usdmReceived), "usdm approve");
+        // audit M-1 v2: swap KESm to THIS contract, then push to the recipient. If the recipient can't
+        // receive (revert/blacklist), credit the payer so a scheduled run is never permanently stuck.
         usdmSpent = router.exactOutputSingle(ISwapRouter02.ExactOutputSingleParams({
-            tokenIn: address(usdm), tokenOut: address(ckes), fee: poolFee, recipient: recipient,
+            tokenIn: address(usdm), tokenOut: address(ckes), fee: poolFee, recipient: address(this),
             amountOut: ckesExactOut, amountInMaximum: usdmReceived, sqrtPriceLimitX96: 0
         }));
         require(usdm.approve(address(router), 0), "usdm reset");
+        if (!_safeCkesTransfer(recipient, ckesExactOut)) {
+            require(ckes.transfer(refundTo, ckesExactOut), "ckes fallback");
+            emit DeliveryFellBack(recipient, refundTo, ckesExactOut);
+        }
 
         uint256 usdmLeft = usdmReceived - usdmSpent;
         if (usdmLeft > 0) require(usdm.transfer(refundTo, usdmLeft), "usdm refund");
@@ -319,6 +341,13 @@ contract ChocoGateway {
         // USDm ~ USDC 1:1; report the net USDC-equivalent cost (gross minus the refunded USDm).
         uint256 refundUsdcEq = usdmLeft / 1e12;
         netUsdc = usdcAmountIn > refundUsdcEq ? usdcAmountIn - refundUsdcEq : usdcAmountIn;
+    }
+
+    /// @dev Push KESm to `to`, returning false instead of reverting if the recipient can't receive (a
+    ///      reverting/blacklisted token hook) — lets the caller fall back to crediting the payer (M-1 v2).
+    function _safeCkesTransfer(address to, uint256 amount) internal returns (bool) {
+        try ckes.transfer(to, amount) returns (bool ok) { return ok; }
+        catch { return false; }
     }
 
     function _collectFee(uint256 usdcAmountIn) internal returns (uint256 fee, uint256 swapUsdc) {

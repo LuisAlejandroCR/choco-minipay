@@ -1,0 +1,10 @@
+Choco
+Copyright 2026 Choco contributors
+
+This product is licensed under the Apache License, Version 2.0 (the "License");
+see the LICENSE file for the full text.
+
+Choco is a MiniPay-native USDC -> KESm remittance app on Celo Mainnet. It
+integrates with third-party protocols (Mento, Uniswap V3, MiniPay) and uses
+open-source libraries (viem, ethers, React, Vite, and others), each distributed
+under their own licenses.

@@ -1,13 +1,26 @@
-# Choco
+# Choco — Cross-border remittances for MiniPay
 
-Choco is a MiniPay-native remittance agent for one narrow Celo Mainnet flow:
+> Type `"send mum 50k every 1st"` and Choco handles the rest — automatically, every month, without asking you to do anything again.
 
-`send my mum 50k every 1st of the month`
+Choco is a MiniPay-native remittance app for the USDC→KESm corridor on Celo Mainnet. A user types a plain-language instruction, confirms once in their wallet, and the payment runs on the scheduled day — or immediately for one-time sends. No crypto knowledge required. No custody. No recurring friction.
 
-The app connects to the user's wallet, reads stablecoin balances, parses a plain-language
-instruction, and asks the wallet to sign the selected action. Choco does not custody funds or
-private keys. All transaction history is derived from on-chain events; nothing is stored
-off-chain except contacts the user explicitly saves.
+**Why Choco?** Sending money to Kenya abroad today means logging in somewhere, entering details, paying 5–7% to a remittance service, and repeating it next month. MiniPay users already hold USDC — Choco gives them a better option:
+
+- **0.25% fee** — up to 20× cheaper than traditional remittance services
+- **Exact delivery** — recipient always receives exactly the KESm amount typed; surplus USDC returns to the sender
+- **Set once, runs monthly** — a recurring plan is authorized once; the keeper executes it on the right day each month without further user action
+- **Non-custodial** — funds stay in the sender's wallet until settlement day; Choco holds no keys, no custody
+
+## Status
+
+| | |
+|---|---|
+| Network | Celo Mainnet (chainId 42220) |
+| Distribution | MiniPay Mini App (16M+ wallets, 66 countries) |
+| Corridor | USDC → KESm (Kenyan Shilling) |
+| Protocol fee | 0.25% |
+| Security | Audited — see `contracts/AUDIT.md` |
+| Recognition | 🥈 2nd place — [Celo Colombia Hackathon](https://hackathon.celocolombia.org/resultados?token=99e4149611fb48ee8cbfe2de) |
 
 ## Corridor
 
@@ -18,6 +31,17 @@ off-chain except contacts the user explicitly saves.
 | Destination asset | KESm (Kenyan Shilling stablecoin) |
 | Actions | Send now (exact-output) · Monthly schedule |
 | Contacts | Optional Supabase persistence; ODIS/SocialConnect path documented |
+
+## What makes Choco different
+
+| Differentiator | Details |
+|---|---|
+| **Plain-language intent** | `"send dad 20k every 1st"` → schedule created, funded, running. No address pasting, no crypto UX |
+| **Recurring auto-payments** | First MiniPay Mini App with scheduled monthly remittances — authorize once, runs forever |
+| **Exact-output delivery** | Recipient always receives exactly the typed KESm — no rounding, no surprises |
+| **No custody** | Funds never leave the sender's wallet until the keeper settles; even the keeper cannot redirect — amounts and recipients are locked in the ChocoLedger smart contract |
+| **Transparent fee** | 0.25% deducted and shown in the receipt before confirmation; no hidden FX spread |
+| **Full on-chain audit trail** | Every send, plan, and settlement emits an event on ChocoLedger — history is rebuilt from the chain on every load, nothing cached off-chain |
 
 ## How the flow works
 
@@ -223,11 +247,26 @@ explicitly saves. All transaction amounts and history live on-chain; the app rec
 from events on every load. For production phone-to-address resolution, use ODIS/SocialConnect
 (`FederatedAttestations`) — see `docs/agent-flow.md`.
 
+## Roadmap
+
+The USDC→KESm corridor is stable and live. Planned expansions:
+
+| Feature | What it unlocks |
+|---|---|
+| **v2 contracts redeploy** | `refundRunFor` + deliver-then-transfer fallback + atomic gateway receipts — see `contracts/V2_BACKLOG.md` |
+| **ODIS/SocialConnect** phone→address | `"send +254 712 345 678 20k"` — no address paste required |
+| **COPm corridor** (Colombian Peso) | LATAM expansion; Colombia is Choco's home hackathon market |
+| **NGNm corridor** (Nigerian Naira) | Largest MiniPay market by user count |
+| **Receipt deeplink** | Share a "payment proof" URL — recipients see Choco when they receive |
+| **Multi-recipient plans** | One plan splits across multiple family members |
+
 ## Docs
 
 | File | What it covers |
 |---|---|
 | `contracts/README.md` | ChocoGateway + ChocoLedger developer reference, deploy order, events |
+| `contracts/AUDIT.md` | Security audit findings and mitigations |
+| `contracts/V2_BACKLOG.md` | Pending v2 contract changes (applied to source, awaiting redeploy) |
 | `docs/deployment.md` | Full Vercel deploy checklist with all env vars |
 | `docs/agent-flow.md` | Transfer flow, component responsibilities, on-chain vs off-chain data |
 | `docs/checklist.md` | Historical architecture decisions and current state |

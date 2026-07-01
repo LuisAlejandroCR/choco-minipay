@@ -10,7 +10,15 @@ export function usdcAmountForIntent(intent) {
 }
 
 export function applyExactOutputBuffer(usdcAmount) {
-  const bufferBps = BigInt(Math.max(0, Math.round(Number(APP_CONFIG.transfer.exactOutputBufferBps || 0))));
+  // Buffer = max(bps% of the quote, a small floor). For LARGE sends the on-chain exact-out quote (a
+  // linear extrapolation from a 1-USDC sample, ignoring price impact) under-estimates the true cost, so
+  // the amountInMaximum cap can be too low and the swap reverts (audit M-4). Scale the bps up past a
+  // threshold so big transfers keep a safe cap; any unused surplus refunds to the sender as USDm.
+  const baseBps = Math.max(0, Math.round(Number(APP_CONFIG.transfer.exactOutputBufferBps || 0)));
+  const largeBps = Math.max(baseBps, Math.round(Number(APP_CONFIG.transfer.largeExactOutputBufferBps || baseBps)));
+  const threshold = parseUnits(Number(APP_CONFIG.transfer.largeSendThresholdUsdc || 0).toFixed(6), 6);
+  const bufferBps = BigInt(threshold > 0n && usdcAmount >= threshold ? largeBps : baseBps);
+
   const bpsBuffer = (usdcAmount * bufferBps) / 10000n;
   const minBuffer = parseUnits(Number(APP_CONFIG.transfer.minExactOutputBufferUsdc || 0).toFixed(6), 6);
   const buffer = bpsBuffer > minBuffer ? bpsBuffer : minBuffer;

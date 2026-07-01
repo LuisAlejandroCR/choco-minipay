@@ -371,6 +371,31 @@ export default function App() {
     }
   }
 
+  // Standalone "reclaim" — return a plan's set-aside USDC to the wallet WITHOUT cancelling the plan, so a
+  // user can always get held funds back (audit H-2). The plan stays active-but-unfunded; the app prompts
+  // to re-fund the next run.
+  async function reclaimPlanFunds() {
+    if (!activePlan || !wallet.address) { goTo("plans"); return; }
+    const plan = activePlan;
+    try {
+      appStatus.setStatus("pending");
+      appStatus.setMessage("Returning your set-aside funds...");
+      const locked = await readLockedRun({ owner: wallet.address, scheduleId: plan.onchainId });
+      if (locked === 0n) {
+        appStatus.setStatus("error");
+        appStatus.setMessage("Nothing is set aside for this plan right now.");
+        return;
+      }
+      await refundScheduleRun({ account: wallet.address, scheduleId: plan.onchainId });
+      appStatus.setStatus("idle");
+      appStatus.setMessage("");
+      window.setTimeout(() => { void refreshLedgerFresh(); void refreshBalances(wallet.address); }, 2000);
+    } catch (error) {
+      appStatus.setStatus("error");
+      appStatus.setMessage(humanisePlanError(error));
+    }
+  }
+
   async function togglePlanPaused() {
     if (!activePlan) {
       goTo("plans");
@@ -529,6 +554,8 @@ export default function App() {
               onEdit={openEditPlan}
               onTogglePause={togglePlanPaused}
               onDelete={() => goTo("deletePlan")}
+              onReclaim={reclaimPlanFunds}
+              onCheckHeld={(id) => readLockedRun({ owner: wallet.address, scheduleId: id })}
               operationStatus={appStatus.status}
               operationMessage={appStatus.message}
               onClearError={() => { appStatus.setStatus("idle"); appStatus.setMessage(""); }}
