@@ -78,10 +78,11 @@ export async function verifyReadiness({ account, intent }) {
     }
     return { ok: true, reason: READINESS_REASON.OK, required, available };
   } catch (error) {
+    console.error("[Choco] balance check failed:", error);
     return {
       ok: false,
       reason: READINESS_REASON.BALANCE_READ_FAILED,
-      message: `Could not check USDC balance: ${error.shortMessage || error.message}`,
+      message: "We couldn't check your USDC balance. Check your connection and try again.",
     };
   }
 }

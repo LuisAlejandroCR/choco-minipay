@@ -46,7 +46,7 @@ import { ProcessingScreen } from "./screens/ProcessingScreen.jsx";
 import { DuplicateGuardScreen } from "./screens/DuplicateGuardScreen.jsx";
 import { ReviewScreen } from "./screens/ReviewScreen.jsx";
 import { TransactionSuccessScreen } from "./screens/TransactionSuccessScreen.jsx";
-import { humanisePlanError, mergeTransactionDetails, pickById } from "./utils/appHelpers.js";
+import { humaniseConnectError, humanisePlanError, mergeTransactionDetails, pickById } from "./utils/appHelpers.js";
 
 export default function App() {
   // --- Core app state ---
@@ -249,7 +249,7 @@ export default function App() {
       return address;
     } catch (error) {
       appStatus.setStatus("error");
-      appStatus.setMessage(error.message);
+      appStatus.setMessage(humaniseConnectError(error));
       return "";
     }
   }

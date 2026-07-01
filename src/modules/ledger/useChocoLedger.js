@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { clearLedgerCache, labelWithAddress, readOwnerLedger } from "../../lib/celo.js";
 import { SUPABASE_READY, listContacts } from "../../lib/contacts.js";
+import { humaniseReadError } from "../../utils/appHelpers.js";
 
 // Plans and history are derived from on-chain events (registry + swap + cKES transfers).
 // Contact labels ("dad", "mum") come from Supabase and are joined in at render time so the
@@ -72,7 +73,8 @@ export function useChocoLedger(address) {
     } catch (readError) {
       setPlans([]);
       setTransactions([]);
-      setError(readError.message);
+      // Raw viem/RPC text (URLs, request bodies, version strings) must never render in the UI.
+      setError(humaniseReadError(readError, "We couldn't load your activity. Please try again."));
     } finally {
       window.clearTimeout(safetyTimer);
       setLoading(false);

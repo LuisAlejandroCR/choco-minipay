@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ACTIVE_CELO_NETWORK } from "../../config/runtime.js";
 import { connectInjectedWallet, isMiniPay, shortAddress } from "../../lib/celo.js";
+import { humaniseConnectError } from "../../utils/appHelpers.js";
 
 export function formatWalletAddress(address) {
   return shortAddress(address);
@@ -96,7 +97,8 @@ export function useMiniPayWallet() {
       return nextAddress;
     } catch (nextError) {
       setStatus("error");
-      setError(nextError.message);
+      // Rendered on WalletGateScreen and in the connect-button label — keep it friendly.
+      setError(humaniseConnectError(nextError));
       throw nextError;
     }
   }
