@@ -3,6 +3,13 @@ import { SUPABASE_READY, assertSupabase, supabase } from "./supabase.js";
 
 export { SUPABASE_READY };
 
+// Supabase error text (fetch failures, JWT/RLS details) is developer-facing — log it for
+// debugging and surface only plain-language copy to the user.
+function friendlyContactError(error, friendly) {
+  console.error("[Choco] contacts error:", error);
+  return new Error(friendly);
+}
+
 function normaliseWallet(value) {
   return String(value || "").toLowerCase();
 }
@@ -31,7 +38,7 @@ export async function findContactByLabel({ ownerWallet, label }) {
     .from("contacts")
     .select("*")
     .ilike("owner_wallet", owner);
-  if (error) throw new Error(`Could not look up contact: ${error.message}`);
+  if (error) throw friendlyContactError(error, "Could not check saved contacts. Please try again.");
   return (data || []).find((contact) => contactLabelMatches(contact.label, label)) || null;
 }
 
@@ -43,7 +50,7 @@ export async function findContactByAddress({ ownerWallet, walletAddress }) {
     .ilike("owner_wallet", normaliseWallet(ownerWallet))
     .ilike("wallet_address", normaliseWallet(walletAddress))
     .maybeSingle();
-  if (error) throw new Error(`Could not look up contact: ${error.message}`);
+  if (error) throw friendlyContactError(error, "Could not check saved contacts. Please try again.");
   return data || null;
 }
 
@@ -54,7 +61,7 @@ export async function listContacts(ownerWallet) {
     .select("*")
     .ilike("owner_wallet", normaliseWallet(ownerWallet))
     .order("updated_at", { ascending: false });
-  if (error) throw new Error(`Could not list contacts: ${error.message}`);
+  if (error) throw friendlyContactError(error, "Could not load saved contacts. Please try again.");
   return data || [];
 }
 
@@ -75,7 +82,7 @@ export async function upsertContact({ ownerWallet, label, walletAddress, payment
       .eq("id", existing.id)
       .select()
       .single();
-    if (error) throw new Error(`Could not update contact: ${error.message}`);
+    if (error) throw friendlyContactError(error, "Could not save this contact. Please try again.");
     return data;
   }
 
@@ -89,7 +96,7 @@ export async function upsertContact({ ownerWallet, label, walletAddress, payment
     })
     .select()
     .single();
-  if (error) throw new Error(`Could not create contact: ${error.message}`);
+  if (error) throw friendlyContactError(error, "Could not save this contact. Please try again.");
   return data;
 }
 
@@ -101,6 +108,6 @@ export async function removeContact({ ownerWallet, id }) {
     .delete()
     .ilike("owner_wallet", normaliseWallet(ownerWallet))
     .eq("id", id);
-  if (error) throw new Error(`Could not remove contact: ${error.message}`);
+  if (error) throw friendlyContactError(error, "Could not remove this contact. Please try again.");
   return true;
 }

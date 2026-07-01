@@ -78,10 +78,19 @@ export async function signInWithWallet(address) {
   const message = buildWalletSignInMessage(walletAddress, timestamp);
   const signPayload = buildPersonalSignPayload(message);
 
-  const signature = await window.ethereum.request({
-    method: "personal_sign",
-    params: [signPayload, walletAddress],
-  });
+  let signature;
+  try {
+    signature = await window.ethereum.request({
+      method: "personal_sign",
+      params: [signPayload, walletAddress],
+    });
+  } catch (signError) {
+    console.error("[Choco] contact sign-in signature error:", signError);
+    if (/user rejected|user denied|rejected the request/i.test(String(signError?.message || ""))) {
+      throw new Error("Cancelled — you declined the wallet request.");
+    }
+    throw new Error("We couldn't verify your wallet. Please try again.");
+  }
 
   const res = await fetch(`${url}/functions/v1/auth-wallet`, {
     method: "POST",
@@ -90,14 +99,19 @@ export async function signInWithWallet(address) {
   });
 
   if (!res.ok) {
-    throw new Error(await readAuthWalletError(res));
+    // Server body text is developer-facing — log it, show plain copy.
+    console.error("[Choco] contact sign-in failed:", await readAuthWalletError(res));
+    throw new Error("We couldn't verify your wallet. Please try again.");
   }
 
   const { token_hash } = await res.json();
-  if (!token_hash) throw new Error("Wallet authentication did not return a Supabase session token.");
+  if (!token_hash) throw new Error("We couldn't verify your wallet. Please try again.");
 
   const { data, error } = await supabase.auth.verifyOtp({ token_hash, type: "magiclink" });
-  if (error) throw new Error(`Supabase session error: ${error.message}`);
+  if (error) {
+    console.error("[Choco] contact session error:", error);
+    throw new Error("We couldn't verify your wallet. Please try again.");
+  }
 
   _session = data.session;
   return _session;

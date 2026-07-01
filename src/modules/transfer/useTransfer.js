@@ -71,7 +71,7 @@ export function useTransfer({
       const readiness = await verifyReadiness({ account: wallet.address, intent: plan.intent });
       if (!readiness.ok) {
         setStatus("error");
-        setMessage(readiness.message || "Cepolia Skill could not verify readiness.");
+        setMessage(readiness.message || "We couldn't check this transfer. Please try again.");
         return;
       }
     }

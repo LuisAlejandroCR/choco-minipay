@@ -34,6 +34,34 @@ export function humanisePlanError(error) {
   return "Something went wrong. Please try again.";
 }
 
+// Matches transient network/RPC failures across providers: browser fetch failures, viem HTTP
+// errors ("HTTP request failed... Failed to fetch"), forno rate limits, and gateway timeouts.
+const NETWORK_HICCUP = /network|fetch|timeout|timed out|connection|econn|rate limit|429|50[234]|http request failed|load failed/i;
+
+// Friendly copy for background reads (movements, balances). Raw viem/RPC errors must never
+// reach the UI — the full error is logged to the console for debugging instead.
+export function humaniseReadError(error, fallback = "Something didn't load. Please try again.") {
+  console.error("[Choco] read error:", error);
+  const msg = String(error?.shortMessage || error?.message || error || "");
+  if (NETWORK_HICCUP.test(msg)) {
+    return "We couldn't reach the network. Check your connection and try again.";
+  }
+  return fallback;
+}
+
+// Friendly copy for wallet-connection failures (connect button, wallet gate).
+export function humaniseConnectError(error) {
+  console.error("[Choco] wallet connect error:", error);
+  const msg = String(error?.shortMessage || error?.message || error || "");
+  if (/user rejected|user denied|rejected the request/i.test(msg)) {
+    return "Connection cancelled — you closed the wallet request.";
+  }
+  if (NETWORK_HICCUP.test(msg)) {
+    return "We couldn't reach the network. Check your connection and try again.";
+  }
+  return "We couldn't connect your wallet. Please try again.";
+}
+
 // Resolve the selected entity for a detail screen: prefer the live list row, else a locally-stashed
 // fallback (used optimistically right after creation, before the chain read catches up).
 export function pickById(list, id, fallback) {
