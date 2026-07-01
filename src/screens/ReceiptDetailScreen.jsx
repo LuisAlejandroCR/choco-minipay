@@ -114,6 +114,16 @@ export function ReceiptDetailScreen({ transaction }) {
           <span className="rds-field-value">{timingLabel}</span>
         </div>
 
+        {transaction.deliveryMode === "schedule" && (
+          <div className="rds-field">
+            <div className="rds-field-label">
+              <span className="rds-field-icon"><Check size={15} /></span>
+              <span className="rds-field-key">Settlement</span>
+            </div>
+            <span className="rds-field-value">{transaction.verified ? "Verified on-chain" : "Recorded — confirming on-chain"}</span>
+          </div>
+        )}
+
         {transaction.routeEstimate && (
           <div className="rds-field">
             <div className="rds-field-label">

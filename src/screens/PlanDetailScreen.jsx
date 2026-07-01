@@ -1,14 +1,24 @@
 import { useEffect, useState } from "react";
-import { CalendarDays, Pencil, Trash2 } from "lucide-react";
+import { CalendarDays, Pencil, Trash2, Undo2 } from "lucide-react";
 import { DetailLine } from "../components/SheetPrimitives.jsx";
 import { getPlanExecutionState, getTimingLabel, recipientLabel } from "../utils/planUtils.js";
 
-export function PlanDetailScreen({ plan, onEdit, onDelete, operationStatus = "", operationMessage = "", onClearError }) {
+export function PlanDetailScreen({ plan, onEdit, onDelete, onReclaim, onCheckHeld, operationStatus = "", operationMessage = "", onClearError }) {
   const execution = getPlanExecutionState(plan);
   const isPaused = execution.status === "Paused";
   const isPending = operationStatus === "pending";
 
   const [toastVisible, setToastVisible] = useState(false);
+  const [heldUsdc, setHeldUsdc] = useState(0n);
+  useEffect(() => {
+    let active = true;
+    if (!plan?.onchainId || typeof onCheckHeld !== "function") { setHeldUsdc(0n); return undefined; }
+    onCheckHeld(plan.onchainId)
+      .then((value) => { if (active) setHeldUsdc(value || 0n); })
+      .catch(() => { if (active) setHeldUsdc(0n); });
+    return () => { active = false; };
+  }, [plan?.onchainId]); // eslint-disable-line react-hooks/exhaustive-deps
+  const hasHeld = heldUsdc > 0n;
 
   useEffect(() => {
     if (operationStatus === "error" && operationMessage) {
@@ -74,6 +84,9 @@ export function PlanDetailScreen({ plan, onEdit, onDelete, operationStatus = "",
       </div>
 
       <div className="plan-actions detail-bottom-actions">
+        {hasHeld && onReclaim && (
+          <button type="button" disabled={isPending} onClick={onReclaim}><Undo2 size={18} />Reclaim funds</button>
+        )}
         <button type="button" disabled={isPending} onClick={onEdit}><Pencil size={18} />Edit</button>
         <button className="danger-action" type="button" disabled={isPending} onClick={onDelete}><Trash2 size={18} />Delete</button>
       </div>

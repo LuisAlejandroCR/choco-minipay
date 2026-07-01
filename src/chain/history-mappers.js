@@ -149,7 +149,7 @@ function readScheduleSourceAmount(schedule) {
   }
   return Number(schedule.payAmount || schedule.usdcPerRun || 0);
 }
-export function mapSettlementToMovement(log, schedule, timestamp) {
+export function mapSettlementToMovement(log, schedule, timestamp, verified = false) {
   const a = log.args;
   const amountKes = Math.round(unitsToNumber(a.destinationAmount, 18));
   const recipientAddress = readScheduleAddress(schedule, "recipient", "recipientAddress");
@@ -178,6 +178,7 @@ export function mapSettlementToMovement(log, schedule, timestamp) {
     schedule: scheduleLabel,
     date: formatChainDate(timestamp),
     status: a.success ? "Sent" : "Failed",
+    verified: Boolean(verified), // audit M-2: only when a gateway RunSettled (fund-backed) matches this receipt
     hash: log.transactionHash,
     type: a.success ? "Plan payment sent" : "Plan payment failed",
     deliveryMode: "schedule",
@@ -276,16 +277,28 @@ export function mergeSendNowHistory(primary = [], fallback = []) {
     .sort((a, b) => b.sortKey - a.sortKey);
 }
 
+// Period key matching a ledger SettlementReceipt to a gateway RunSettled (same plan, same UTC month).
+// settle (gateway) + record (ledger) happen in the same keeper cycle, so they share a month. Used to mark
+// a scheduled payment "verified" only when a fund-backed RunSettled exists (audit M-2).
+export function settledRunKey(scheduleId, timestampSec) {
+  const date = new Date((Number(timestampSec) || 0) * 1000);
+  return `${String(scheduleId)}|${date.getUTCFullYear()}-${date.getUTCMonth()}`;
+}
+
 export function composeMovementHistory({
   sendNowHistory = [],
   sendNowAttempts = [],
   settlements = [],
   scheduleById = new Map(),
   timeByBlock = new Map(),
+  settledRuns = new Set(), // gateway RunSettled period-keys (audit M-2: verify ledger receipts are fund-backed)
 } = {}) {
   return [
     ...mergeSendNowHistory(sendNowAttempts, sendNowHistory),
-    ...settlements.map((log) =>
-      mapSettlementToMovement(log, scheduleById.get(String(log.args.id)), timeByBlock.get(log.blockNumber))),
+    ...settlements.map((log) => {
+      const timestamp = timeByBlock.get(log.blockNumber);
+      const verified = settledRuns.has(settledRunKey(String(log.args.id), timestamp));
+      return mapSettlementToMovement(log, scheduleById.get(String(log.args.id)), timestamp, verified);
+    }),
   ].sort((a, b) => b.sortKey - a.sortKey);
 }

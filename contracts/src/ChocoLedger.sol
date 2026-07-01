@@ -266,6 +266,18 @@ contract ChocoLedger {
         emit SettlementReceipt(id, success, s.sourceAsset, sourceAmount, s.destinationAmount, settlementRef, note);
     }
 
+    /// @notice Record a settlement receipt from an authorized gateway, ATOMIC with the fund movement, so the
+    ///         receipt is fund-backed instead of keeper-asserted (audit M-2 v2). Same once-per-period guard
+    ///         as recordSettlement; canonical asset/amount are read from the schedule.
+    function recordSettlementFor(uint256 id, uint256 sourceAmount, bytes32 settlementRef, string calldata note) external {
+        require(authorizedSwapContracts[msg.sender], "not authorized");
+        Schedule storage s = schedules[id];
+        require(s.active && !s.cancelled, "inactive");
+        require(block.timestamp >= lastSettlementAt[id] + MIN_SETTLE_INTERVAL, "too soon");
+        lastSettlementAt[id] = uint64(block.timestamp);
+        emit SettlementReceipt(id, true, s.sourceAsset, sourceAmount, s.destinationAmount, settlementRef, note);
+    }
+
     function getSchedule(uint256 id) external view returns (Schedule memory) {
         return schedules[id];
     }

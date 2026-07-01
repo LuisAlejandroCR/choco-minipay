@@ -87,6 +87,12 @@ export const APP_CONFIG = {
     destinationCountry: env.VITE_DESTINATION_COUNTRY || "Kenya",
     kesPerUsdc: Number(env.VITE_KES_PER_USDC || 129.39),
     exactOutputBufferBps: Number(env.VITE_EXACT_OUTPUT_BUFFER_BPS || 200),
+    // Larger sends need a bigger cushion: the on-chain exact-out quote is a linear extrapolation from a
+    // 1-USDC sample (no price impact), so it under-estimates the true cost — and the amountInMaximum cap —
+    // as size grows in a thin/curved pool. Above the threshold, use the larger bps so big transfers don't
+    // revert (audit M-4); any unused surplus still refunds to the sender as USDm.
+    largeExactOutputBufferBps: Number(env.VITE_LARGE_EXACT_OUTPUT_BUFFER_BPS || 300),
+    largeSendThresholdUsdc: Number(env.VITE_LARGE_SEND_THRESHOLD_USDC || 25),
     minExactOutputBufferUsdc: Number(env.VITE_MIN_EXACT_OUTPUT_BUFFER_USDC || 0.001),
     defaultScheduleHour: defaultScheduleTime?.hour ?? 4,
     defaultScheduleMinute: defaultScheduleTime?.minute ?? Number(env.VITE_DEFAULT_SCHEDULE_MINUTE || 0),

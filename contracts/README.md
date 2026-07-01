@@ -5,27 +5,46 @@ Smart contracts powering Choco remittances on Celo. No contract holds user funds
 ## Contract Architecture
 
 ```
+──── Send now ────────────────────────────────────────────────────────────
+
 User wallet
-    │
-    │  approve(ChocoGateway, quoteExactOut(ckesExact))   ← exact-output path (default)
+    │  approve(ChocoGateway, quoteExactOut(ckesExact))
     │  swapAndSendExact(recipient, usdcAmount, ckesExact)
     ▼
 ┌─────────────────────────────────────────────────────┐
 │  ChocoGateway                                       │
-│  · Deducts protocol fee (default 0.25%) → feeWallet │
-│  · Swaps USDC → USDm → KESm via Mento Broker        │
-│  · Delivers KESm directly to recipient              │
-│  · Stores TxRecord on-chain (queryable)             │
-│  · Calls ChocoLedger.logAttemptFor()                │
-└──────────────┬──────────────────────────────────────┘
-               │ logAttemptFor(payer, ...)
-               ▼
+│  · Deducts protocol fee (0.25%) → feeRecipient      │
+│  · Swaps USDC → USDm (Mento) → KESm (Uniswap V3)   │
+│  · Delivers exactly ckesExact KESm to recipient     │
+│  · Surplus USDC returned to sender                  │
+│  · Calls ChocoLedger.logAttemptFor(payer, ...)      │
+└────────────────────────────────────────────────────┘
+
+──── Scheduled payment ───────────────────────────────────────────────────
+
+User wallet
+    │  approve(ChocoGateway, sourceAmount)
+    │  createAndFundSchedule(...)  ← single signature: creates plan + locks first run
+    ▼
+ChocoGateway.lockFor(owner, scheduleId, usdcAmount)
+    · Holds one month's USDC in lockedOf[owner][scheduleId]
+    · Writes schedule to ChocoLedger
+
+On settlement day — Keeper calls:
+    ChocoGateway.settleScheduledRun(scheduleId)
+    · Reads recipient + amount from ChocoLedger (keeper can't redirect)
+    · Swaps locked USDC → KESm → recipient
+    · Calls ChocoLedger.logAttemptFor() + recordSettlementFor() [v2: atomic]
+    · Re-locks next month's run from owner's standing allowance
+
+──── Shared ledger ───────────────────────────────────────────────────────
+
 ┌─────────────────────────────────────────────────────┐
 │  ChocoLedger                                        │
-│  · AttemptLogged  — every send-now (via Gateway)    │
-│  · MonthlyScheduleCreated — user authorizes a plan   │
-│  · SchedulePaused / ScheduleResumed — user control   │
-│  · SettlementReceipt — executor runs monthly pay     │
+│  · MonthlyScheduleCreated — user authorizes a plan  │
+│  · SchedulePaused / ScheduleResumed / Cancelled     │
+│  · SettlementReceipt — keeper or gateway receipt    │
+│  · AttemptLogged — every send-now + settlement      │
 │  · totalTransactions() — unified counter            │
 └─────────────────────────────────────────────────────┘
 ```
@@ -134,80 +153,85 @@ FEE_BPS=25
 
 ## ChocoGateway — developer reference
 
-### Key functions
+> **v2 source applied, redeploy pending.** The `contracts/src/` files now include `refundRunFor`,
+> `_safeCkesTransfer`/`DeliveryFellBack`, and the `recordSettlementFor` call at the end of
+> `settleScheduledRun`. The live contract at `0x900F0c…` matches the pre-v2 source.
+> See `V2_BACKLOG.md` for the full diff.
+
+### Send-now functions
 
 ```solidity
-// Quote KESm output after fee deduction (use for ckesMinOut calculation)
-function quote(uint256 usdcAmountIn) external view returns (uint256 ckesAmountOut);
-
-// Full breakdown: KESm out + fee in USDC + net USDC entering the swap
-function quoteWithFee(uint256 usdcAmountIn) external view
-    returns (uint256 ckesAmountOut, uint256 feeUsdc, uint256 swapUsdc);
-
-// Reverse quote: USDC the caller must approve to guarantee recipient gets exactly ckesExactOut
-// Includes the protocol fee and 1% slippage buffer; pair with swapAndSendExact
+// Reverse quote: USDC the caller must approve to guarantee recipient gets exactly ckesExactOut.
+// Includes the protocol fee and the exact-output slippage buffer.
 function quoteExactOut(uint256 ckesExactOut) external view returns (uint256 usdcAmountIn);
 
-// Fixed-input entry point (legacy) — delivers whatever KESm the swap produces
-function swapAndSend(address recipient, uint256 usdcAmountIn, uint256 ckesMinOut)
-    external returns (uint256 ckesAmountOut);
-
-// Fixed-output entry point — recipient receives exactly ckesExactOut; surplus returned to sender
-// Call quoteExactOut first to get usdcAmountIn, then approve that amount before calling
+// Fixed-output: recipient receives exactly ckesExactOut KESm; surplus USDC returned to sender.
+// Call quoteExactOut first → approve that USDC amount → call this.
 function swapAndSendExact(address recipient, uint256 usdcAmountIn, uint256 ckesExactOut)
     external returns (uint256 ckesAmountOut);
 
-// Query a single transaction by its sequential ID
-function getTx(uint256 txId) external view returns (TxRecord memory);
+// Legacy fixed-input (delivers whatever KESm the swap produces — less predictable for recipient)
+function swapAndSend(address recipient, uint256 usdcAmountIn, uint256 ckesMinOut)
+    external returns (uint256 ckesAmountOut);
+```
 
-// All tx IDs for a given payer wallet
-function getTxsByPayer(address payer) external view returns (uint256[] memory);
+### Scheduled-payment (escrow) functions
 
-// Cumulative protocol fee earned (USDC, 6 decimals)
-function totalFeeEarned() external view returns (uint256);
+```solidity
+// Lock one run's USDC from owner's wallet for the given schedule — requires prior ERC-20 approval.
+// Called by the app at plan creation and auto-re-locked by the keeper after each settlement.
+function lockFor(address owner, uint256 scheduleId, uint256 usdcAmount) external;
 
-// Admin: update fee config (capped at 1%)
-function setFee(address newFeeRecipient, uint16 newFeeBps) external;
+// Create a schedule on ChocoLedger AND lock the first run's USDC in one user signature.
+function createAndFundSchedule(...) external returns (uint256 scheduleId);
 
-// Admin: transfer contract ownership
+// Keeper-only: execute a due schedule. Reads recipient + amount from the ledger (can't redirect).
+// Returns netUsdc actually swapped. Auto-calls ChocoLedger.recordSettlementFor in v2.
+function settleScheduledRun(uint256 scheduleId) external returns (uint256 netUsdc);
+
+// Owner self-refund: return a locked run's USDC without cancelling the schedule.
+function refundRun(uint256 scheduleId) external;
+
+// Admin rescue refund: return a locked run to its OWNER (never to the caller). Audit H-2.
+// v2 only — not present in the current live contract.
+function refundRunFor(address owner, uint256 scheduleId) external;  // onlyAdmin, v2
+
+// Read how much USDC is locked for a given owner + schedule.
+function lockedOf(address owner, uint256 scheduleId) external view returns (uint256);
+```
+
+### Admin functions
+
+```solidity
+function setKeeper(address nextKeeper) external;           // onlyAdmin; keeper != admin enforced
+function setFee(address newFeeRecipient, uint16 newFeeBps) external; // capped at 100 bps (1%)
 function transferAdmin(address newAdmin) external;
 ```
 
-### TxRecord struct
+### Key events
 
 ```solidity
-struct TxRecord {
-    address payer;       // wallet that called swapAndSend
-    address recipient;   // KESm destination
-    uint256 usdcIn;      // full USDC pulled from payer (6 decimals)
-    uint256 feeUsdc;     // protocol fee deducted before swap (6 decimals)
-    uint256 ckesOut;     // KESm delivered to recipient (18 decimals)
-    uint64  timestamp;   // block.timestamp at execution
-}
-```
-
-### Events
-
-```solidity
-// Backwards-compatible — read by celo.js history reader
+// Send-now swap (read by history reader for movement feed)
 event UsdcToCkesSwap(address indexed payer, uint256 usdcIn, uint256 usdmMid, uint256 ckesOut, uint256 ckesMinOut);
 
-// Rich event for analytics and Celoscan visibility
-event SwapRecorded(uint256 indexed txId, address indexed payer, address indexed recipient, uint256 usdcIn, uint256 feeUsdc, uint256 ckesOut);
+// Scheduled run executed: fund-backed settlement receipt
+event RunSettled(uint256 indexed scheduleId, address indexed owner, uint256 netUsdc, uint256 ckesOut);
 
-// Emitted when admin changes fee config
-event FeeUpdated(address indexed feeRecipient, uint16 feeBps);
+// Owner or keeper refunded a locked run
+event RunRefunded(address indexed owner, uint256 indexed scheduleId, uint256 usdcAmount);
+
+// v2: KESm could not be delivered to the intended recipient — credited to the payer instead
+event DeliveryFellBack(address indexed intendedRecipient, address indexed creditedTo, uint256 ckesAmount);
 ```
 
 ### Fee model
 
 ```
 usdcAmountIn  ──► feeUsdc = usdcAmountIn × feeBps / 10000  ──► feeRecipient
-              └─► swapUsdc = usdcAmountIn - feeUsdc         ──► Mento Broker
+              └─► netUsdc = usdcAmountIn − feeUsdc          ──► Mento Broker → KESm → recipient
 ```
 
-Default: `feeBps = 25` → **0.25%** (~10× cheaper than Western Union, in line with Wise).
-Admin can adjust at any time via `setFee()` without redeploying.
+Default: `feeBps = 25` → **0.25%**. Admin can adjust via `setFee()` without redeploying (capped at 1% in the contract).
 
 ---
 
@@ -228,8 +252,15 @@ function recordSettlement(uint256 id, bool success, ...) external;
 // Authorized swap contracts only: log a send-now on behalf of the real payer
 function logAttemptFor(address payer, uint8 kind, address recipient, uint256 usdcAmount, uint256 ckesAmount, string calldata note) external returns (uint256);
 
+// v2 — Gateway-only atomic receipt: records settlement AND emits SettlementReceipt in the
+// same tx as the fund movement; can't be keeper-fabricated. Same 27-day guard as recordSettlement.
+function recordSettlementFor(uint256 id, uint256 sourceAmount, bytes32 settlementRef, string calldata note) external;
+
 // Admin: register/deregister an authorized swap contract
 function setSwapContract(address swapContract, bool authorized) external;
+
+// Admin: transfer ledger ownership (required after deploy — move to Safe)
+function transferAdmin(address newAdmin) external;
 
 // Views
 function totalTransactions() external view returns (uint256);
@@ -290,8 +321,12 @@ const ids = await publicClient.readContract({
 ## Security notes
 
 - `.env` is gitignored — never commit private keys
-- `ChocoGateway` holds no funds between calls; any USDC/KESm balance after a tx is a bug
-- `logAttemptFor` is gated by `authorizedSwapContracts` — only registered Gateway addresses can write on behalf of payers
+- `ChocoGateway` holds USDC only while a schedule run is locked (`lockedOf`); the sum of all active locks equals the gateway balance — anything extra is a bug
+- `settleScheduledRun` reads recipient + amount from ChocoLedger — the keeper can trigger but never redirect a payment
+- `logAttemptFor` and `recordSettlementFor` are gated by `authorizedSwapContracts` — only registered Gateway addresses can write on behalf of payers
 - `setFee` is capped at 100 bps (1%) in the contract; no admin can set a higher fee without redeploying
+- `admin != keeper` is enforced in `setKeeper` — the two roles can't be collapsed into one key
+- `refundRunFor` (v2) pays the schedule **owner**, never the caller — admin cannot steal locked funds
+- After deploy, call `transferAdmin(safeAddress)` on both contracts to move admin to a multisig
 - Verify deployed bytecode on [Celoscan](https://celoscan.io/) after every deploy
-- Deploy cost: ~0.1 CELO per contract
+- Full audit findings and off-chain mitigations: `contracts/AUDIT.md`
