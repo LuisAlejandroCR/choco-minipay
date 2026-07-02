@@ -238,9 +238,8 @@ export default function App({ privyAuth = null }) {
     goTo("duplicateGuard");
   }, [visibleScreen, duplicateAttempt, reviewMode, appStatus.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Privy email-wallet bridge: when Privy authenticates and creates an embedded wallet, set
-  // window.ethereum to Privy's EIP-1193 provider so the existing viem wallet client works
-  // without changes. MiniPay's native provider always takes priority.
+  // Privy email-wallet bridge: after the OTP succeeds, attach Privy's embedded EIP-1193
+  // provider as Choco's active signer. MiniPay's native provider always takes priority.
   useEffect(() => {
     if (!privyAuth?.ready || !privyAuth.authenticated || !privyAuth.embeddedWallet) return;
     if (isMiniPay()) return;
@@ -249,11 +248,18 @@ export default function App({ privyAuth = null }) {
     privyAuth.embeddedWallet.getEthereumProvider()
       .then(async (provider) => {
         if (!active) return;
-        window.ethereum = provider;
-        const address = await wallet.verifyWallet();
-        if (address && active) void refreshBalances(address);
+        const address = await wallet.connectPrivyProvider(provider, privyAuth.embeddedWallet.address);
+        if (!active || !address) return;
+        await refreshBalances(address);
+        appStatus.setStatus("review");
+        appStatus.setMessage("Email wallet connected. Choose now or schedule.");
+        setScreen(resolveVisibleScreen("plan", true));
       })
-      .catch(() => {});
+      .catch((error) => {
+        if (!active) return;
+        appStatus.setStatus("error");
+        appStatus.setMessage(humaniseConnectError(error));
+      });
     return () => { active = false; };
   }, [privyAuth?.ready, privyAuth?.authenticated, !!privyAuth?.embeddedWallet, wallet.isReady, wallet.status]); // eslint-disable-line
 

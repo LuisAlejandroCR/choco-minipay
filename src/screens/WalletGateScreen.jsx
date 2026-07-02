@@ -8,6 +8,7 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet, onEmailLogin 
   const isVerifyingWallet = wallet.status === "loading" || wallet.status === "opening-wallet";
   const needsMobileWallet = wallet.needsMobileWallet;
   const needsDesktopWallet = !wallet.isMobile && !wallet.hasProvider;
+  const useEmailOnly = Boolean(onEmailLogin);
 
   const trimmedAddr = manualAddr.trim();
   const isValidAddr = isAddress(trimmedAddr);
@@ -17,30 +18,45 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet, onEmailLogin 
     onHome();
   }
 
+  const title = useEmailOnly
+    ? "Sign in with email"
+    : needsMobileWallet
+      ? "Connect from a mobile wallet"
+      : needsDesktopWallet
+        ? "Connect a browser wallet"
+        : "Confirm your wallet first";
+
+  const description = useEmailOnly
+    ? "Choco creates a wallet-backed session for your email. You still approve every transfer before money moves."
+    : needsMobileWallet
+      ? "Open Choco in MiniPay or another mobile wallet to continue."
+      : needsDesktopWallet
+        ? "Install or enable a browser wallet, then connect."
+        : "Choco reads your balance and prepares payments for your wallet to approve. It never holds your money.";
+
   return (
     <div className="screen wallet-gate-screen">
       <section className="wallet-gate-card">
         <span className="guard-icon"><ShieldCheck size={24} /></span>
         <div>
           <span>Wallet access</span>
-          <h2>
-            {needsMobileWallet
-              ? "Connect from a mobile wallet"
-              : needsDesktopWallet
-                ? "Connect a browser wallet"
-                : "Confirm your wallet first"}
-          </h2>
-          <p>
-            {needsMobileWallet
-              ? "Open Choco in MiniPay or another mobile wallet to continue."
-              : needsDesktopWallet
-                ? "Install or enable a browser wallet, then connect."
-                : "Choco reads your balance and prepares payments for your wallet to approve. It never holds your money."}
-          </p>
+          <h2>{title}</h2>
+          <p>{description}</p>
           {wallet.error && <p className="wallet-error">{wallet.error}</p>}
         </div>
 
-        {needsMobileWallet ? (
+        {useEmailOnly ? (
+          <div className="wallet-mobile-actions">
+            <button
+              className="primary-cta"
+              type="button"
+              disabled={isVerifyingWallet}
+              onClick={onEmailLogin}
+            >
+              {isVerifyingWallet ? "Opening email wallet..." : "Sign in with email"}
+            </button>
+          </div>
+        ) : needsMobileWallet ? (
           <div className="wallet-mobile-actions">
             <button
               className="primary-cta"
@@ -48,19 +64,9 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet, onEmailLogin 
               disabled={isVerifyingWallet}
               onClick={wallet.openMetaMaskMobile}
             >
-              {isVerifyingWallet ? "Opening wallet…" : "Open in wallet"}
+              {isVerifyingWallet ? "Opening wallet..." : "Open in wallet"}
             </button>
 
-            {onEmailLogin && (
-              <>
-                <div className="wallet-or-divider"><span>or</span></div>
-                <button className="wallet-email-login-btn" type="button" onClick={onEmailLogin}>
-                  Sign in with email
-                </button>
-              </>
-            )}
-
-            {/* Manual address entry — read-only after validation so state never gets corrupted */}
             <div className="wallet-manual-input">
               <label className="wallet-manual-label">Or paste your address</label>
               <div className={`wallet-manual-row${isValidAddr ? " row-validated" : ""}`}>
@@ -71,7 +77,7 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet, onEmailLogin 
                   autoCapitalize="none"
                   autoCorrect="off"
                   spellCheck="false"
-                  placeholder="0x…"
+                  placeholder="0x..."
                   value={manualAddr}
                   readOnly={isValidAddr}
                   onChange={(e) => setManualAddr(e.target.value)}
@@ -90,12 +96,8 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet, onEmailLogin 
               </div>
               {isValidAddr && (
                 <>
-                  <small className="wallet-addr-preview">Read-only · {shortAddress(trimmedAddr)}</small>
-                  <button
-                    className="primary-cta"
-                    type="button"
-                    onClick={handleConnect}
-                  >
+                  <small className="wallet-addr-preview">Read-only - {shortAddress(trimmedAddr)}</small>
+                  <button className="primary-cta" type="button" onClick={handleConnect}>
                     Connect {shortAddress(trimmedAddr)}
                   </button>
                 </>
@@ -108,17 +110,8 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet, onEmailLogin 
               Get MetaMask
             </button>
             <button className="secondary-dark" type="button" disabled={isVerifyingWallet} onClick={onVerifyWallet}>
-              {isVerifyingWallet ? "Checking wallet…" : "I enabled it, check again"}
+              {isVerifyingWallet ? "Checking wallet..." : "I enabled it, check again"}
             </button>
-
-            {onEmailLogin && (
-              <>
-                <div className="wallet-or-divider"><span>or</span></div>
-                <button className="wallet-email-login-btn" type="button" onClick={onEmailLogin}>
-                  Sign in with email
-                </button>
-              </>
-            )}
 
             <div className="wallet-manual-input">
               <label className="wallet-manual-label">Or paste your address</label>
@@ -130,7 +123,7 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet, onEmailLogin 
                   autoCapitalize="none"
                   autoCorrect="off"
                   spellCheck="false"
-                  placeholder="0x…"
+                  placeholder="0x..."
                   value={manualAddr}
                   readOnly={isValidAddr}
                   onChange={(e) => setManualAddr(e.target.value)}
@@ -149,12 +142,8 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet, onEmailLogin 
               </div>
               {isValidAddr && (
                 <>
-                  <small className="wallet-addr-preview">Read-only · {shortAddress(trimmedAddr)}</small>
-                  <button
-                    className="primary-cta"
-                    type="button"
-                    onClick={handleConnect}
-                  >
+                  <small className="wallet-addr-preview">Read-only - {shortAddress(trimmedAddr)}</small>
+                  <button className="primary-cta" type="button" onClick={handleConnect}>
                     Connect {shortAddress(trimmedAddr)}
                   </button>
                 </>
@@ -164,16 +153,8 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet, onEmailLogin 
         ) : (
           <div className="wallet-mobile-actions">
             <button className="primary-cta" type="button" disabled={isVerifyingWallet} onClick={onVerifyWallet}>
-              {isVerifyingWallet ? "Verifying wallet…" : "Verify wallet"}
+              {isVerifyingWallet ? "Verifying wallet..." : "Verify wallet"}
             </button>
-            {onEmailLogin && (
-              <>
-                <div className="wallet-or-divider"><span>or</span></div>
-                <button className="wallet-email-login-btn" type="button" onClick={onEmailLogin}>
-                  Sign in with email
-                </button>
-              </>
-            )}
           </div>
         )}
 
