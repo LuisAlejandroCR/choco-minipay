@@ -34,8 +34,27 @@ export const ADDRESSES = {
   mentoProvider: MENTO.exchangeProvider,
 };
 
+export function getActiveEthereumProvider() {
+  if (typeof window === "undefined") return null;
+  return window.__chocoEthereumProvider || window.ethereum || null;
+}
+
+export function setActiveEthereumProvider(provider) {
+  if (typeof window === "undefined" || !provider?.request) return;
+  window.__chocoEthereumProvider = provider;
+  try {
+    window.ethereum = provider;
+  } catch {
+    try {
+      Object.defineProperty(window, "ethereum", { configurable: true, value: provider });
+    } catch {
+      // Some browser wallets expose a read-only descriptor. The internal Choco provider still works.
+    }
+  }
+}
+
 export function isMiniPay() {
-  return typeof window !== "undefined" && window.ethereum?.isMiniPay === true;
+  return getActiveEthereumProvider()?.isMiniPay === true;
 }
 
 export function shortAddress(address) {
@@ -94,17 +113,20 @@ export function makePublicClient() {
 }
 
 export function makeWalletClient(account) {
-  return createWalletClient({ account, chain: celo, transport: custom(window.ethereum) });
+  const provider = getActiveEthereumProvider();
+  if (!provider) throw new Error("Open Choco in MiniPay or a Celo wallet browser.");
+  return createWalletClient({ account, chain: celo, transport: custom(provider) });
 }
 
 export async function connectInjectedWallet() {
-  if (!window.ethereum) throw new Error("Open Choco in MiniPay or a Celo wallet browser.");
-  const [account] = await window.ethereum.request({ method: "eth_requestAccounts" });
-  const chainId = await window.ethereum.request({ method: "eth_chainId" });
+  const provider = getActiveEthereumProvider();
+  if (!provider) throw new Error("Open Choco in MiniPay or a Celo wallet browser.");
+  const [account] = await provider.request({ method: "eth_requestAccounts" });
+  const chainId = await provider.request({ method: "eth_chainId" });
 
   if (String(chainId).toLowerCase() !== CELO_MAINNET.chainIdHex.toLowerCase()) {
     try {
-      await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: CELO_MAINNET.chainIdHex }] });
+      await provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: CELO_MAINNET.chainIdHex }] });
     } catch {
       throw new Error("Switch your wallet to Celo Mainnet before continuing.");
     }

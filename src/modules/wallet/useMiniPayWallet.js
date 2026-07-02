@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ACTIVE_CELO_NETWORK } from "../../config/runtime.js";
-import { connectInjectedWallet, isMiniPay, shortAddress } from "../../lib/celo.js";
+import { connectInjectedWallet, getActiveEthereumProvider, isMiniPay, setActiveEthereumProvider, shortAddress } from "../../lib/celo.js";
 import { humaniseConnectError } from "../../utils/appHelpers.js";
 
 export function formatWalletAddress(address) {
@@ -8,7 +8,7 @@ export function formatWalletAddress(address) {
 }
 
 function hasEthereumProvider() {
-  return typeof window !== "undefined" && Boolean(window.ethereum);
+  return Boolean(getActiveEthereumProvider());
 }
 
 function isMobileBrowser() {
@@ -30,7 +30,7 @@ export function useMiniPayWallet() {
     if (!hasProvider) return undefined;
     let active = true;
 
-    window.ethereum.request({ method: "eth_accounts" })
+    getActiveEthereumProvider().request({ method: "eth_accounts" })
       .then(([existingAddress]) => {
         if (!active || !existingAddress) return;
         setAddress(existingAddress);
@@ -52,12 +52,13 @@ export function useMiniPayWallet() {
       setError("Reconnect your wallet.");
     }
 
-    window.ethereum.on?.("accountsChanged", handleAccountsChanged);
-    window.ethereum.on?.("chainChanged", handleChainChanged);
+    const provider = getActiveEthereumProvider();
+    provider?.on?.("accountsChanged", handleAccountsChanged);
+    provider?.on?.("chainChanged", handleChainChanged);
     return () => {
       active = false;
-      window.ethereum.removeListener?.("accountsChanged", handleAccountsChanged);
-      window.ethereum.removeListener?.("chainChanged", handleChainChanged);
+      provider?.removeListener?.("accountsChanged", handleAccountsChanged);
+      provider?.removeListener?.("chainChanged", handleChainChanged);
     };
   }, [hasProvider]);
 
@@ -109,7 +110,7 @@ export function useMiniPayWallet() {
       setError("");
       if (!provider?.request) throw new Error("Email wallet is not ready yet.");
 
-      if (typeof window !== "undefined") window.ethereum = provider;
+      setActiveEthereumProvider(provider);
 
       let nextAddress = preferredAddress;
       if (!nextAddress) {

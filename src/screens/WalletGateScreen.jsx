@@ -3,12 +3,15 @@ import { isAddress } from "viem";
 import { ShieldCheck, X } from "lucide-react";
 import { shortAddress } from "../lib/celo.js";
 
-export function WalletGateScreen({ wallet, onHome, onVerifyWallet, onEmailLogin = null }) {
+export function WalletGateScreen({ wallet, onHome, onVerifyWallet, onEmailLogin = null, emailAuth = null }) {
   const [manualAddr, setManualAddr] = useState("");
   const isVerifyingWallet = wallet.status === "loading" || wallet.status === "opening-wallet";
+  const isPreparingEmailWallet = Boolean(emailAuth?.isPreparingEmailWallet);
+  const emailWalletError = emailAuth?.emailWalletError || "";
   const needsMobileWallet = wallet.needsMobileWallet;
   const needsDesktopWallet = !wallet.isMobile && !wallet.hasProvider;
   const useEmailOnly = Boolean(onEmailLogin);
+  const emailActionBusy = isVerifyingWallet || isPreparingEmailWallet;
 
   const trimmedAddr = manualAddr.trim();
   const isValidAddr = isAddress(trimmedAddr);
@@ -27,7 +30,9 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet, onEmailLogin 
         : "Confirm your wallet first";
 
   const description = useEmailOnly
-    ? "Choco creates a wallet-backed session for your email. You still approve every transfer before money moves."
+    ? emailAuth?.authenticated && !emailAuth?.embeddedWallet
+      ? "Email confirmed. Choco is preparing the wallet-backed session. If it does not continue, tap the button again."
+      : "Choco creates a wallet-backed session for your email. You still approve every transfer before money moves."
     : needsMobileWallet
       ? "Open Choco in MiniPay or another mobile wallet to continue."
       : needsDesktopWallet
@@ -42,7 +47,7 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet, onEmailLogin 
           <span>Wallet access</span>
           <h2>{title}</h2>
           <p>{description}</p>
-          {wallet.error && <p className="wallet-error">{wallet.error}</p>}
+          {(wallet.error || emailWalletError) && <p className="wallet-error">{wallet.error || emailWalletError}</p>}
         </div>
 
         {useEmailOnly ? (
@@ -50,10 +55,10 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet, onEmailLogin 
             <button
               className="primary-cta"
               type="button"
-              disabled={isVerifyingWallet}
+              disabled={emailActionBusy}
               onClick={onEmailLogin}
             >
-              {isVerifyingWallet ? "Opening email wallet..." : "Sign in with email"}
+              {emailActionBusy ? "Preparing email wallet..." : "Sign in with email"}
             </button>
           </div>
         ) : needsMobileWallet ? (
