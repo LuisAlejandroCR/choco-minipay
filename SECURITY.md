@@ -6,7 +6,7 @@ Choco moves real user funds on Celo Mainnet, so we take security seriously.
 
 Please report vulnerabilities **privately** — do not open a public issue or PR.
 
-- **Email:** security@usechoco.app *(replace with your real security contact before publishing)*
+- **Email:** security@usechoco.app 
 - Include: a description, the affected component (frontend / keeper / contracts), reproduction steps, and the impact.
 - We aim to acknowledge within **72 hours** and to keep you updated on remediation.
 
