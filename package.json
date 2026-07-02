@@ -16,10 +16,21 @@
     "register:agent": "node scripts/register-agent.mjs",
     "authorize:swap": "node scripts/authorize-swap.mjs"
   },
-  "repository": { "type": "git", "url": "git+https://github.com/LuisAlejandroCR/choco-minipay.git" },
-  "keywords": ["celo", "minipay", "stablecoin", "remittance", "agent", "erc-8004"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LuisAlejandroCR/choco-minipay.git"
+  },
+  "keywords": [
+    "celo",
+    "minipay",
+    "stablecoin",
+    "remittance",
+    "agent",
+    "erc-8004"
+  ],
   "license": "Apache-2.0",
   "dependencies": {
+    "@privy-io/react-auth": "^3.32.2",
     "@supabase/supabase-js": "^2.45.4",
     "ethers": "^6.16.0",
     "lucide-react": "^1.17.0",

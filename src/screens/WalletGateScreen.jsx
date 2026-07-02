@@ -3,7 +3,7 @@ import { isAddress } from "viem";
 import { ShieldCheck, X } from "lucide-react";
 import { shortAddress } from "../lib/celo.js";
 
-export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
+export function WalletGateScreen({ wallet, onHome, onVerifyWallet, onEmailLogin = null }) {
   const [manualAddr, setManualAddr] = useState("");
   const isVerifyingWallet = wallet.status === "loading" || wallet.status === "opening-wallet";
   const needsMobileWallet = wallet.needsMobileWallet;
@@ -50,6 +50,15 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
             >
               {isVerifyingWallet ? "Opening wallet…" : "Open in wallet"}
             </button>
+
+            {onEmailLogin && (
+              <>
+                <div className="wallet-or-divider"><span>or</span></div>
+                <button className="wallet-email-login-btn" type="button" onClick={onEmailLogin}>
+                  Sign in with email
+                </button>
+              </>
+            )}
 
             {/* Manual address entry — read-only after validation so state never gets corrupted */}
             <div className="wallet-manual-input">
@@ -102,6 +111,15 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
               {isVerifyingWallet ? "Checking wallet…" : "I enabled it, check again"}
             </button>
 
+            {onEmailLogin && (
+              <>
+                <div className="wallet-or-divider"><span>or</span></div>
+                <button className="wallet-email-login-btn" type="button" onClick={onEmailLogin}>
+                  Sign in with email
+                </button>
+              </>
+            )}
+
             <div className="wallet-manual-input">
               <label className="wallet-manual-label">Or paste your address</label>
               <div className={`wallet-manual-row${isValidAddr ? " row-validated" : ""}`}>
@@ -144,9 +162,19 @@ export function WalletGateScreen({ wallet, onHome, onVerifyWallet }) {
             </div>
           </div>
         ) : (
-          <button className="primary-cta" type="button" disabled={isVerifyingWallet} onClick={onVerifyWallet}>
-            {isVerifyingWallet ? "Verifying wallet…" : "Verify wallet"}
-          </button>
+          <div className="wallet-mobile-actions">
+            <button className="primary-cta" type="button" disabled={isVerifyingWallet} onClick={onVerifyWallet}>
+              {isVerifyingWallet ? "Verifying wallet…" : "Verify wallet"}
+            </button>
+            {onEmailLogin && (
+              <>
+                <div className="wallet-or-divider"><span>or</span></div>
+                <button className="wallet-email-login-btn" type="button" onClick={onEmailLogin}>
+                  Sign in with email
+                </button>
+              </>
+            )}
+          </div>
         )}
 
         <div className="wallet-contact-hint">
