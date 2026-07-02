@@ -22,6 +22,7 @@ import {
 import {
   ADDRESSES,
   cancelScheduleViaRegistry,
+  isMiniPay,
   pauseScheduleViaRegistry,
   readStablecoinBalances,
   resumeScheduleViaRegistry,
@@ -48,7 +49,7 @@ import { ReviewScreen } from "./screens/ReviewScreen.jsx";
 import { TransactionSuccessScreen } from "./screens/TransactionSuccessScreen.jsx";
 import { humaniseConnectError, humanisePlanError, mergeTransactionDetails, pickById } from "./utils/appHelpers.js";
 
-export default function App() {
+export default function App({ privyAuth = null }) {
   // --- Core app state ---
   const [screen, setScreen] = useState(INITIAL_SCREEN);
   const [command, setCommand] = useState(DEFAULT_COMMANDS.schedule);
@@ -236,6 +237,25 @@ export default function App() {
     if (appStatus.status !== "review") return; // not while a confirm/submit is in flight
     goTo("duplicateGuard");
   }, [visibleScreen, duplicateAttempt, reviewMode, appStatus.status]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Privy email-wallet bridge: when Privy authenticates and creates an embedded wallet, set
+  // window.ethereum to Privy's EIP-1193 provider so the existing viem wallet client works
+  // without changes. MiniPay's native provider always takes priority.
+  useEffect(() => {
+    if (!privyAuth?.ready || !privyAuth.authenticated || !privyAuth.embeddedWallet) return;
+    if (isMiniPay()) return;
+    if (wallet.isReady || wallet.status === "opening-wallet") return;
+    let active = true;
+    privyAuth.embeddedWallet.getEthereumProvider()
+      .then(async (provider) => {
+        if (!active) return;
+        window.ethereum = provider;
+        const address = await wallet.verifyWallet();
+        if (address && active) void refreshBalances(address);
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [privyAuth?.ready, privyAuth?.authenticated, !!privyAuth?.embeddedWallet, wallet.isReady, wallet.status]); // eslint-disable-line
 
   // --- Event handlers ---
   async function connectWallet() {
@@ -524,6 +544,7 @@ export default function App() {
                 if (address) setScreen("plan");
               }}
               onHome={() => setScreen("plan")}
+              onEmailLogin={privyAuth?.login ?? null}
             />
           )}
           {visibleScreen === "demoTour" && (

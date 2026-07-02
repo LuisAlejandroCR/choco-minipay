@@ -291,6 +291,41 @@
   margin-top: 0;
 }
 
+.wallet-or-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
+.wallet-or-divider::before,
+.wallet-or-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line-soft);
+}
+
+.wallet-email-login-btn {
+  width: 100%;
+  padding: 13px;
+  border: 1px solid var(--line-soft);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--cream);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s ease;
+}
+
+.wallet-email-login-btn:hover {
+  background: rgba(255, 255, 255, 0.09);
+}
+
 .wallet-address-form {
   display: grid;
   gap: 8px;
