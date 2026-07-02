@@ -104,6 +104,21 @@ export function useMiniPayWallet() {
     }
   }
 
+  // Convenience wrapper: accepts the Privy embedded wallet object directly (handles
+  // getEthereumProvider internally so any error is captured in wallet.error).
+  async function connectPrivyWallet(embeddedWallet) {
+    if (!embeddedWallet?.getEthereumProvider) throw new Error("Email wallet is not ready yet.");
+    try {
+      const provider = await embeddedWallet.getEthereumProvider();
+      return connectPrivyProvider(provider, embeddedWallet.address);
+    } catch (nextError) {
+      if (nextError?.message?.includes("Email wallet")) throw nextError;
+      setStatus("error");
+      setError(humaniseConnectError(nextError));
+      throw nextError;
+    }
+  }
+
   async function connectPrivyProvider(provider, preferredAddress = "") {
     try {
       setStatus("opening-wallet");
@@ -170,6 +185,7 @@ export function useMiniPayWallet() {
   return {
     ...wallet,
     verifyWallet,
+    connectPrivyWallet,
     connectPrivyProvider,
     connectManual,
     openMiniPay,

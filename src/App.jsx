@@ -240,26 +240,21 @@ export default function App({ privyAuth = null }) {
 
   // Privy email-wallet bridge: after the OTP succeeds, attach Privy's embedded EIP-1193
   // provider as Choco's active signer. MiniPay's native provider always takes priority.
+  // Errors are captured inside connectPrivyWallet → wallet.error (shown on WalletGateScreen).
   useEffect(() => {
     if (!privyAuth?.ready || !privyAuth.authenticated || !privyAuth.embeddedWallet) return;
     if (isMiniPay()) return;
     if (wallet.isReady || wallet.status === "opening-wallet") return;
     let active = true;
-    privyAuth.embeddedWallet.getEthereumProvider()
-      .then(async (provider) => {
-        if (!active) return;
-        const address = await wallet.connectPrivyProvider(provider, privyAuth.embeddedWallet.address);
+    wallet.connectPrivyWallet(privyAuth.embeddedWallet)
+      .then(async (address) => {
         if (!active || !address) return;
         await refreshBalances(address);
         appStatus.setStatus("review");
         appStatus.setMessage("Email wallet connected. Choose now or schedule.");
         setScreen(resolveVisibleScreen("plan", true));
       })
-      .catch((error) => {
-        if (!active) return;
-        appStatus.setStatus("error");
-        appStatus.setMessage(humaniseConnectError(error));
-      });
+      .catch(() => { /* wallet.error is already set by connectPrivyWallet */ });
     return () => { active = false; };
   }, [privyAuth?.ready, privyAuth?.authenticated, !!privyAuth?.embeddedWallet, wallet.isReady, wallet.status]); // eslint-disable-line
 
