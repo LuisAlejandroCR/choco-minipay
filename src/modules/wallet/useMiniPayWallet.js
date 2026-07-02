@@ -103,6 +103,48 @@ export function useMiniPayWallet() {
     }
   }
 
+  async function connectPrivyProvider(provider, preferredAddress = "") {
+    try {
+      setStatus("opening-wallet");
+      setError("");
+      if (!provider?.request) throw new Error("Email wallet is not ready yet.");
+
+      if (typeof window !== "undefined") window.ethereum = provider;
+
+      let nextAddress = preferredAddress;
+      if (!nextAddress) {
+        const accounts = await provider.request({ method: "eth_accounts" }).catch(() => []);
+        nextAddress = accounts?.[0] || "";
+      }
+      if (!nextAddress) {
+        const accounts = await provider.request({ method: "eth_requestAccounts" }).catch(() => []);
+        nextAddress = accounts?.[0] || "";
+      }
+      if (!nextAddress) throw new Error("Email wallet did not return an address.");
+
+      const chainId = await provider.request({ method: "eth_chainId" }).catch(() => "");
+      if (chainId && String(chainId).toLowerCase() !== ACTIVE_CELO_NETWORK.chainIdHex.toLowerCase()) {
+        try {
+          await provider.request({
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: ACTIVE_CELO_NETWORK.chainIdHex }],
+          });
+        } catch {
+          throw new Error("Switch your email wallet to Celo Mainnet before continuing.");
+        }
+      }
+
+      setAddress(nextAddress);
+      setIsReadOnly(false);
+      setStatus("ready");
+      return nextAddress;
+    } catch (nextError) {
+      setStatus("error");
+      setError(humaniseConnectError(nextError));
+      throw nextError;
+    }
+  }
+
   function connectManual(addr) {
     setAddress(addr);
     setStatus("ready");
@@ -125,6 +167,7 @@ export function useMiniPayWallet() {
   return {
     ...wallet,
     verifyWallet,
+    connectPrivyProvider,
     connectManual,
     openMiniPay,
     openMetaMaskMobile,

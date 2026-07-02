@@ -7,7 +7,12 @@ const PRIVY_APP_ID = import.meta.env.VITE_PRIVY_APP_ID;
 function PrivyBridgedApp() {
   const { ready, authenticated, login, logout } = usePrivy();
   const { wallets } = useWallets();
-  const embeddedWallet = wallets.find((w) => w.walletClientType === "privy");
+  const embeddedWallet = wallets.find((wallet) => (
+    wallet.walletClientType === "privy"
+    || wallet.walletClientType === "embedded"
+    || wallet.connectorType === "privy"
+    || wallet.connectorType === "embedded"
+  )) || wallets.find((wallet) => wallet.address && wallet.getEthereumProvider);
 
   return (
     <App privyAuth={{ ready, authenticated, login, logout, embeddedWallet }} />
