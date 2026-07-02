@@ -1,4 +1,4 @@
-﻿# Choco
+# Choco
 
 Choco is an AI financial agent for MiniPay that turns a text or voice instruction into a wallet-approved family transfer on Celo. A user can say "send mom 50 KESm" or "send dad 5 KESm every 1st", review the details, sign in the wallet, and get an on-chain receipt.
 
@@ -42,6 +42,7 @@ Choco is not a bank and does not hold private keys. Send-now transfers move only
 |---|---|
 | `/` | Main MiniPay app |
 | `/demo.html` | Standalone demo and launch page |
+| `/contact-us.html` | Public contact page with app and demo links |
 | `/agent.json` | Agent metadata |
 | `/privacy.html` | Privacy summary |
 | `/terms.html` | Terms summary |

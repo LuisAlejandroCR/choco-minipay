@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowRight, CircleDollarSign, Eye, EyeOff, ExternalLink, ShieldCheck, X } from "lucide-react";
+import { ArrowRight, CircleDollarSign, Eye, EyeOff, ExternalLink, PlusCircle, ShieldCheck, X } from "lucide-react";
 import { ChocoMark } from "../components/ChocoMark.jsx";
 import { formatWalletAddress } from "../modules/wallet/useMiniPayWallet.js";
 import { scheduledLocalDateForPlan } from "../lib/schedule-time.js";
@@ -55,6 +55,7 @@ export function PlanScreen({
   onHistory,
   onSendNow,
   onSelectPlan,
+  onFundWallet = null,
   showDemoPrompt = false,
   liveDemoUrl = "",
   onDismissDemo = () => {},
@@ -65,6 +66,7 @@ export function PlanScreen({
   const isVerifyingWallet = wallet.status === "loading" || wallet.status === "opening-wallet";
   const usdcBalance = balances.find((b) => b.key === "usdc");
   const primaryAmount = usdcBalance?.formatted ?? "0.00";
+  const isLowBalance = isWalletVerified && onFundWallet && Number(primaryAmount) < 1;
   const walletShort = formatWalletAddress(wallet.address);
   const activePlans = plans.filter((plan) => getPlanExecutionState(plan).status !== "Paused");
   const upcomingPlans = [...activePlans].sort((a, b) => getNextPlanRunMs(a) - getNextPlanRunMs(b));
@@ -151,6 +153,16 @@ export function PlanScreen({
         </span>
         <ArrowRight size={21} />
       </button>
+      {isLowBalance && (
+        <button
+          className="home-fund-action"
+          type="button"
+          onClick={onFundWallet}
+        >
+          <PlusCircle size={18} />
+          <span>Add USDC with a card</span>
+        </button>
+      )}
       {isWalletVerified && plans.length > 0 && (
         <div className="section-heading">
           <span>Plans</span>

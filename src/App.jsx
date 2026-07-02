@@ -48,6 +48,7 @@ import { DuplicateGuardScreen } from "./screens/DuplicateGuardScreen.jsx";
 import { ReviewScreen } from "./screens/ReviewScreen.jsx";
 import { TransactionSuccessScreen } from "./screens/TransactionSuccessScreen.jsx";
 import { humaniseConnectError, humanisePlanError, mergeTransactionDetails, pickById } from "./utils/appHelpers.js";
+import { RAMP_READY, openRampOnramp } from "./lib/ramp.js";
 
 export default function App({ privyAuth = null }) {
   // --- Core app state ---
@@ -531,6 +532,7 @@ export default function App({ privyAuth = null }) {
                 setSelectedPlanFallback(null);
                 goTo("planDetail");
               }}
+              onFundWallet={RAMP_READY && !wallet.isMiniPay ? () => openRampOnramp(wallet.address) : null}
               showDemoPrompt={showDemoPrompt && !walletHasAddress}
               liveDemoUrl={APP_CONFIG.ui.liveDemoUrl}
               onDismissDemo={() => setShowDemoPrompt(false)}
