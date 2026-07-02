@@ -11,7 +11,7 @@ function pickEmbeddedWallet(wallets = []) {
     || wallet.walletClientType === "embedded"
     || wallet.connectorType === "privy"
     || wallet.connectorType === "embedded"
-  )) || wallets.find((wallet) => wallet.address && wallet.getEthereumProvider) || null;
+  )) || null;
 }
 
 function PrivyBridgedApp() {
