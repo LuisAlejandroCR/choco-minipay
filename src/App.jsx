@@ -551,6 +551,7 @@ export default function App({ privyAuth = null }) {
               }}
               onHome={() => setScreen("plan")}
               onEmailLogin={privyAuth?.login ?? null}
+              emailAuth={privyAuth}
             />
           )}
           {visibleScreen === "demoTour" && (
