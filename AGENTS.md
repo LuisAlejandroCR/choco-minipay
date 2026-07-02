@@ -1,31 +1,29 @@
-# Choco Agent Notes
+﻿# Choco Agent Notes
 
-Choco is a MiniPay-first remittance agent. Keep the implementation non-custodial: the app can read balances, prepare actions, and ask the wallet to sign, but it must not hold private keys or funds.
+Choco is a MiniPay-first financial agent for Celo Mainnet. Keep the implementation clear and non-custodial in user language: Choco reads balances, prepares actions, and asks the wallet to sign. It must never request private keys.
 
 ## Architecture
 
-- Keep product state and Celo primitives in `src/lib`.
-- Keep reusable UI in `src/components`.
-- Keep screen-level composition in `src/screens`.
-- Keep Celo contract code under `contracts`.
-- Keep hackathon and release notes under `docs`.
+- `src/chain` contains Celo clients, token reads, swaps, schedules, and history mapping.
+- `src/lib` contains product logic: config, intent parsing, readiness, fees, contacts, and support helpers.
+- `src/modules` contains React hooks for wallet, ledger, transfer, contacts, notifications, and voice.
+- `src/screens` contains full-screen UI composition.
+- `src/components` contains shared UI primitives.
+- `contracts` contains ChocoLedger and ChocoGateway source, tests, and deployment scripts.
 
 ## Agent Skills
 
-This project uses the following agent skills (tracked in `skills-lock.json`). Install them with:
+Use the Celo ecosystem skill before changing contract addresses, exchange IDs, MiniPay behavior, Mento routing, or Celo Mainnet assumptions:
 
-```
+```bash
 npx skills add celo-org/celopedia-skills
-npx skills add supabase/agent-skills
 ```
-
-- **celopedia-skill** — Celo ecosystem reference (verified contract addresses, Mento protocol, MiniPay, ERC-8004). **Always consult this skill before changing any Celo contract address, exchange ID, or protocol integration.**
-- **supabase** — Supabase SDK patterns and Postgres best practices.
 
 ## Product Rules
 
 - Main network is Celo Mainnet.
-- Recipient identity comes from Agent Choco intent detection, then later from MiniPay contact/alias lookup.
-- Plans, history, and receipts must stay behind verified-wallet access.
-- Wallet balances must be read from chain state and must never be described as Choco-held funds.
-- History and scheduled plans should be derived from wallet transactions, registry events, and protocol activity.
+- README is the source of truth for active contracts, deployment, and schedule worker setup.
+- Recipient identity starts with Agent Choco intent detection, then contact resolution when available.
+- Wallet balances must be read from chain state and must not be described as Choco-held balances.
+- Plans, movements, and receipts must be rebuilt from ChocoLedger and gateway events.
+- Route details should stay internal unless the app needs to explain a failure or temporary fallback.

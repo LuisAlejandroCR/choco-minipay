@@ -1,272 +1,247 @@
-# Choco — Cross-border remittances for MiniPay
+﻿# Choco
 
-> Type `"send mum 50k every 1st"` and Choco handles the rest — automatically, every month, without asking you to do anything again.
+Choco is an AI financial agent for MiniPay that turns a text or voice instruction into a wallet-approved family transfer on Celo. A user can say "send mom 50 KESm" or "send dad 5 KESm every 1st", review the details, sign in the wallet, and get an on-chain receipt.
 
-Choco is a MiniPay-native remittance app for the USDC→KESm corridor on Celo Mainnet. A user types a plain-language instruction, confirms once in their wallet, and the payment runs on the scheduled day — or immediately for one-time sends. No crypto knowledge required. No custody. No recurring friction.
+Choco is not a bank and does not hold private keys. Send-now transfers move only after the user signs. Scheduled plans are wallet-authorized on-chain plans; the current gateway can reserve a scheduled run so execution does not depend on the user being online later.
 
-**Why Choco?** Sending money to Kenya abroad today means logging in somewhere, entering details, paying 5–7% to a remittance service, and repeating it next month. MiniPay users already hold USDC — Choco gives them a better option:
+## Current Status
 
-- **0.25% fee** — up to 20× cheaper than traditional remittance services
-- **Exact delivery** — recipient always receives exactly the KESm amount typed; surplus USDC returns to the sender
-- **Set once, runs monthly** — a recurring plan is authorized once; the keeper executes it on the right day each month without further user action
-- **Non-custodial** — funds stay in the sender's wallet until settlement day; Choco holds no keys, no custody
-
-## Status
-
-| | |
+| Area | Status |
 |---|---|
-| Network | Celo Mainnet (chainId 42220) |
-| Distribution | MiniPay Mini App (16M+ wallets, 66 countries) |
-| Corridor | USDC → KESm (Kenyan Shilling) |
-| Protocol fee | 0.25% |
-| Security | Audited — see `contracts/AUDIT.md` |
-| Recognition | 🥈 2nd place — [Celo Colombia Hackathon](https://hackathon.celocolombia.org/resultados?token=99e4149611fb48ee8cbfe2de) |
+| Network | Celo Mainnet, chainId 42220 |
+| App | MiniPay-first web app at [usechoco.app](https://usechoco.app/) |
+| Demo | [usechoco.app/demo.html](https://usechoco.app/demo.html) |
+| Corridor | USDC to KESm, United States to Kenya |
+| Actions | Send now and monthly scheduled plans |
+| Fee | 0.25% protocol fee in the gateway contract |
+| Recognition | 2nd place, [Celo Colombia Hackathon](https://hackathon.celocolombia.org/resultados?token=99e4149611fb48ee8cbfe2de) |
 
-## Corridor
-
-| Field | Value |
-|---|---|
-| Network | Celo Mainnet (chainId 42220) |
-| Source asset | USDC |
-| Destination asset | KESm (Kenyan Shilling stablecoin) |
-| Actions | Send now (exact-output) · Monthly schedule |
-| Contacts | Optional Supabase persistence; ODIS/SocialConnect path documented |
-
-## What makes Choco different
-
-| Differentiator | Details |
-|---|---|
-| **Plain-language intent** | `"send dad 20k every 1st"` → schedule created, funded, running. No address pasting, no crypto UX |
-| **Recurring auto-payments** | First MiniPay Mini App with scheduled monthly remittances — authorize once, runs forever |
-| **Exact-output delivery** | Recipient always receives exactly the typed KESm — no rounding, no surprises |
-| **No custody** | Funds never leave the sender's wallet until the keeper settles; even the keeper cannot redirect — amounts and recipients are locked in the ChocoLedger smart contract |
-| **Transparent fee** | 0.25% deducted and shown in the receipt before confirmation; no hidden FX spread |
-| **Full on-chain audit trail** | Every send, plan, and settlement emits an event on ChocoLedger — history is rebuilt from the chain on every load, nothing cached off-chain |
-
-## How the flow works
+## How Choco Works
 
 1. User opens Choco in MiniPay or a Celo wallet browser.
-2. Choco reads on-chain balances (USDC, KESm, CELO) via `readStablecoinBalances`.
-3. User types a plain-language instruction — `20k mom every 1st` → 20,000 KESm to Mum.
-4. `parseTransferIntent` (intent.js) extracts recipient, amount, currency, timing.
-5. `verifyReadiness` (cepolia.js) gates on wallet + USDC balance before reaching Review.
-6. **Send now** — `swapAndSendExact` on ChocoGateway: caller approves `quoteExactOut(ckesExact)` USDC, gateway deducts fee, swaps USDC → USDm via Mento then USDm → KESm via Uniswap V3, delivers exactly `ckesExact` to recipient, returns surplus to sender as USDm.
-7. **Schedule** — wallet approves the gateway and the plan is written to ChocoLedger; the gateway holds one run's USDC (`fundRun`) so the scheduled transfer can't fail on insufficient funds.
-8. Plans and movement history are re-read from ChocoLedger events — never cached off-chain.
-   Authorized schedules stay in Plans; History shows send-now movements and executed schedule runs.
-   The keeper/executor must run due plans automatically and emit `SettlementReceipt` so every
-   user-visible movement is registered on ChocoLedger.
+2. Choco reads wallet balances from Celo Mainnet.
+3. User types or speaks the transfer instruction.
+4. Agent Choco extracts recipient, amount, asset, and timing.
+5. The confirmation screen shows the recipient, amount, timing, fees, and total.
+6. The wallet asks the user to sign.
+7. ChocoGateway executes the transfer or stores the scheduled plan state on-chain.
+8. ChocoLedger emits the events used to rebuild Plans, Movements, and Receipts.
 
-The included Vercel worker at `/api/run-due-schedules` runs the same keeper logic as
-`npm run settle:due -- --send`. It should hold only the keeper key, never user funds or user
-private keys.
+## Product Rules
 
-## Blockchain contracts
+- Choco reads wallet funds; it does not create a Choco balance.
+- The wallet is the user approval layer for every send-now transfer and every schedule authorization.
+- Saved contacts are optional convenience data. Amounts, plans, and movements come from chain events.
+- The user should see simple copy: recipient, amount, timing, fee, total, receipt.
+- Route details stay mostly internal unless a route is unavailable or the transaction fails.
+- Plans and movements must be rebuilt from ChocoLedger and gateway events, not from local UI state.
 
-Choco uses Celo Mainnet contracts as the source of truth for sends, schedules, and receipts.
-The app remains non-custodial: user funds stay in the connected wallet until a send-now action
-or scheduled run is executed.
-
-| Contract | Current address | Role | Verification status |
-|---|---|---|---|
-| ChocoLedger | `0x15659C181f31e5A463BcaB7E2cc706B0b336967C` | Plan registry and unified event log for send-now attempts, schedule creation, and executed plan receipts | Active on [Celoscan](https://celoscan.io/address/0x15659C181f31e5A463BcaB7E2cc706B0b336967C) + [Blockscout](https://celo.blockscout.com/address/0x15659C181f31e5A463BcaB7E2cc706B0b336967C) (block 70322672) |
-| ChocoGateway | `0x900F0c07b08483e860B4055892528dAE08eE56b3` | USDC→USDm via Mento, then USDm→KESm via Uniswap V3; held funds for scheduled plans (`fundRun`/`settleScheduledRun`), protocol fee, recipient delivery, and ledger logging | Active on [Celoscan](https://celoscan.io/address/0x900F0c07b08483e860B4055892528dAE08eE56b3) + [Blockscout](https://celo.blockscout.com/address/0x900F0c07b08483e860B4055892528dAE08eE56b3) (block 70322683) |
-
-> **Superseded (dormant):** previous verified pair ledger `0xB2f969dAbaC42A146dE231F241990a94b21e9789` + gateway `0x8271442a1a902c69415657926FDe8ae277dD2255` (blocks 70272150 / 70272159). Earlier: ledger `0x5A33C24eBF81fb215ee39f801D94895c8A7CE2C9` + gateway `0xcF4DC6118482C04ac25A95742202745aE7DB193E` (pre-audit, 13-field schedule struct). Earlier still: ledger `0xd8F54CCbc314014443DEbAA8558B09D4ccC57A9E` + gateway `0x3003f0Fb134ED3c66Ac95A6AbE59FA3E2BA792E7` (incompatible 12-vs-13-field struct that broke scheduled settlement), plus gateways `0xBB1ebeDf...` / `0xF51E842b...`.
-
-### Contract responsibilities
-
-`ChocoLedger` does not move funds. It records wallet-authorized plans and emits the events the
-frontend reads for Plans and Movements. It also controls which gateway contracts are allowed to
-write send-now attempts through `setSwapContract(address,bool)`.
-
-`ChocoGateway` is the settlement entry point. For send-now it pulls approved USDC from the user,
-collects the protocol fee, swaps `USDC -> USDm` via Mento then `USDm -> KESm` via Uniswap V3 (the
-Mento USDm↔KESm oracle is unavailable, so hop 2 must use UniV3), sends KESm to the recipient, and
-logs the movement to `ChocoLedger`. For scheduled plans the gateway holds one run's USDC at plan
-creation (`fundRun`) and the keeper calls `settleScheduledRun` only when a plan is due — it reads the
-recipient and amount from the ledger, so the keeper can trigger a run but never redirect it.
-
-### Funds flow
-
-```text
-User wallet
-  -> approve ChocoGateway for the quoted USDC amount
-  -> send now or wait for scheduled execution
-  -> ChocoGateway pulls USDC only at execution time
-  -> fee recipient receives the protocol fee
-  -> USDC -> USDm via Mento, then USDm -> KESm via Uniswap V3
-  -> recipient receives KESm directly
-  -> ChocoLedger records the movement event
-```
-
-For schedules, the approval and plan creation happen first, but the remittance amount is not moved
-until the scheduled run. Only the wallet network fee is paid when the user authorizes the plan.
-
-### Distribution model
-
-The initial distribution surface is a MiniPay Mini App for one narrow corridor: USDC to KESm. The
-public repo and Vercel deployment are the developer/auditor entry points, while MiniPay is the user
-entry point. New corridors should be added only after this flow is stable: wallet connection,
-intent parsing, contact resolution, wallet confirmation, settlement, and on-chain receipts.
-
-Required production env vars:
-
-```bash
-VITE_LEDGER_ADDRESS=0x15659C181f31e5A463BcaB7E2cc706B0b336967C
-VITE_LEDGER_DEPLOY_BLOCK=70322672
-# All four gateway/escrow/settlement vars point at the ONE live ChocoGateway:
-VITE_CKES_SWAP_CONTRACT_ADDRESS=0x900F0c07b08483e860B4055892528dAE08eE56b3
-VITE_CKES_SWAP_UNIV3_ADDRESS=0x900F0c07b08483e860B4055892528dAE08eE56b3
-VITE_CKES_SWAP_DEPLOY_BLOCK=70322683
-VITE_CKES_SWAP_CONTRACT_ADDRESSES=0x900F0c07b08483e860B4055892528dAE08eE56b3,0x8271442a1a902c69415657926FDe8ae277dD2255
-VITE_SCHEDULE_ESCROW_ADDRESS=0x900F0c07b08483e860B4055892528dAE08eE56b3
-VITE_SETTLEMENT_SPENDER_ADDRESS=0x900F0c07b08483e860B4055892528dAE08eE56b3
-VITE_FEE_CURRENCY_ADDRESS=0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B
-```
-
-### Verification note
-
-**The previous pair is source-verified on Celoscan and Blockscout; verify each new active deployment after redeploy.** Each contract is a single self-contained
-`.sol` file (interfaces inline) compiled with **solc 0.8.26 (`v0.8.26+commit.8a97fa7a`), optimizer
-enabled (200 runs), default evmVersion**.
-
-The reliable method is the Etherscan-compatible `verifysourcecode` API with
-**`codeformat=solidity-standard-json-input`** — single-file submission fails the metadata match
-because the deployed bytecode was compiled with both files as named source units. The exact compiler
-input is what `contracts/scripts/compile.cjs` produces: `sources` = `ChocoGateway.sol` +
-`ChocoLedger.sol`, `settings.optimizer = { enabled: true, runs: 200 }`, no `evmVersion`.
-
-- **Celoscan** — Etherscan **V2** API: `POST https://api.etherscan.io/v2/api?chainid=42220` (needs a
-  free key in `CELOSCAN_API_KEY`; the legacy V1 `api.celoscan.io` endpoint is deprecated).
-- **Blockscout** — `POST https://celo.blockscout.com/api` (no key).
-
-Constructor args (ABI-encoded, passed as `constructorArguements`): the 12 gateway values are in
-`contracts/verify-gateway-args.cjs`; the ledger's single arg is the keeper
-`0xCAA38B341d421E1D3e6F5a9F011130B7cB0AA80F`.
-
-## Public routes
+## Public Routes
 
 | Route | Purpose |
 |---|---|
-| `/` | MiniPay app entry point |
-| `/demo.html` | Standalone Choco demo for demos and sharing. It keeps the full archived demo page structure and updates the project cards to current Choco status, including Choco as a 2nd-place winner with the [official Celo Colombia Hackathon results](https://hackathon.celocolombia.org/resultados?token=99e4149611fb48ee8cbfe2de). |
-| `/agent.json` | ERC-8004 agent metadata |
-| `/privacy.html`, `/terms.html`, `/support.html`, `/stats.html` | Public support and compliance pages |
-## Frontend architecture
+| `/` | Main MiniPay app |
+| `/demo.html` | Standalone demo and launch page |
+| `/agent.json` | Agent metadata |
+| `/privacy.html` | Privacy summary |
+| `/terms.html` | Terms summary |
+| `/support.html` | Support and transaction issue help |
+| `/stats.html` | Lightweight public stats |
 
+## Blockchain Contracts
+
+Active Celo Mainnet contracts:
+
+| Contract | Address | Deploy block | Role |
+|---|---|---:|---|
+| ChocoLedger | `0x15659C181f31e5A463BcaB7E2cc706B0b336967C` | 70322672 | Plan registry and event log for schedules, send-now attempts, and executed plan receipts |
+| ChocoGateway | `0x900F0c07b08483e860B4055892528dAE08eE56b3` | 70322683 | USDC to USDm to KESm settlement, protocol fee, scheduled run reserve, recipient delivery, ledger logging |
+
+Explorer links:
+
+- ChocoLedger: [Celoscan](https://celoscan.io/address/0x15659C181f31e5A463BcaB7E2cc706B0b336967C) / [Blockscout](https://celo.blockscout.com/address/0x15659C181f31e5A463BcaB7E2cc706B0b336967C)
+- ChocoGateway: [Celoscan](https://celoscan.io/address/0x900F0c07b08483e860B4055892528dAE08eE56b3) / [Blockscout](https://celo.blockscout.com/address/0x900F0c07b08483e860B4055892528dAE08eE56b3)
+
+Historical contracts kept only for audit context and old event reads:
+
+| Status | Contracts |
+|---|---|
+| Superseded pair | Ledger `0xB2f969dAbaC42A146dE231F241990a94b21e9789`, Gateway `0x8271442a1a902c69415657926FDe8ae277dD2255` |
+| Pre-audit pair | Ledger `0x5A33C24eBF81fb215ee39f801D94895c8A7CE2C9`, Gateway `0xcF4DC6118482C04ac25A95742202745aE7DB193E` |
+| Legacy test pair | Ledger `0xd8F54CCbc314014443DEbAA8558B09D4ccC57A9E`, Gateway `0x3003f0Fb134ED3c66Ac95A6AbE59FA3E2BA792E7` |
+| Earlier gateway tests | `0xBB1ebeDf01C6Df335aA186748d9B08Df8fB6F8c8` and `0xF51E842b...` |
+
+## Settlement Model
+
+Send now:
+
+```text
+User wallet -> approve quoted USDC -> ChocoGateway -> KESm recipient -> ChocoLedger event
 ```
-src/
-  chain/           ← viem interaction, split by concern
-    client.js      chain config, public/wallet client factories
-    abis.js        ERC20, Mento Broker, Registry, ChocoGateway ABIs
-    tokens.js      balances, approve, intent amount helpers
-    swap.js        sendNow (exact-output + fixed-input + direct Mento)
-    schedule.js    createScheduleViaRegistry, pause/resume/cancel helpers
-    history.js     readOwnerLedger (events → plans + movements)
-  lib/             domain services
-    celo.js        re-export barrel for src/chain/
-    cepolia.js     readiness check, live quote display
-    intent.js      plain-language → TransferIntent parser
-    agent-choco.js agent identity + metadata
-    contacts.js    Supabase contact CRUD
-    supabase.js    auth helpers
-    app-config.js  single runtime config hub (reads VITE_ env vars)
-  modules/         React feature hooks (one concern per hook)
-    wallet/        useMiniPayWallet
-    ledger/        useChocoLedger   ← reads chain via history.js
-    transfer/      useTransfer      ← plan build, on-chain execution, receipt
-    contacts/      useContactResolution ← Supabase lookup, picker, save
-    voice/         useVoiceRecorder ← SpeechRecognition (ready, not yet wired)
-  screens/         full-page screen components (props-only, no chain calls)
-  components/      shared UI primitives
-  utils/
-    planUtils.js   buildSafePreviewPlan, buildTransactionFromPlan, helpers
-  App.jsx          screen router + hook wiring (~280 lines)
-contracts/
-  src/
-    ChocoGateway.sol
-    ChocoLedger.sol
+
+Scheduled plan:
+
+```text
+User wallet -> authorize plan -> ChocoLedger stores recipient/amount/timing
+            -> ChocoGateway reserves or settles the scheduled run
+            -> keeper triggers due run -> KESm recipient -> ChocoLedger receipt event
 ```
 
-`src/lib/celo.js` is a pure re-export barrel — all consumers import from it unchanged while
-the implementation lives in the focused `src/chain/` modules.
+The keeper can trigger a due plan, but it cannot change the recipient or amount because those values are read from ChocoLedger.
 
-## Run locally
+## Developer Quick Start
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open the local URL in a browser. For signing, use MiniPay or another wallet browser on Celo
-Mainnet (chainId 42220). The app forces a mainnet switch on connect.
+Open `http://127.0.0.1:5173`. For real signing, use MiniPay or another Celo Mainnet wallet browser.
 
-## Validate
+Run checks:
 
 ```bash
-npm run check       # intent parser tests + vite build
+npm run test
+npm run build
 npm run contracts:test
 ```
 
-## Configure
-
-Copy `.env.example` to `.env.local` and fill in:
+One command for the main app checks:
 
 ```bash
-# Choco contracts
-VITE_LEDGER_ADDRESS=0x...
-VITE_LEDGER_DEPLOY_BLOCK=...
-VITE_SETTLEMENT_SPENDER_ADDRESS=0x...    # keeper EOA
-VITE_CKES_SWAP_CONTRACT_ADDRESS=0x...   # ChocoGateway
-VITE_CKES_SWAP_DEPLOY_BLOCK=...         # earliest block among configured gateways
-VITE_CKES_SWAP_CONTRACT_ADDRESSES=0x...,0x...
-
-# Mento V2 (mainnet defaults in .env.example)
-VITE_MENTO_BROKER_ADDRESS=...
-VITE_MENTO_BIPOOL_ADDRESS=...
-VITE_MENTO_USDC_USDM_ID=...
-VITE_MENTO_USDM_CKES_ID=...
-
-# Supabase (optional — contact persistence only)
-VITE_SUPABASE_URL=https://xxx.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJ...
-
-# Schedules and worker
-VITE_DEFAULT_SCHEDULE_TIME=04:00
-KEEPER_KEY=0x...       # Vercel server-only secret
-CRON_SECRET=...        # Vercel server-only secret
+npm run check
 ```
 
-See `docs/deployment.md` for the full Vercel variable list and deploy order.
+## Required Environment
 
-## Contacts and privacy
+Production is blocked unless these values are correct in Vercel:
 
-Choco does not store user data. Supabase is optional and is used only for contacts the user
-explicitly saves. All transaction amounts and history live on-chain; the app reconstructs them
-from events on every load. For production phone-to-address resolution, use ODIS/SocialConnect
-(`FederatedAttestations`) — see `docs/agent-flow.md`.
+```bash
+VITE_CELO_CHAIN_ID=42220
+VITE_CELO_CHAIN_ID_HEX=0xa4ec
+VITE_CELO_RPC_URL=https://forno.celo.org
+VITE_BLOCK_EXPLORER_URL=https://celoscan.io
+VITE_BLOCK_EXPLORER_TX_URL=https://celoscan.io/tx/
+VITE_BLOCK_EXPLORER_API_URL=https://celo.blockscout.com/api
 
-## Roadmap
+VITE_USDC_ADDRESS=0xcebA9300f2b948710d2653dD7B07f33A8B32118C
+VITE_USDM_ADDRESS=0x765DE816845861e75A25fCA122bb6898B8B1282a
+VITE_KESM_ADDRESS=0x456a3D042C0DbD3db53D5489e98dFb038553B0d0
+VITE_FEE_CURRENCY_ADDRESS=0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B
 
-The USDC→KESm corridor is stable and live. Planned expansions:
+VITE_LEDGER_ADDRESS=0x15659C181f31e5A463BcaB7E2cc706B0b336967C
+VITE_LEDGER_DEPLOY_BLOCK=70322672
+VITE_CKES_SWAP_CONTRACT_ADDRESS=0x900F0c07b08483e860B4055892528dAE08eE56b3
+VITE_CKES_SWAP_UNIV3_ADDRESS=0x900F0c07b08483e860B4055892528dAE08eE56b3
+VITE_CKES_SWAP_DEPLOY_BLOCK=70322683
+VITE_CKES_SWAP_CONTRACT_ADDRESSES=0x900F0c07b08483e860B4055892528dAE08eE56b3,0x8271442a1a902c69415657926FDe8ae277dD2255
+VITE_SCHEDULE_ESCROW_ADDRESS=0x900F0c07b08483e860B4055892528dAE08eE56b3
+VITE_SETTLEMENT_SPENDER_ADDRESS=0x900F0c07b08483e860B4055892528dAE08eE56b3
 
-| Feature | What it unlocks |
-|---|---|
-| **v2 contracts redeploy** | `refundRunFor` + deliver-then-transfer fallback + atomic gateway receipts — see `contracts/V2_BACKLOG.md` |
-| **ODIS/SocialConnect** phone→address | `"send +254 712 345 678 20k"` — no address paste required |
-| **COPm corridor** (Colombian Peso) | LATAM expansion; Colombia is Choco's home hackathon market |
-| **NGNm corridor** (Nigerian Naira) | Largest MiniPay market by user count |
-| **Receipt deeplink** | Share a "payment proof" URL — recipients see Choco when they receive |
-| **Multi-recipient plans** | One plan splits across multiple family members |
+VITE_MENTO_BROKER_ADDRESS=0x777A8255cA72412f0d706dc03C9D1987306B4CaD
+VITE_MENTO_BIPOOL_ADDRESS=0x22d9db95E6Ae61c104A7B6F6C78D7993B94ec901
+VITE_MENTO_USDC_USDM_ID=0xacc988382b66ee5456086643dcfd9a5ca43dd8f428f6ef22503d8b8013bcffd7
+VITE_MENTO_USDM_CKES_ID=0x89de88b8eb790de26f4649f543cb6893d93635c728ac857f0926e842fb0d298b
 
-## Docs
+VITE_DEFAULT_SCHEDULE_TIME=04:00
+VITE_LIVE_DEMO_URL=https://usechoco.app/demo.html
+VITE_AGENT_URI=https://usechoco.app/agent.json
+```
 
-| File | What it covers |
-|---|---|
-| `contracts/README.md` | ChocoGateway + ChocoLedger developer reference, deploy order, events |
-| `contracts/AUDIT.md` | Security audit findings and mitigations |
-| `contracts/V2_BACKLOG.md` | Pending v2 contract changes (applied to source, awaiting redeploy) |
-| `docs/deployment.md` | Full Vercel deploy checklist with all env vars |
-| `docs/agent-flow.md` | Transfer flow, component responsibilities, on-chain vs off-chain data |
-| `docs/checklist.md` | Historical architecture decisions and current state |
+Server-only Vercel secrets:
+
+```bash
+KEEPER_KEY=0x...
+CRON_SECRET=...
+```
+
+Optional contact persistence:
+
+```bash
+VITE_SUPABASE_URL=https://xxxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJ...
+```
+
+## Schedule Worker
+
+The schedule worker is available at:
+
+```text
+/api/run-due-schedules
+```
+
+Manual production trigger:
+
+```powershell
+$headers = @{ Authorization = "Bearer $env:CRON_SECRET" }
+Invoke-RestMethod -Uri "https://usechoco.app/api/run-due-schedules" -Headers $headers
+```
+
+Local dry run:
+
+```bash
+npm run settle:due
+```
+
+Local execution against mainnet:
+
+```bash
+KEEPER_KEY=0x... npm run settle:due -- --send
+```
+
+On Windows PowerShell:
+
+```powershell
+$env:KEEPER_KEY = "0x..."
+npm run settle:due -- --send
+```
+
+## Contract Operations
+
+Deploy order:
+
+```bash
+npm --prefix contracts run deploy:ledger
+npm --prefix contracts run deploy:gateway
+```
+
+Authorize the gateway on the ledger:
+
+```bash
+npm run authorize:swap -- 0x900F0c07b08483e860B4055892528dAE08eE56b3
+```
+
+The deployment wallet needs CELO for network fees. The keeper wallet also needs CELO to execute due schedules.
+
+## Architecture
+
+```text
+src/
+  chain/       Celo clients, token reads, swaps, schedules, history mappers
+  lib/         config, intent parsing, readiness, contacts, fees
+  modules/     React hooks for wallet, ledger, transfer, contacts, voice
+  screens/     full-screen UI views
+  components/  reusable UI primitives
+  styles/      app CSS split by surface
+contracts/
+  src/         ChocoGateway.sol and ChocoLedger.sol
+  scripts/     deploy, verify, authorize, and check helpers
+api/           Vercel worker endpoint for due schedules
+public/        static public pages, agent metadata, demo, SEO files
+```
+
+## Security
+
+See [SECURITY.md](SECURITY.md) for disclosure rules and scope. See [contracts/AUDIT.md](contracts/AUDIT.md) for the current audit notes and known tradeoffs.
+
+Important security assumptions:
+
+- ChocoLedger holds no funds.
+- ChocoGateway is the only settlement contract for the active deployment.
+- The keeper can execute due plans but cannot change the recipient or amount.
+- The frontend must never ask for private keys.
+- `.env`, `.env.local`, and server-only secrets must not be committed.
+
+## Documentation Policy
+
+README is the source of truth for product flow, deployment, and active contracts. The files in `docs/` are intentionally short pointers to this README so production instructions do not drift.
