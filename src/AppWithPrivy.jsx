@@ -67,7 +67,7 @@ export function AppWithPrivy() {
     <PrivyProvider
       appId={PRIVY_APP_ID}
       config={{
-        loginMethods: ["email"],
+        loginMethods: ["email", "wallet"],
         embeddedWallets: { createOnLogin: "users-without-wallets" },
         defaultChain: celo,
         supportedChains: [celo],
