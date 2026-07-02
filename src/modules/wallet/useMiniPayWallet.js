@@ -123,8 +123,10 @@ export function useMiniPayWallet() {
       }
       if (!nextAddress) throw new Error("Email wallet did not return an address.");
 
-      const chainId = await provider.request({ method: "eth_chainId" }).catch(() => "");
-      if (chainId && String(chainId).toLowerCase() !== ACTIVE_CELO_NETWORK.chainIdHex.toLowerCase()) {
+      const rawChainId = await provider.request({ method: "eth_chainId" }).catch(() => "");
+      // Privy embedded wallets may return decimal (42220) instead of hex ("0xa4ec").
+      const chainIdNum = rawChainId ? Number(rawChainId) : 0;
+      if (chainIdNum && chainIdNum !== ACTIVE_CELO_NETWORK.chainId) {
         try {
           await provider.request({
             method: "wallet_switchEthereumChain",
