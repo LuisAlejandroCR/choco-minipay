@@ -345,6 +345,36 @@ textarea {
   border-color: rgba(41, 170, 225, 0.32);
 }
 
+.support-faq {
+  list-style: none;
+  margin: 32px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-top: 1px solid rgba(255, 247, 235, 0.12);
+}
+
+.support-faq li {
+  padding: 18px 0;
+  border-bottom: 1px solid rgba(255, 247, 235, 0.09);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.support-faq strong {
+  color: #fff5e3;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.support-faq span {
+  color: #c4a47e;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
 .footer-links {
   display: flex;
   flex-wrap: wrap;
