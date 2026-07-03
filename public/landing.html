@@ -1,15 +1,15 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Choco — non-custodial stablecoin remittances on Celo. Text or voice, wallet signs, on-chain receipt. Kenya, LATAM, and beyond." />
+  <meta name="description" content="Choco â€” non-custodial stablecoin remittances on Celo. Text or voice, wallet signs, on-chain receipt. Kenya, LATAM, and beyond." />
   <meta name="theme-color" content="#faf3e8" />
   <link rel="icon" href="/icon.svg" />
-  <title>Choco — Remittances on autopilot</title>
+  <title>Choco â€” Remittances on autopilot</title>
   <script>if (window.ethereum && window.ethereum.isMiniPay) { window.location.replace('/app'); }</script>
   <style>
-    /* ── Tokens ─────────────────────────────────────────── */
+    /* â”€â”€ Tokens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     :root {
       color-scheme: light;
       --bg:           #faf3e8;
@@ -38,7 +38,7 @@
       --r-lg: 30px;
     }
 
-    /* ── Reset ──────────────────────────────────────────── */
+    /* â”€â”€ Reset â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     *, *::before, *::after { box-sizing: border-box; }
     body {
       margin: 0;
@@ -55,7 +55,7 @@
     h1, h2, h3 { margin: 0; }
     img { display: block; }
 
-    /* ── Nav ────────────────────────────────────────────── */
+    /* â”€â”€ Nav â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     .site-nav {
       position: sticky;
       top: 0;
@@ -64,7 +64,7 @@
       align-items: center;
       gap: 12px;
       padding: 0 clamp(16px, 4vw, 56px);
-      height: 68px;
+      height: 58px;
       background: rgba(250, 243, 232, 0.9);
       border-bottom: 1px solid var(--border-mid);
       backdrop-filter: blur(16px);
@@ -146,7 +146,7 @@
       margin-left: auto;
     }
 
-    /* ── Mobile nav drawer ──────────────────────────────── */
+    /* â”€â”€ Mobile nav drawer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     .mobile-nav {
       display: none;
       flex-direction: column;
@@ -167,12 +167,12 @@
     .mobile-nav a:hover { background: rgba(28,13,5,.05); color: var(--text); }
     .mobile-nav .btn { width: 100%; margin-top: 6px; }
 
-    /* ── Layout ─────────────────────────────────────────── */
+    /* â”€â”€ Layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     .section { padding: clamp(60px, 10vw, 116px) clamp(16px, 4vw, 56px); }
     .section-inner { max-width: 1200px; margin: 0 auto; }
     .section-alt { background: var(--bg-surface); }
 
-    /* ── Section header atoms ───────────────────────────── */
+    /* â”€â”€ Section header atoms â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     .section-label {
       font-size: 11px;
       font-weight: 900;
@@ -197,10 +197,10 @@
       line-height: 1.6;
     }
 
-    /* ── Hero ───────────────────────────────────────────── */
+    /* â”€â”€ Hero â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     .hero {
       display: grid;
-      grid-template-columns: 1fr minmax(280px, 380px);
+      grid-template-columns: minmax(0, 1fr) minmax(330px, 440px);
       gap: clamp(32px, 5vw, 72px);
       align-items: center;
     }
@@ -275,13 +275,13 @@
       align-self: stretch;
     }
 
-    /* ── Phone mockup ───────────────────────────────────── */
+    /* â”€â”€ Phone mockup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     .phone-wrap { display: flex; justify-content: center; }
     .phone-frame {
       position: relative;
-      height: clamp(480px, 70vh, 640px);
+      height: clamp(560px, 76vh, 760px);
       width: auto;
-      max-width: 300px;
+      max-width: 380px;
       aspect-ratio: 9/18;
       border: 2px solid rgba(28,13,5,.14);
       border-radius: 40px;
@@ -310,7 +310,7 @@
       white-space: nowrap;
     }
 
-    /* ── Products ───────────────────────────────────────── */
+    /* â”€â”€ Products â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     .products-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -370,7 +370,7 @@
       color: var(--green);
     }
 
-    /* ── Solutions ──────────────────────────────────────── */
+    /* â”€â”€ Solutions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     .solutions-layout {
       display: grid;
       grid-template-columns: minmax(210px, 300px) 1fr;
@@ -444,7 +444,7 @@
       font-weight: 700;
     }
 
-    /* ── How it works ───────────────────────────────────── */
+    /* â”€â”€ How it works â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     .steps-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -487,7 +487,7 @@
       line-height: 1.5;
     }
 
-    /* ── Why Choco ──────────────────────────────────────── */
+    /* â”€â”€ Why Choco â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     .why-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -523,7 +523,7 @@
     }
     .why-card p { font-size: 14px; color: var(--text-muted); line-height: 1.62; }
 
-    /* ── Corridors ──────────────────────────────────────── */
+    /* â”€â”€ Corridors â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     .corridor-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -568,7 +568,7 @@
       color: var(--text-dim);
     }
 
-    /* ── CTA banner — espresso contrast ─────────────────── */
+    /* â”€â”€ CTA banner â€” espresso contrast â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     .cta-banner {
       background: var(--bg-deep);
       padding: clamp(68px, 12vw, 136px) clamp(16px, 4vw, 56px);
@@ -605,7 +605,7 @@
     }
     .cta-banner .btn.primary:hover { background: #d99e4a; border-color: #d99e4a; }
 
-    /* ── Footer ─────────────────────────────────────────── */
+    /* â”€â”€ Footer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     .site-footer {
       background: var(--bg-surface);
       border-top: 1px solid var(--border-mid);
@@ -641,7 +641,7 @@
       margin-top: 10px;
     }
 
-    /* ── Responsive ─────────────────────────────────────── */
+    /* â”€â”€ Responsive â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     @media (max-width: 960px) {
       .products-grid { grid-template-columns: 1fr 1fr; }
       .corridor-grid  { grid-template-columns: repeat(2, 1fr); }
@@ -656,7 +656,7 @@
       .menu-toggle { display: inline-flex; }
       .hero { grid-template-columns: 1fr; }
       .phone-wrap { order: -1; }
-      .phone-frame { height: auto; width: 100%; max-width: 240px; }
+      .phone-frame { height: auto; width: 100%; max-width: 320px; }
       .steps-grid  { grid-template-columns: 1fr; }
       .products-grid { grid-template-columns: 1fr; }
       .corridor-grid { grid-template-columns: 1fr 1fr; }
@@ -669,7 +669,7 @@
 </head>
 <body>
 
-<!-- ── NAV ──────────────────────────────────────────────── -->
+<!-- â”€â”€ NAV â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
 <nav class="site-nav" aria-label="Choco navigation">
   <a class="brand" href="/">
     <img src="/icon.svg" alt="Choco" />
@@ -682,27 +682,27 @@
   </div>
   <div class="nav-right">
     <a class="btn" href="/contact-us.html">Contact</a>
-    <a class="btn primary" href="/app">Launch app →</a>
+    <a class="btn primary" href="/app">Launch app â†’</a>
   </div>
-  <button class="menu-toggle" aria-label="Open menu" onclick="document.querySelector('.mobile-nav').classList.toggle('open')">☰</button>
+  <button class="menu-toggle" aria-label="Open menu" onclick="document.querySelector('.mobile-nav').classList.toggle('open')">â˜°</button>
 </nav>
 <div class="mobile-nav" role="navigation" aria-label="Mobile menu">
   <a href="#products" onclick="this.closest('.mobile-nav').classList.remove('open')">Products</a>
   <a href="#solutions" onclick="this.closest('.mobile-nav').classList.remove('open')">Solutions</a>
   <a href="#how" onclick="this.closest('.mobile-nav').classList.remove('open')">How it works</a>
   <a class="btn" href="/contact-us.html">Contact</a>
-  <a class="btn primary" href="/app">Launch app →</a>
+  <a class="btn primary" href="/app">Launch app â†’</a>
 </div>
 
-<!-- ── HERO ─────────────────────────────────────────────── -->
+<!-- â”€â”€ HERO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
 <section class="section" style="padding-top: clamp(52px, 9vw, 96px);">
   <div class="section-inner">
     <div class="hero">
 
       <div class="hero-copy">
-        <span class="hero-kicker">Celo Mainnet · Non-custodial</span>
+        <span class="hero-kicker">Celo Mainnet Â· Non-custodial</span>
         <h1>Your wallet<br/>sends home<br/><em>every month.</em></h1>
-        <p class="hero-sub">Text or voice a command. Your wallet approves once. Choco executes automatically — with an on-chain receipt every time. No custody. No hidden fees. No middleman.</p>
+        <p class="hero-sub">Text or voice a command. Your wallet approves once. Choco executes automatically â€” with an on-chain receipt every time. No custody. No hidden fees. No middleman.</p>
         <div class="hero-ctas">
           <a class="btn primary" href="/app">Open Choco</a>
           <a class="btn" href="#how">How it works</a>
@@ -733,7 +733,7 @@
       <div class="phone-wrap">
         <div class="phone-frame">
           <iframe src="/demo.html?embed" title="Choco live demo" loading="lazy"></iframe>
-          <span class="phone-label">Live demo ↑</span>
+          <span class="phone-label">Live demo â†‘</span>
         </div>
       </div>
 
@@ -741,7 +741,7 @@
   </div>
 </section>
 
-<!-- ── PRODUCTS ──────────────────────────────────────────── -->
+<!-- â”€â”€ PRODUCTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
 <section class="section section-alt" id="products">
   <div class="section-inner">
     <p class="section-label">Products</p>
@@ -750,19 +750,19 @@
 
     <div class="products-grid">
       <div class="product-card">
-        <div class="product-icon">⚡</div>
+        <div class="product-icon">âš¡</div>
         <h3>Send Now</h3>
-        <p>Text or speak a transfer command. Choco prepares the USDC → KESm route. Your wallet signs — funds arrive in under a minute.</p>
+        <p>Text or speak a transfer command. Choco prepares the USDC â†’ KESm route. Your wallet signs â€” funds arrive in under a minute.</p>
         <span class="product-tag live">Live on Celo</span>
       </div>
       <div class="product-card">
-        <div class="product-icon">📅</div>
+        <div class="product-icon">ðŸ“…</div>
         <h3>Monthly Schedules</h3>
-        <p>Set a recurring plan once. Fund the next run when you're ready. Choco executes on your chosen day, every month — no re-approval needed.</p>
+        <p>Set a recurring plan once. Fund the next run when you're ready. Choco executes on your chosen day, every month â€” no re-approval needed.</p>
         <span class="product-tag live">Live on Celo</span>
       </div>
       <div class="product-card">
-        <div class="product-icon">🧾</div>
+        <div class="product-icon">ðŸ§¾</div>
         <h3>On-chain Receipts</h3>
         <p>Every send, every schedule run produces a verifiable receipt stored in ChocoLedger. Auditable forever, on Celo Mainnet.</p>
         <span class="product-tag live">Live on Celo</span>
@@ -771,7 +771,7 @@
   </div>
 </section>
 
-<!-- ── SOLUTIONS ─────────────────────────────────────────── -->
+<!-- â”€â”€ SOLUTIONS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
 <section class="section" id="solutions">
   <div class="section-inner">
     <p class="section-label">Solutions</p>
@@ -781,15 +781,15 @@
       <div class="solution-list">
         <div class="solution-item active" onclick="selectSolution(this,'diaspora')">
           <h3>The diaspora</h3>
-          <p>You're abroad, family is home. Set a monthly plan once, fund it, and Choco handles every transfer — no app, no login, just your wallet.</p>
+          <p>You're abroad, family is home. Set a monthly plan once, fund it, and Choco handles every transfer â€” no app, no login, just your wallet.</p>
         </div>
         <div class="solution-item" onclick="selectSolution(this,'workers')">
           <h3>Remote workers</h3>
-          <p>Get paid in USDC, send local currency to family. Skip P2P markets and their liquidity surprises. Bridge and Mento handle the conversion — reliably.</p>
+          <p>Get paid in USDC, send local currency to family. Skip P2P markets and their liquidity surprises. Bridge and Mento handle the conversion â€” reliably.</p>
         </div>
         <div class="solution-item" onclick="selectSolution(this,'minipay')">
           <h3>MiniPay users</h3>
-          <p>Already have MiniPay? Choco works natively inside it — no wallet import, no new app. Your 16M-user wallet just got a scheduling engine.</p>
+          <p>Already have MiniPay? Choco works natively inside it â€” no wallet import, no new app. Your 16M-user wallet just got a scheduling engine.</p>
         </div>
         <div class="solution-item" onclick="selectSolution(this,'dev')">
           <h3>Developers</h3>
@@ -803,7 +803,7 @@
           <h2 id="sc-title">Money reaches home. You stay in control.</h2>
           <p id="sc-body">One approval, twelve sends. Your wallet holds the USDC until each monthly run. No custody, no middleman, on-chain receipt for every payment.</p>
           <div class="solution-pill-row" id="sc-pills">
-            <span class="solution-pill">USDC → KESm</span>
+            <span class="solution-pill">USDC â†’ KESm</span>
             <span class="solution-pill">Monthly schedule</span>
             <span class="solution-pill">MiniPay native</span>
           </div>
@@ -813,7 +813,7 @@
   </div>
 </section>
 
-<!-- ── HOW IT WORKS ──────────────────────────────────────── -->
+<!-- â”€â”€ HOW IT WORKS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
 <section class="section section-alt" id="how">
   <div class="section-inner">
     <p class="section-label">How it works</p>
@@ -823,26 +823,26 @@
       <div class="step">
         <div class="step-num">01</div>
         <h3>Command</h3>
-        <p>Text or speak your intent — amount, recipient, schedule. Agent Choco parses it and prepares the on-chain action.</p>
+        <p>Text or speak your intent â€” amount, recipient, schedule. Agent Choco parses it and prepares the on-chain action.</p>
         <code class="step-code">"Send $50 to Mama on the 5th each month"</code>
       </div>
       <div class="step">
         <div class="step-num">02</div>
         <h3>Confirm</h3>
         <p>Review the route, fee, and schedule in your wallet. Sign once. Your USDC stays in your wallet until the run date.</p>
-        <code class="step-code">Wallet signs → ChocoGateway locks</code>
+        <code class="step-code">Wallet signs â†’ ChocoGateway locks</code>
       </div>
       <div class="step">
         <div class="step-num">03</div>
         <h3>Receipt</h3>
-        <p>Choco executes on schedule. KESm arrives at the recipient. An on-chain receipt is written to ChocoLedger — permanent, verifiable, yours.</p>
-        <code class="step-code">RunSettled → ChocoLedger → Celoscan</code>
+        <p>Choco executes on schedule. KESm arrives at the recipient. An on-chain receipt is written to ChocoLedger â€” permanent, verifiable, yours.</p>
+        <code class="step-code">RunSettled â†’ ChocoLedger â†’ Celoscan</code>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ── WHY CHOCO ─────────────────────────────────────────── -->
+<!-- â”€â”€ WHY CHOCO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
 <section class="section">
   <div class="section-inner">
     <p class="section-label">Why Choco</p>
@@ -851,38 +851,38 @@
 
     <div class="why-grid">
       <div class="why-card">
-        <span class="why-icon">🔐</span>
+        <span class="why-icon">ðŸ”</span>
         <div>
           <h3>Your keys, always</h3>
-          <p>Choco is non-custodial. ChocoGateway holds a single locked run — not your whole balance. You can reclaim at any time. No one else holds your funds.</p>
+          <p>Choco is non-custodial. ChocoGateway holds a single locked run â€” not your whole balance. You can reclaim at any time. No one else holds your funds.</p>
         </div>
       </div>
       <div class="why-card">
-        <span class="why-icon">⛓️</span>
+        <span class="why-icon">â›“ï¸</span>
         <div>
           <h3>On-chain liquidity, not P2P</h3>
-          <p>KESm is settled via Mento's on-chain exchange — not a Binance P2P order or a partner's fiat wallet. No "liquidity unavailable" errors at 6 AM.</p>
+          <p>KESm is settled via Mento's on-chain exchange â€” not a Binance P2P order or a partner's fiat wallet. No "liquidity unavailable" errors at 6 AM.</p>
         </div>
       </div>
       <div class="why-card">
-        <span class="why-icon">📜</span>
+        <span class="why-icon">ðŸ“œ</span>
         <div>
           <h3>Every receipt is permanent</h3>
-          <p>ChocoLedger stores every schedule, run, and settlement on Celo Mainnet. Not in your inbox — on a blockchain anyone can verify, forever.</p>
+          <p>ChocoLedger stores every schedule, run, and settlement on Celo Mainnet. Not in your inbox â€” on a blockchain anyone can verify, forever.</p>
         </div>
       </div>
       <div class="why-card">
-        <span class="why-icon">🌍</span>
+        <span class="why-icon">ðŸŒ</span>
         <div>
           <h3>Multi-corridor, coming fast</h3>
-          <p>Kenya (KESm) is live. Nigeria, Ghana, Colombia (Bre-B), Brazil (Pix), and Mexico (SPEI) are next — backed by Bridge, Kotani Pay, and Mento.</p>
+          <p>Kenya (KESm) is live. Nigeria, Ghana, Colombia (Bre-B), Brazil (Pix), and Mexico (SPEI) are next â€” backed by Bridge, Kotani Pay, and Mento.</p>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ── CORRIDORS ─────────────────────────────────────────── -->
+<!-- â”€â”€ CORRIDORS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
 <section class="section section-alt" id="corridors">
   <div class="section-inner">
     <p class="section-label">Corridors</p>
@@ -890,58 +890,58 @@
 
     <div class="corridor-grid">
       <div class="corridor-card">
-        <div class="corridor-flag">🇰🇪</div>
+        <div class="corridor-flag">ðŸ‡°ðŸ‡ª</div>
         <h3>Kenya</h3>
-        <p>USDC → KESm via Mento on Celo</p>
+        <p>USDC â†’ KESm via Mento on Celo</p>
         <span class="corridor-badge">Live</span>
       </div>
       <div class="corridor-card">
-        <div class="corridor-flag">🇳🇬</div>
+        <div class="corridor-flag">ðŸ‡³ðŸ‡¬</div>
         <h3>Nigeria</h3>
-        <p>USDC → NGN via Kotani Pay</p>
+        <p>USDC â†’ NGN via Kotani Pay</p>
         <span class="corridor-badge soon">Coming soon</span>
       </div>
       <div class="corridor-card">
-        <div class="corridor-flag">🇬🇭</div>
+        <div class="corridor-flag">ðŸ‡¬ðŸ‡­</div>
         <h3>Ghana</h3>
-        <p>USDC → GHS via Kotani Pay</p>
+        <p>USDC â†’ GHS via Kotani Pay</p>
         <span class="corridor-badge soon">Coming soon</span>
       </div>
       <div class="corridor-card">
-        <div class="corridor-flag">🇨🇴</div>
+        <div class="corridor-flag">ðŸ‡¨ðŸ‡´</div>
         <h3>Colombia</h3>
-        <p>USDC → COP via Bridge Bre-B</p>
+        <p>USDC â†’ COP via Bridge Bre-B</p>
         <span class="corridor-badge soon">Coming soon</span>
       </div>
       <div class="corridor-card">
-        <div class="corridor-flag">🇧🇷</div>
+        <div class="corridor-flag">ðŸ‡§ðŸ‡·</div>
         <h3>Brazil</h3>
-        <p>USDC → BRL via Bridge Pix</p>
+        <p>USDC â†’ BRL via Bridge Pix</p>
         <span class="corridor-badge soon">Coming soon</span>
       </div>
       <div class="corridor-card">
-        <div class="corridor-flag">🇲🇽</div>
+        <div class="corridor-flag">ðŸ‡²ðŸ‡½</div>
         <h3>Mexico</h3>
-        <p>USDC → MXN via Bridge SPEI</p>
+        <p>USDC â†’ MXN via Bridge SPEI</p>
         <span class="corridor-badge soon">Coming soon</span>
       </div>
       <div class="corridor-card">
-        <div class="corridor-flag">🇿🇦</div>
+        <div class="corridor-flag">ðŸ‡¿ðŸ‡¦</div>
         <h3>South Africa</h3>
-        <p>USDC → ZAR via Yellow Card</p>
+        <p>USDC â†’ ZAR via Yellow Card</p>
         <span class="corridor-badge soon">Coming soon</span>
       </div>
       <div class="corridor-card">
-        <div class="corridor-flag">🌐</div>
+        <div class="corridor-flag">ðŸŒ</div>
         <h3>More</h3>
-        <p>Chile, Peru, Ecuador, Argentina — on the roadmap</p>
+        <p>Chile, Peru, Ecuador, Argentina â€” on the roadmap</p>
         <span class="corridor-badge soon">Roadmap</span>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ── CTA BANNER ────────────────────────────────────────── -->
+<!-- â”€â”€ CTA BANNER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
 <section class="cta-banner">
   <div class="section-inner">
     <h2>Start your first schedule today.</h2>
@@ -953,7 +953,7 @@
   </div>
 </section>
 
-<!-- ── FOOTER ────────────────────────────────────────────── -->
+<!-- â”€â”€ FOOTER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
 <footer class="site-footer">
   <div class="footer-inner">
     <a class="brand" href="/">
@@ -970,29 +970,29 @@
       <a href="/terms.html">Terms</a>
       <a href="/stats.html">Stats</a>
     </nav>
-    <p class="footer-note">Built on Celo Mainnet · Non-custodial</p>
+    <p class="footer-note">Built on Celo Mainnet Â· Non-custodial</p>
   </div>
 </footer>
 
 <script>
-  /* ── Solution picker ────────────────────────────────── */
+  /* â”€â”€ Solution picker â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   const solutions = {
     diaspora: {
       kicker: "The diaspora",
       title:  "Money reaches home. You stay in control.",
       body:   "One approval, twelve sends. Your wallet holds the USDC until each monthly run. No custody, no middleman, on-chain receipt for every payment.",
-      pills:  ["USDC → KESm", "Monthly schedule", "MiniPay native"],
+      pills:  ["USDC â†’ KESm", "Monthly schedule", "MiniPay native"],
     },
     workers: {
       kicker: "Remote workers",
       title:  "Get paid in USDC. Send local anywhere.",
-      body:   "Skip P2P markets that run dry at 6 AM. Mento's on-chain exchange and Bridge's institutional rails handle conversion — reliably, every time.",
+      body:   "Skip P2P markets that run dry at 6 AM. Mento's on-chain exchange and Bridge's institutional rails handle conversion â€” reliably, every time.",
       pills:  ["On-chain FX", "No P2P liquidity risk", "Bridge rails"],
     },
     minipay: {
       kicker: "MiniPay users",
       title:  "Your 16M-wallet app just got a scheduling engine.",
-      body:   "Choco lives inside MiniPay. No new app, no wallet import. Tap, speak, confirm — your MiniPay wallet signs the schedule.",
+      body:   "Choco lives inside MiniPay. No new app, no wallet import. Tap, speak, confirm â€” your MiniPay wallet signs the schedule.",
       pills:  ["MiniPay native", "No extra wallet", "USDC & USDm"],
     },
     dev: {
