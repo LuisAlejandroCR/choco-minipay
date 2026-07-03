@@ -1,142 +1,324 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="description" content="Choco - clickable MiniPay remittance demo and Celo Colombia Hackathon 2nd-place winner." />
-    <title>Choco Demo - 2nd-place Celo Colombia Hackathon winner</title>
-    <!-- Full clickable demo: the actual choco-azure app (source: Celo/choco mvp static), built and
-         vendored here. Rebuild with `npx vite build` in that repo, then copy dist/assets/* into
-         public/demo-assets/ and update the two filenames below. -->
-    <style>
-      .statusbar { display: none !important; }
-      html.embed-mode { overflow: hidden !important; }
-      html.embed-mode body { overflow: hidden !important; }
-    </style>
-    <script>if (new URLSearchParams(location.search).has('embed')) { document.documentElement.classList.add('embed-mode'); }</script>
-    <style data-choco-demo-info>
-      .project-panel .info-card.result-card a {
-        color: inherit;
-        display: block;
-        text-decoration: none;
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="Choco live demo &mdash; clickable MiniPay remittance app. Celo Colombia Hackathon 2nd-place winner." />
+  <link rel="icon" href="/icon.svg" />
+  <title>Choco Demo &mdash; MiniPay remittance on Celo</title>
+
+  <!-- Detect embed mode before paint to avoid flash -->
+  <script>var _embed = new URLSearchParams(location.search).has('embed'); if (_embed) document.documentElement.classList.add('embed-mode');</script>
+
+  <style>
+    /* ── Embed mode: bare app only ───────────────────────────────── */
+    html.embed-mode .demo-page   { display: none !important; }
+    html.embed-mode .statusbar   { display: none !important; }
+    html.embed-mode,
+    html.embed-mode body         { overflow: hidden !important; margin: 0; }
+
+    /* ── Page mode: hide the React root ─────────────────────────── */
+    html:not(.embed-mode) #root  { display: none !important; }
+
+    /* ── Tokens (warm cream) ─────────────────────────────────────── */
+    :root {
+      color-scheme: light;
+      --bg:           #faf3e8;
+      --bg-surface:   #f3e8d4;
+      --bg-card:      #ffffff;
+      --bg-deep:      #1c0d05;
+      --border:       rgba(28,13,5,.09);
+      --border-mid:   rgba(28,13,5,.14);
+      --border-strong:rgba(28,13,5,.2);
+      --text:         #180c04;
+      --text-muted:   #5a3c27;
+      --text-dim:     #9a7455;
+      --accent:       #c8903c;
+      --accent-warm:  #e0b87c;
+      --accent-deep:  #7a4e1e;
+      --cta-bg:       #1c0d05;
+      --cta-fg:       #fdf3e4;
+      --green:        #2a6e26;
+      --green-bg:     rgba(42,110,38,.1);
+      --green-border: rgba(42,110,38,.28);
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+      --r-sm: 14px;
+      --r:    22px;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      color: var(--text);
+      background:
+        radial-gradient(ellipse at 12% 18%, rgba(200,144,60,.07) 0%, transparent 42%),
+        radial-gradient(ellipse at 88% 72%, rgba(140,80,30,.05) 0%, transparent 36%),
+        #faf3e8;
+    }
+    a { color: inherit; text-decoration: none; }
+    p { margin: 0; }
+    h1, h2 { margin: 0; }
+
+    /* ── Nav ──────────────────────────────────────────────────────── */
+    .site-nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; gap: 12px;
+      padding: 0 clamp(16px,4vw,56px);
+      height: 58px;
+      background: rgba(250,243,232,.92);
+      border-bottom: 1px solid var(--border-mid);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+    .brand {
+      display: inline-flex; align-items: center; gap: 10px;
+      font-size: 20px; font-weight: 900; color: var(--text);
+      letter-spacing: -.025em; flex-shrink: 0;
+    }
+    .brand img { width: 34px; height: 34px; border-radius: 50%; background: rgba(28,13,5,.07); box-shadow: 0 0 0 1px var(--border-mid); }
+    .nav-right { display: flex; gap: 9px; margin-left: auto; }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 6px; padding: 0 19px; min-height: 41px;
+      border: 1px solid var(--border-strong); border-radius: var(--r-sm);
+      font: 700 14px/1 var(--font); color: var(--text-muted);
+      background: transparent; cursor: pointer;
+      transition: background .12s, border-color .12s, color .12s;
+      text-decoration: none;
+    }
+    .btn:hover { background: rgba(28,13,5,.05); color: var(--text); }
+    .btn.primary { color: var(--cta-fg); background: var(--cta-bg); border-color: var(--cta-bg); }
+    .btn.primary:hover { background: #2c1409; border-color: #2c1409; }
+
+    /* ── Hero layout ─────────────────────────────────────────────── */
+    .demo-hero {
+      display: grid;
+      grid-template-columns: minmax(0,1fr) minmax(280px,360px);
+      gap: clamp(32px,5vw,72px);
+      align-items: center;
+      max-width: 1200px; margin: 0 auto;
+      padding: clamp(48px,8vw,96px) clamp(16px,4vw,56px) clamp(40px,6vw,72px);
+    }
+
+    /* ── Copy ─────────────────────────────────────────────────────── */
+    .demo-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 5px 14px;
+      border: 1px solid rgba(200,144,60,.38); border-radius: 99px;
+      font-size: 11px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--accent-deep); background: rgba(200,144,60,.07);
+      margin-bottom: 20px;
+    }
+    .demo-copy h1 {
+      font-size: clamp(36px,5.5vw,66px);
+      font-weight: 900; letter-spacing: -.04em; line-height: .96;
+      color: var(--text); margin-bottom: 18px;
+    }
+    .demo-copy h1 em { font-style: normal; color: var(--accent); }
+    .demo-copy p {
+      font-size: clamp(15px,1.6vw,17px);
+      color: var(--text-muted); line-height: 1.65;
+      max-width: 500px; margin-bottom: 28px;
+    }
+    .demo-ctas { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 36px; }
+    .demo-ctas .btn { min-height: 48px; font-size: 15px; padding: 0 24px; }
+
+    /* ── Info cards ───────────────────────────────────────────────── */
+    .info-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 12px; margin-top: 4px;
+    }
+    .info-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-mid);
+      border-radius: var(--r-sm);
+      padding: 16px 18px;
+      box-shadow: 0 1px 4px rgba(28,13,5,.04);
+    }
+    .info-card a { display: block; text-decoration: none; color: inherit; }
+    .info-card b { display: block; font-size: 14px; font-weight: 800; color: var(--text); margin-bottom: 5px; }
+    .info-card span { display: block; font-size: 12.5px; color: var(--text-muted); line-height: 1.5; }
+    .info-card.result-card { border-color: rgba(200,144,60,.3); background: rgba(200,144,60,.05); }
+    .info-card.result-card b { color: var(--accent-deep); }
+
+    /* ── Phone frame ─────────────────────────────────────────────── */
+    .phone-wrap { display: flex; justify-content: center; }
+    .phone-frame {
+      position: relative;
+      height: clamp(520px,72vh,720px);
+      width: auto; max-width: 340px;
+      aspect-ratio: 9/18;
+      border: 2px solid rgba(28,13,5,.14);
+      border-radius: 40px; overflow: hidden;
+      background: #1a0e0a;
+      box-shadow:
+        0 40px 90px rgba(28,13,5,.15),
+        0 10px 28px rgba(28,13,5,.1),
+        0 0 0 1px rgba(28,13,5,.06);
+    }
+    .phone-frame iframe { width: 100%; height: 100%; border: none; }
+    .phone-label {
+      position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+      padding: 7px 16px;
+      background: rgba(28,13,5,.78); border: 1px solid rgba(200,144,60,.35);
+      border-radius: 99px; color: var(--accent-warm);
+      font-size: 12px; font-weight: 700; letter-spacing: .06em;
+      backdrop-filter: blur(8px); white-space: nowrap;
+    }
+
+    /* ── Footer ──────────────────────────────────────────────────── */
+    .site-footer {
+      border-top: 1px solid var(--border-mid);
+      padding: 32px clamp(16px,4vw,56px);
+    }
+    .footer-inner {
+      max-width: 1200px; margin: 0 auto;
+      display: flex; flex-wrap: wrap; align-items: center; gap: 16px;
+    }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 12px 20px; margin-left: auto; }
+    .footer-links a { font-size: 13px; color: var(--text-dim); }
+    .footer-links a:hover { color: var(--text); }
+    .footer-note { font-size: 13px; color: var(--text-dim); width: 100%; }
+
+    /* ── Responsive ──────────────────────────────────────────────── */
+    @media (max-width: 760px) {
+      .demo-hero {
+        grid-template-columns: 1fr;
+        padding-top: clamp(32px,6vw,56px);
       }
-      .project-panel .info-card.result-card a span {
-        display: block;
-      }
-      .project-panel .panel-actions {
-        display: grid;
-        gap: 10px;
-        margin: 16px 0 22px;
-      }
-      .project-panel .panel-actions a,
-      .project-panel .panel-actions button {
-        align-items: center;
-        display: inline-flex;
-        justify-content: center;
-        min-height: 48px;
-        width: 100%;
-      }
-      .project-panel .panel-actions .primary-demo-action {
-        background: #f5e4c8;
-        border-color: rgba(245, 228, 200, 0.72);
-        color: #1b0d07;
-        font-weight: 800;
-      }
-    </style>
-    <script data-choco-demo-info>
-      window.addEventListener("DOMContentLoaded", () => {
-        const resultUrl = "https://hackathon.celocolombia.org/resultados?token=99e4149611fb48ee8cbfe2de";
-        const cards = [
-          {
-            title: "2nd-place winner",
-            body: "Recognized in the Celo Colombia Hackathon. View the official results.",
-            href: resultUrl,
-          },
-          {
-            title: "Current corridor",
-            body: "USDC to KESm on Celo Mainnet for the US to Kenya remittance flow.",
-          },
-          {
-            title: "Current contracts",
-            body: "Active ChocoLedger and ChocoGateway record plans, sends, and receipts on-chain.",
-          },
-          {
-            title: "Agent flow",
-            body: "Text or voice, Agent Choco prepares the route, wallet signs, and Choco returns a receipt.",
-          },
-        ];
+      .phone-wrap { order: -1; }
+      .phone-frame { height: auto; width: 100%; max-width: 300px; }
+      .info-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 400px) {
+      .demo-copy h1 { font-size: 32px; }
+    }
+  </style>
+</head>
+<body>
 
-        const renderInfo = () => {
-          const panel = document.querySelector(".project-panel");
-          const grid = panel?.querySelector(".scope-grid");
-          if (!panel || !grid) return false;
+<!-- ── PAGE MODE (warm cream wrapper) ─────────────────────────────── -->
+<div class="demo-page">
 
-          const badge = panel.querySelector(".agent-badge");
-          if (badge) badge.textContent = "Celo Colombia Hackathon - 2nd place";
+  <nav class="site-nav" aria-label="Choco navigation">
+    <a class="brand" href="/"><img src="/icon.svg" alt="" />Choco</a>
+    <div class="nav-right">
+      <a class="btn" href="/contact-us.html">Contact</a>
+      <a class="btn primary" href="/app">Open app</a>
+    </div>
+  </nav>
 
-          const heading = panel.querySelector("h1");
-          if (heading) heading.textContent = "Choco for MiniPay.";
+  <div class="demo-hero">
 
-          const summary = Array.from(panel.children).find((child) => child.tagName === "P");
-          if (summary) {
-            summary.textContent = "Choco turns a text or voice command into a wallet-signed USDC to KESm transfer or schedule. Funds stay in the user's wallet until a send-now action is signed or a scheduled run executes.";
-          }
+    <div class="demo-copy">
+      <p class="demo-badge">Celo Colombia Hackathon &mdash; 2nd place</p>
+      <h1>Choco for<br/><em>MiniPay.</em></h1>
+      <p>Text or voice a command. Your wallet signs once. Choco turns it into a USDC &rarr; KESm transfer or monthly schedule on Celo Mainnet &mdash; with an on-chain receipt every time.</p>
+      <div class="demo-ctas">
+        <a class="btn primary" href="/app">Open Choco app</a>
+        <a class="btn" href="/">Learn more</a>
+      </div>
+      <div class="info-grid">
+        <div class="info-card result-card">
+          <a href="https://hackathon.celocolombia.org/resultados?token=99e4149611fb48ee8cbfe2de" target="_blank" rel="noreferrer">
+            <b>2nd-place winner</b>
+            <span>Celo Colombia Hackathon. View official results.</span>
+          </a>
+        </div>
+        <div class="info-card">
+          <b>Live corridor</b>
+          <span>USDC &rarr; KESm on Celo Mainnet. Kenya remittance, live now.</span>
+        </div>
+        <div class="info-card">
+          <b>On-chain contracts</b>
+          <span>ChocoLedger + ChocoGateway record every plan and receipt.</span>
+        </div>
+        <div class="info-card">
+          <b>Agent flow</b>
+          <span>Text or voice &rarr; Agent prepares route &rarr; wallet signs &rarr; receipt.</span>
+        </div>
+      </div>
+    </div>
 
-          let actions = panel.querySelector(".panel-actions");
-          if (!actions) {
-            actions = document.createElement("div");
-            actions.className = "panel-actions";
-          }
+    <div class="phone-wrap">
+      <div class="phone-frame">
+        <iframe id="demo-iframe" title="Choco live demo" loading="lazy" allow="camera;microphone"></iframe>
+        <span class="phone-label">Live demo &rarr;</span>
+      </div>
+    </div>
 
-          Array.from(actions.querySelectorAll("a, button")).forEach((action) => {
-            const text = action.textContent?.trim() || "";
-            const href = action.getAttribute?.("href") || "";
-            if (/registry|erc-?8004|agent registry/i.test(`${text} ${href}`)) {
-              action.remove();
-            }
-          });
+  </div>
 
-          let openAppAction = Array.from(actions.querySelectorAll("a, button")).find((action) => {
-            const text = action.textContent?.trim() || "";
-            const href = action.getAttribute?.("href") || "";
-            return /open app|open choco|launch app/i.test(`${text} ${href}`);
-          });
-          if (!openAppAction) {
-            openAppAction = document.createElement("a");
-            openAppAction.href = "/";
-            actions.appendChild(openAppAction);
-          }
-          openAppAction.textContent = "Open Choco app";
-          openAppAction.classList.add("primary-demo-action");
-          actions.prepend(openAppAction);
-          if (summary) summary.insertAdjacentElement("afterend", actions);
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <a class="brand" href="/"><img src="/icon.svg" alt="Choco" />Choco</a>
+      <nav class="footer-links" aria-label="Footer navigation">
+        <a href="/">Home</a>
+        <a href="/contact-us.html">Contact</a>
+        <a href="/privacy.html">Privacy</a>
+        <a href="/terms.html">Terms</a>
+        <a href="/stats.html">Stats</a>
+      </nav>
+      <p class="footer-note">Built on Celo Mainnet &middot; Non-custodial &middot; Apache 2.0</p>
+    </div>
+  </footer>
 
-          const existingCards = Array.from(grid.querySelectorAll(".info-card"));
-          cards.forEach((item, index) => {
-            const card = existingCards[index] || document.createElement("div");
-            card.className = `info-card${item.href ? " result-card" : ""}`;
-            if (!existingCards[index]) grid.appendChild(card);
-            if (item.href) {
-              card.innerHTML = `<a href="${item.href}" target="_blank" rel="noreferrer"><b>${item.title}</b><span>${item.body}</span></a>`;
-            } else {
-              card.innerHTML = `<b>${item.title}</b><span>${item.body}</span>`;
-            }
-          });
+</div>
 
-          return true;
-        };
+<!-- ── EMBED MODE (bare app root) ─────────────────────────────────── -->
+<div id="root"></div>
 
-        if (renderInfo()) return;
-        const observer = new MutationObserver(() => {
-          if (renderInfo()) observer.disconnect();
+<script>
+  if (_embed) {
+    // Load the bundled demo app only in embed mode
+    var s = document.createElement('script');
+    s.type = 'module';
+    s.src = '/demo-assets/index-lmtH1WM9.js';
+    document.head.appendChild(s);
+    var l = document.createElement('link');
+    l.rel = 'stylesheet';
+    l.href = '/demo-assets/index-6y_fuXPf.css';
+    document.head.appendChild(l);
+  } else {
+    // Point the phone frame iframe to embed mode of this same page
+    document.getElementById('demo-iframe').src = '/demo.html?embed';
+
+    // Inject info panel content into the bundled app's sidebar if it renders
+    // (kept for backward compat with any direct app embeds that use .project-panel)
+    var resultUrl = 'https://hackathon.celocolombia.org/resultados?token=99e4149611fb48ee8cbfe2de';
+    var cards = [
+      { title: '2nd-place winner', body: 'Recognized in the Celo Colombia Hackathon. View the official results.', href: resultUrl },
+      { title: 'Current corridor', body: 'USDC to KESm on Celo Mainnet for the US to Kenya remittance flow.' },
+      { title: 'Current contracts', body: 'Active ChocoLedger and ChocoGateway record plans, sends, and receipts on-chain.' },
+      { title: 'Agent flow', body: 'Text or voice, Agent Choco prepares the route, wallet signs, and Choco returns a receipt.' },
+    ];
+    window.addEventListener('DOMContentLoaded', function () {
+      var tryInject = function () {
+        var panel = document.querySelector('.project-panel');
+        var grid = panel && panel.querySelector('.scope-grid');
+        if (!panel || !grid) return false;
+        var badge = panel.querySelector('.agent-badge');
+        if (badge) badge.textContent = 'Celo Colombia Hackathon - 2nd place';
+        var heading = panel.querySelector('h1');
+        if (heading) heading.textContent = 'Choco for MiniPay.';
+        var existing = Array.from(grid.querySelectorAll('.info-card'));
+        cards.forEach(function (item, i) {
+          var card = existing[i] || document.createElement('div');
+          card.className = 'info-card' + (item.href ? ' result-card' : '');
+          if (!existing[i]) grid.appendChild(card);
+          card.innerHTML = item.href
+            ? '<a href="' + item.href + '" target="_blank" rel="noreferrer"><b>' + item.title + '</b><span>' + item.body + '</span></a>'
+            : '<b>' + item.title + '</b><span>' + item.body + '</span>';
         });
-        observer.observe(document.body, { childList: true, subtree: true });
-      });
-    </script>
-    <script type="module" src="/demo-assets/index-lmtH1WM9.js"></script>
-    <link rel="stylesheet" href="/demo-assets/index-6y_fuXPf.css" />
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
+        return true;
+      };
+      if (!tryInject()) {
+        var obs = new MutationObserver(function () { if (tryInject()) obs.disconnect(); });
+        obs.observe(document.body, { childList: true, subtree: true });
+      }
+    });
+  }
+</script>
+
+</body>
 </html>
