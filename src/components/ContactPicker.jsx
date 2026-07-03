@@ -1,16 +1,16 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Check, Pencil, Trash2, X } from "lucide-react";
 import { isAddress } from "viem";
-import { listContacts, removeContact, upsertContact } from "../lib/contacts.js";
+import { SUPABASE_READY, listContacts, listLocalContacts, removeContact, upsertContact } from "../lib/contacts.js";
 import { ensureSupabaseAuth } from "../lib/supabase.js";
 
 function shortAddr(addr) {
   const a = String(addr || "");
   if (a.length < 14) return a;
-  return `${a.slice(0, 8)}…${a.slice(-6)}`;
+  return `${a.slice(0, 8)}â€¦${a.slice(-6)}`;
 }
 
-export function ContactPicker({ ownerWallet, onSelect, onClose, inline = false }) {
+export function ContactPicker({ ownerWallet, onSelect, onClose, inline = false, supabaseEnabled = SUPABASE_READY }) {
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -25,20 +25,21 @@ export function ContactPicker({ ownerWallet, onSelect, onClose, inline = false }
     setError("");
     (async () => {
       try {
-        await ensureSupabaseAuth(ownerWallet);
+        if (supabaseEnabled) await ensureSupabaseAuth(ownerWallet);
         const data = await listContacts(ownerWallet);
         if (active) setContacts(data);
       } catch (loadError) {
         if (active) {
-          setContacts([]);
-          setError(loadError.message || "Could not load saved contacts.");
+          const cached = listLocalContacts(ownerWallet);
+          setContacts(cached);
+          setError(cached.length ? "" : (loadError.message || "Could not load saved contacts."));
         }
       } finally {
         if (active) setLoading(false);
       }
     })();
     return () => { active = false; };
-  }, [ownerWallet]);
+  }, [ownerWallet, supabaseEnabled]);
 
   async function saveEdit(contact) {
     if (!isAddress(editAddress)) return;
@@ -61,7 +62,7 @@ export function ContactPicker({ ownerWallet, onSelect, onClose, inline = false }
 
   const listContent = (
     <>
-      {loading && <p className="contact-picker-status">Loading…</p>}
+      {loading && <p className="contact-picker-status">Loadingâ€¦</p>}
 
       {!loading && error && (
         <p className="contact-picker-status">{error}</p>
@@ -90,7 +91,7 @@ export function ContactPicker({ ownerWallet, onSelect, onClose, inline = false }
                     spellCheck="false"
                     value={editAddress}
                     onChange={e => setEditAddress(e.target.value)}
-                    placeholder="0x…"
+                    placeholder="0xâ€¦"
                     aria-label="New wallet address"
                   />
                   <div className="contact-picker-edit-actions">

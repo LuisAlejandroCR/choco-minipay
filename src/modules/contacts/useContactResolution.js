@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   SUPABASE_READY,
   findContactByLabel,
+  findLocalContactByLabel,
   removeContact,
   upsertContact,
 } from "../../lib/contacts.js";
@@ -41,16 +42,17 @@ export function useContactResolution({
     ? resolvedContact?.address || ""
     : demoRecipientAddress;
 
-  // When the review screen opens, attempt to auto-resolve the label from Supabase so the
-  // user doesn't have to paste an address for known contacts.
+  // MiniPay: localStorage-only. Supabase sync is only used for browser (Privy) sessions.
+  const supabaseEnabled = SUPABASE_READY && !wallet.isMiniPay;
+
+  // When the review screen opens, attempt to auto-resolve the label from saved contacts.
   useEffect(() => {
     if (
       visibleScreen !== "review" ||
       !contactResolutionRequired ||
       !contactKey ||
       !wallet.address ||
-      !wallet.canSign ||
-      !SUPABASE_READY
+      !wallet.canSign
     ) {
       setContactLookup({ key: contactKey, status: "idle", message: "" });
       return undefined;
@@ -61,20 +63,27 @@ export function useContactResolution({
       return undefined;
     }
 
+    const cachedContact = findLocalContactByLabel({ ownerWallet: wallet.address, label: receiptLabel });
+    if (cachedContact?.wallet_address) {
+      cacheContact(cachedContact, contactKey);
+      setContactLookup({ key: contactKey, status: "resolved", message: "" });
+    } else {
+      setContactLookup({ key: contactKey, status: "checking", message: "Checking saved contacts..." });
+    }
+
     let active = true;
-    setContactLookup({ key: contactKey, status: "checking", message: "Checking saved contacts..." });
 
     (async () => {
       try {
-        // In MiniPay personal_sign is handled natively by the wallet — full auth is fine.
-        // In browsers (MetaMask) we avoid triggering an unexpected popup on review-screen
-        // open by using the cached session only. If there's no session, show the address
-        // input immediately; the user can sign in explicitly via "Save contact".
-        const session = wallet.isMiniPay
-          ? await ensureSupabaseAuth(wallet.address)
-          : await getCachedSession();
+        // MiniPay: use only the local cache (no Supabase, no personal_sign prompt).
+        // Browser: use a cached JWT only — no unexpected popup on review-screen open.
+        const session = supabaseEnabled
+          ? await getCachedSession()
+          : null;
         if (!session) {
-          if (active) setContactLookup({ key: contactKey, status: "missing", message: "" });
+          if (active && !cachedContact?.wallet_address) {
+            setContactLookup({ key: contactKey, status: "missing", message: "" });
+          }
           return;
         }
         const contact = await findContactByLabel({ ownerWallet: wallet.address, label: receiptLabel });
@@ -82,11 +91,11 @@ export function useContactResolution({
         if (contact?.wallet_address) {
           cacheContact(contact, contactKey);
           setContactLookup({ key: contactKey, status: "resolved", message: "" });
-        } else {
+        } else if (!cachedContact?.wallet_address) {
           setContactLookup({ key: contactKey, status: "missing", message: "" });
         }
       } catch (error) {
-        if (!active) return;
+        if (!active || cachedContact?.wallet_address) return;
         const errorMessage = error.message || "Could not check saved contacts.";
         setContactLookup({ key: contactKey, status: "error", message: errorMessage });
         onError?.(errorMessage);
@@ -94,7 +103,7 @@ export function useContactResolution({
     })();
 
     return () => { active = false; };
-  }, [visibleScreen, contactResolutionRequired, contactKey, receiptLabel, wallet.address, wallet.canSign, resolvedContact?.address, onError]);
+  }, [visibleScreen, contactResolutionRequired, contactKey, receiptLabel, wallet.address, wallet.canSign, supabaseEnabled, resolvedContact?.address, onError]);
 
   // Reset picker when a contact is resolved (e.g., picker was open, user selected)
   useEffect(() => {
@@ -138,7 +147,7 @@ export function useContactResolution({
       try { localStorage.setItem(`choco-label-${String(address).toLowerCase()}`, label); } catch {}
     }
 
-    if (SUPABASE_READY && wallet.address && !wallet.isReadOnly && saveContact && details.source !== "contacts") {
+    if (supabaseEnabled && wallet.address && !wallet.isReadOnly && saveContact && details.source !== "contacts") {
       try {
         await ensureSupabaseAuth(wallet.address);
         const saved = await upsertContact({
@@ -161,7 +170,7 @@ export function useContactResolution({
   async function editContact(newAddress) {
     if (!resolvedContact?.contactId || !contactKey || wallet.isReadOnly) return;
     try {
-      await ensureSupabaseAuth(wallet.address);
+      if (supabaseEnabled) await ensureSupabaseAuth(wallet.address);
       await upsertContact({
         ownerWallet: wallet.address,
         label: resolvedContact.label,
@@ -179,7 +188,7 @@ export function useContactResolution({
   async function removeResolvedContact() {
     if (!resolvedContact?.contactId || !contactKey || wallet.isReadOnly) return;
     try {
-      await ensureSupabaseAuth(wallet.address);
+      if (supabaseEnabled) await ensureSupabaseAuth(wallet.address);
       await removeContact({ ownerWallet: wallet.address, id: resolvedContact.contactId });
       setResolvedContacts((prev) => {
         const next = { ...prev };
@@ -194,14 +203,14 @@ export function useContactResolution({
   async function pickContact() {
     if (!contactKey) return;
 
-    if (SUPABASE_READY && wallet.address && !wallet.canSign) {
+    if (supabaseEnabled && wallet.address && !wallet.canSign) {
       const errorMessage = "Open Choco in MiniPay or a wallet browser to read saved contacts.";
       setContactLookup({ key: contactKey, status: "error", message: errorMessage });
       onError?.(errorMessage);
       return;
     }
 
-    if (SUPABASE_READY && wallet.address) {
+    if (supabaseEnabled && wallet.address) {
       try {
         await ensureSupabaseAuth(wallet.address);
         setShowContactPicker(true);
@@ -210,6 +219,11 @@ export function useContactResolution({
         setContactLookup({ key: contactKey, status: "error", message: errorMessage });
         onError?.(errorMessage);
       }
+      return;
+    }
+
+    if (wallet.address) {
+      setShowContactPicker(true);
       return;
     }
 
@@ -250,6 +264,7 @@ export function useContactResolution({
     contactResolutionRequired,
     resolvedContact,
     recipientAddress,
+    supabaseEnabled,
     contactLookupStatus,
     contactLookupMessage,
     resolveContact,

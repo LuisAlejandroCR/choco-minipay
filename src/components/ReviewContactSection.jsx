@@ -136,6 +136,7 @@ export function ReviewContactSection({
           <ContactPicker
             inline
             ownerWallet={walletAccount}
+            supabaseEnabled={supabaseReady}
             onSelect={(c) => onResolveContact(c.address, { label: c.label, source: "contacts", contactId: c.contactId, saveContact: false })}
             onClose={() => {}}
           />

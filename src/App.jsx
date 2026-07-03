@@ -684,7 +684,7 @@ export default function App({ privyAuth = null }) {
               onRemoveContact={contacts.removeResolvedContact}
               contactLookupStatus={contacts.contactLookupStatus}
               contactLookupMessage={contacts.contactLookupMessage}
-              supabaseReady={SUPABASE_READY}
+              supabaseReady={contacts.supabaseEnabled}
             />
           )}
           {activeInfoPanel && (
@@ -698,6 +698,7 @@ export default function App({ privyAuth = null }) {
           {contacts.showContactPicker && (
             <ContactPicker
               ownerWallet={wallet.address}
+              supabaseEnabled={contacts.supabaseEnabled}
               onSelect={({ address, label, contactId }) => {
                 contacts.resolveContact(address, { label, source: "contacts", contactId });
               }}
