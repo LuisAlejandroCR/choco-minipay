@@ -164,7 +164,7 @@
 
   <p><strong>On-chain transaction data</strong> — all schedules, transfer runs, and receipts are recorded on Celo Mainnet in ChocoLedger and ChocoGateway contracts. This data is permanently public on the blockchain. Choco reads it to display your history inside the app.</p>
 
-  <p><strong>Recipient contact labels</strong> — if you add a name or label to a recipient wallet address, that label is stored locally in your browser and is not transmitted to Choco's servers.</p>
+  <p><strong>Recipient contact labels</strong> — if you add a name or label to a recipient wallet address, that label is stored in <strong>Supabase</strong> (our database provider, listed in §4) linked to your user identifier. It is not shared with third parties. A future update may migrate this to device-local storage only.</p>
 
   <p><strong>Support messages</strong> — when you use the contact form, your message is composed into a mailto link and sent via your email client. Choco only receives what you include in the email. We store support correspondence for up to 12 months for service quality purposes.</p>
 
@@ -181,8 +181,10 @@
   <h2>4. Third-party services</h2>
   <ul>
     <li><strong><a href="https://privy.io" rel="noopener noreferrer" target="_blank">Privy</a></strong> — embedded wallet and email authentication for non-MiniPay browser users. Privy stores email addresses and cryptographic wallet keys (in their secure enclave). See Privy's privacy policy for details.</li>
+    <li><strong><a href="https://supabase.com" rel="noopener noreferrer" target="_blank">Supabase</a></strong> — database provider used to store recipient contact labels. Supabase is hosted in the EU (AWS Frankfurt) and processes data per their privacy policy.</li>
     <li><strong>Celo Mainnet</strong> — a public EVM blockchain. All on-chain activity is visible to anyone. Choco cannot delete on-chain records.</li>
     <li><strong>Mento Protocol</strong> — on-chain FX protocol used for USDC ↔ KESm conversion. Interactions are on-chain and public.</li>
+    <li><strong>Uniswap V3 (via Mento)</strong> — Mento's on-chain BiPools are built on Uniswap V3 infrastructure. When Mento executes a USDC ↔ KESm swap on your behalf, it routes through these pools. All interactions are on-chain and public. Choco does not call Uniswap directly.</li>
     <li><strong>Forno (cLabs RPC)</strong> — Celo public RPC endpoint used to read blockchain state. cLabs may log RPC requests per their own policy.</li>
     <li><strong>Vercel</strong> — hosts the Choco web app. Vercel may collect standard web server logs (IP address, user agent, timestamp).</li>
   </ul>
