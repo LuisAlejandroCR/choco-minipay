@@ -7,7 +7,7 @@ import { ensureSupabaseAuth } from "../lib/supabase.js";
 function shortAddr(addr) {
   const a = String(addr || "");
   if (a.length < 14) return a;
-  return `${a.slice(0, 8)}â€¦${a.slice(-6)}`;
+  return `${a.slice(0, 8)}…${a.slice(-6)}`;
 }
 
 export function ContactPicker({ ownerWallet, onSelect, onClose, inline = false, supabaseEnabled = SUPABASE_READY }) {
@@ -62,7 +62,7 @@ export function ContactPicker({ ownerWallet, onSelect, onClose, inline = false, 
 
   const listContent = (
     <>
-      {loading && <p className="contact-picker-status">Loadingâ€¦</p>}
+      {loading && <p className="contact-picker-status">Loading…</p>}
 
       {!loading && error && (
         <p className="contact-picker-status">{error}</p>
@@ -91,7 +91,7 @@ export function ContactPicker({ ownerWallet, onSelect, onClose, inline = false, 
                     spellCheck="false"
                     value={editAddress}
                     onChange={e => setEditAddress(e.target.value)}
-                    placeholder="0xâ€¦"
+                    placeholder="0x…"
                     aria-label="New wallet address"
                   />
                   <div className="contact-picker-edit-actions">
