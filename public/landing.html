@@ -201,7 +201,7 @@
     /* ── Hero ───────────────────────────────────────────── */
     .hero {
       display: grid;
-      grid-template-columns: 1fr minmax(280px, 390px);
+      grid-template-columns: 1fr minmax(230px, 320px);
       gap: clamp(32px, 5vw, 72px);
       align-items: center;
     }
@@ -280,8 +280,9 @@
     .phone-wrap { display: flex; justify-content: center; }
     .phone-frame {
       position: relative;
-      width: 100%;
-      max-width: 320px;
+      height: clamp(400px, 58vh, 510px);
+      width: auto;
+      max-width: 255px;
       aspect-ratio: 9/18;
       border: 2px solid rgba(28,13,5,.14);
       border-radius: 40px;
@@ -656,7 +657,7 @@
       .menu-toggle { display: inline-flex; }
       .hero { grid-template-columns: 1fr; }
       .phone-wrap { order: -1; }
-      .phone-frame { max-width: 260px; }
+      .phone-frame { height: auto; width: 100%; max-width: 210px; }
       .steps-grid  { grid-template-columns: 1fr; }
       .products-grid { grid-template-columns: 1fr; }
       .corridor-grid { grid-template-columns: 1fr 1fr; }
