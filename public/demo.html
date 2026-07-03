@@ -8,6 +8,12 @@
     <!-- Full clickable demo: the actual choco-azure app (source: Celo/choco mvp static), built and
          vendored here. Rebuild with `npx vite build` in that repo, then copy dist/assets/* into
          public/demo-assets/ and update the two filenames below. -->
+    <style>
+      .statusbar { display: none !important; }
+      html.embed-mode { overflow: hidden !important; }
+      html.embed-mode body { overflow: hidden !important; }
+    </style>
+    <script>if (new URLSearchParams(location.search).has('embed')) { document.documentElement.classList.add('embed-mode'); }</script>
     <style data-choco-demo-info>
       .project-panel .info-card.result-card a {
         color: inherit;

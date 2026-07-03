@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#faf3e8" />
   <link rel="icon" href="/icon.svg" />
   <title>Choco — Remittances on autopilot</title>
-  <script>if (window.ethereum && window.ethereum.isMiniPay) { window.location.replace('/'); }</script>
+  <script>if (window.ethereum && window.ethereum.isMiniPay) { window.location.replace('/app'); }</script>
   <style>
     /* ── Tokens ─────────────────────────────────────────── */
     :root {
@@ -679,11 +679,10 @@
     <a href="#products">Products</a>
     <a href="#solutions">Solutions</a>
     <a href="#how">How it works</a>
-    <a href="/demo.html">Demo</a>
   </div>
   <div class="nav-right">
     <a class="btn" href="/contact-us.html">Contact</a>
-    <a class="btn primary" href="/">Launch app →</a>
+    <a class="btn primary" href="/app">Launch app →</a>
   </div>
   <button class="menu-toggle" aria-label="Open menu" onclick="document.querySelector('.mobile-nav').classList.toggle('open')">☰</button>
 </nav>
@@ -691,9 +690,8 @@
   <a href="#products" onclick="this.closest('.mobile-nav').classList.remove('open')">Products</a>
   <a href="#solutions" onclick="this.closest('.mobile-nav').classList.remove('open')">Solutions</a>
   <a href="#how" onclick="this.closest('.mobile-nav').classList.remove('open')">How it works</a>
-  <a href="/demo.html">Demo</a>
   <a class="btn" href="/contact-us.html">Contact</a>
-  <a class="btn primary" href="/">Launch app →</a>
+  <a class="btn primary" href="/app">Launch app →</a>
 </div>
 
 <!-- ── HERO ─────────────────────────────────────────────── -->
@@ -706,8 +704,7 @@
         <h1>Your wallet<br/>sends home<br/><em>every month.</em></h1>
         <p class="hero-sub">Text or voice a command. Your wallet approves once. Choco executes automatically — with an on-chain receipt every time. No custody. No hidden fees. No middleman.</p>
         <div class="hero-ctas">
-          <a class="btn primary" href="/">Open Choco</a>
-          <a class="btn" href="/demo.html">Try the demo</a>
+          <a class="btn primary" href="/app">Open Choco</a>
           <a class="btn" href="#how">How it works</a>
         </div>
         <div class="hero-stats">
@@ -735,7 +732,7 @@
 
       <div class="phone-wrap">
         <div class="phone-frame">
-          <iframe src="/demo.html" title="Choco live demo" loading="lazy"></iframe>
+          <iframe src="/demo.html?embed" title="Choco live demo" loading="lazy"></iframe>
           <span class="phone-label">Live demo ↑</span>
         </div>
       </div>
@@ -950,8 +947,7 @@
     <h2>Start your first schedule today.</h2>
     <p>Open Choco in MiniPay or with your email. Text a command. Send your first cross-border payment in under 60 seconds.</p>
     <div class="cta-row">
-      <a class="btn primary" href="/">Open Choco</a>
-      <a class="btn" href="/demo.html">Try the demo first</a>
+      <a class="btn primary" href="/app">Open Choco</a>
       <a class="btn" href="/contact-us.html">Talk to us</a>
     </div>
   </div>

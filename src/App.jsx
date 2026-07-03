@@ -47,6 +47,7 @@ import { ProcessingScreen } from "./screens/ProcessingScreen.jsx";
 import { DuplicateGuardScreen } from "./screens/DuplicateGuardScreen.jsx";
 import { ReviewScreen } from "./screens/ReviewScreen.jsx";
 import { TransactionSuccessScreen } from "./screens/TransactionSuccessScreen.jsx";
+import { CorridorPickerScreen } from "./screens/CorridorPickerScreen.jsx";
 import { humaniseConnectError, humanisePlanError, mergeTransactionDetails, pickById } from "./utils/appHelpers.js";
 import { RAMP_READY, openRampOnramp } from "./lib/ramp.js";
 
@@ -253,7 +254,7 @@ export default function App({ privyAuth = null }) {
         await refreshBalances(address);
         appStatus.setStatus("review");
         appStatus.setMessage("Email wallet connected. Choose now or schedule.");
-        setScreen(resolveVisibleScreen("plan", true));
+        setScreen("corridorPicker");
       })
       .catch(() => { /* wallet.error is already set by connectPrivyWallet */ });
     return () => { active = false; };
@@ -544,11 +545,18 @@ export default function App({ privyAuth = null }) {
               wallet={wallet}
               onVerifyWallet={async () => {
                 const address = await connectWallet();
-                if (address) setScreen("plan");
+                if (address) setScreen(isMiniPay() ? "plan" : "corridorPicker");
               }}
               onHome={() => setScreen("plan")}
               onEmailLogin={privyAuth?.login ?? null}
               emailAuth={privyAuth}
+            />
+          )}
+          {visibleScreen === "corridorPicker" && (
+            <CorridorPickerScreen
+              onSendToAfrica={() => setScreen("plan")}
+              onWithdrawToBank={null}
+              onKeepAsUsdc={() => setScreen("plan")}
             />
           )}
           {visibleScreen === "demoTour" && (

@@ -1450,3 +1450,133 @@
   font-size: 12px;
   font-weight: 850;
 }
+
+/* ---- Corridor Picker ---- */
+.corridor-picker-screen {
+  justify-content: center;
+  padding: 22px;
+  gap: 0;
+}
+
+.corridor-picker-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.corridor-kicker {
+  display: block;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.corridor-picker-header h2 {
+  margin: 6px 0 0;
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1.1;
+  color: var(--cream);
+}
+
+.corridor-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.corridor-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 16px;
+  border: 1px solid var(--line-soft);
+  border-radius: 20px;
+  background: rgba(16, 9, 6, 0.40);
+  color: var(--cream);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+
+.corridor-card:not(:disabled):active {
+  transform: scale(0.98);
+}
+
+.corridor-card:not(:disabled):hover {
+  border-color: var(--line);
+  background: rgba(28, 16, 10, 0.60);
+}
+
+.corridor-card.primary {
+  border-color: rgba(201, 144, 96, 0.35);
+  background: linear-gradient(135deg, rgba(201, 144, 96, 0.14) 0%, rgba(68, 41, 24, 0.28) 100%);
+}
+
+.corridor-card.primary:hover {
+  background: linear-gradient(135deg, rgba(201, 144, 96, 0.20) 0%, rgba(68, 41, 24, 0.38) 100%);
+}
+
+.corridor-card-soon {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.corridor-card-icon {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 241, 220, 0.08);
+  color: var(--latte-300);
+}
+
+.corridor-card.primary .corridor-card-icon {
+  background: rgba(201, 144, 96, 0.18);
+  color: var(--latte-500);
+}
+
+.corridor-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.corridor-card-body strong {
+  font-size: 16px;
+  font-weight: 850;
+  color: var(--cream);
+}
+
+.corridor-card-body span {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.corridor-card-arrow {
+  color: var(--muted);
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.corridor-card.primary .corridor-card-arrow {
+  color: var(--latte-500);
+}
+
+.corridor-soon-badge {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 3px 8px;
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+}
