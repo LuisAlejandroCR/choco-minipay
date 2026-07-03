@@ -42,8 +42,9 @@ export function useContactResolution({
     ? resolvedContact?.address || ""
     : demoRecipientAddress;
 
-  // MiniPay: localStorage-only. Supabase sync is only used for browser (Privy) sessions.
-  const supabaseEnabled = SUPABASE_READY && !wallet.isMiniPay;
+  // Supabase is the cross-device backup for all users (including MiniPay).
+  // localStorage is primary: instant, offline, zero auth. Supabase syncs in the background.
+  const supabaseEnabled = SUPABASE_READY;
 
   // When the review screen opens, attempt to auto-resolve the label from saved contacts.
   useEffect(() => {
