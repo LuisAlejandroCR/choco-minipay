@@ -224,6 +224,19 @@
     .footer-links a:hover { color: var(--text); }
     .footer-note { font-size: 13px; color: var(--text-dim); width: 100%; }
 
+    /* Chart */
+    .chart-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-mid);
+      border-radius: var(--r);
+      padding: 24px 24px 16px;
+      margin-bottom: 48px;
+      box-shadow: 0 2px 8px rgba(28,13,5,.05);
+      overflow: hidden;
+    }
+    #activity-chart { width: 100%; height: auto; display: block; }
+    .chart-empty { font-size: 13px; color: var(--text-dim); padding: 32px 0; text-align: center; }
+
     @media (max-width: 600px) {
       .contract-row { flex-direction: column; align-items: flex-start; }
     }
@@ -283,6 +296,17 @@
       <span class="sc-label">License</span>
       <span class="sc-value" style="font-size:22px;">Apache 2.0</span>
       <span class="sc-sub">Open-source contracts</span>
+    </div>
+  </div>
+
+  <!-- Activity chart -->
+  <div class="contract-section">
+    <div class="section-head">
+      <h2>Activity over time</h2>
+      <p>Transactions on ChocoGateway by month · sourced from Blockscout</p>
+    </div>
+    <div class="chart-card">
+      <svg id="activity-chart" viewBox="0 0 760 200" aria-label="Monthly gateway transaction activity"></svg>
     </div>
   </div>
 
@@ -414,6 +438,106 @@
   }
 
   loadStats();
+  loadChart();
+
+  async function loadChart() {
+    const svg = document.getElementById("activity-chart");
+    if (!svg) return;
+
+    try {
+      const resp = await fetch(`${BASE}/${GATEWAY}/transactions`);
+      if (!resp.ok) throw new Error("fetch failed");
+      const data = await resp.json();
+      const items = data.items || [];
+
+      if (items.length < 2) {
+        svg.innerHTML = `<text x="50%" y="50%" text-anchor="middle" fill="#9a7455" font-size="13" font-family="Inter,sans-serif">Not enough data yet</text>`;
+        return;
+      }
+
+      // Group by day
+      const counts = {};
+      items.forEach(tx => {
+        if (!tx.timestamp) return;
+        const key = tx.timestamp.split("T")[0]; // "YYYY-MM-DD"
+        counts[key] = (counts[key] || 0) + 1;
+      });
+
+      // Fill zero gaps between first and last day so chart line is continuous
+      const allKeys = Object.keys(counts).sort();
+      const startD = new Date(allKeys[0]);
+      const endD   = new Date(allKeys[allKeys.length - 1]);
+      const keys = [];
+      for (let d = new Date(startD); d <= endD; d.setDate(d.getDate() + 1)) {
+        keys.push(d.toISOString().split("T")[0]);
+      }
+      const values = keys.map(k => counts[k] || 0);
+      const maxVal = Math.max(...values, 1);
+
+      // Chart geometry
+      const W = 760, H = 200;
+      const padL = 44, padR = 20, padT = 16, padB = 40;
+      const cW = W - padL - padR;
+      const cH = H - padT - padB;
+      const n = keys.length;
+
+      const cx = i => padL + (n === 1 ? cW / 2 : (i / (n - 1)) * cW);
+      const cy = v => padT + cH - (v / maxVal) * cH;
+
+      // Y gridlines
+      const gridCount = 4;
+      let gridLines = "";
+      let yLabels = "";
+      for (let i = 0; i <= gridCount; i++) {
+        const val = Math.round((i / gridCount) * maxVal);
+        const y = cy(val);
+        gridLines += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="rgba(28,13,5,.07)" stroke-width="1"/>`;
+        yLabels += `<text x="${padL - 6}" y="${y + 4}" text-anchor="end" fill="#9a7455" font-size="11" font-family="Inter,sans-serif">${val}</text>`;
+      }
+
+      // Line path + area fill
+      const pts = keys.map((_, i) => `${cx(i)},${cy(values[i])}`);
+      const linePath = `M${pts.join("L")}`;
+      const areaPath = `${linePath}L${cx(n - 1)},${cy(0)}L${cx(0)},${cy(0)}Z`;
+
+      // X labels (day labels: "Jun 23")
+      let xLabels = "";
+      const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      const step = n <= 10 ? 1 : Math.ceil(n / 10);
+      keys.forEach((k, i) => {
+        if (i % step !== 0 && i !== n - 1) return;
+        const [, m, dd] = k.split("-");
+        const label = `${monthNames[Number(m) - 1]} ${Number(dd)}`;
+        xLabels += `<text x="${cx(i)}" y="${H - 8}" text-anchor="middle" fill="#9a7455" font-size="11" font-family="Inter,sans-serif">${label}</text>`;
+      });
+
+      // Dots
+      let dots = "";
+      keys.forEach((_, i) => {
+        dots += `<circle cx="${cx(i)}" cy="${cy(values[i])}" r="4" fill="#c8903c" stroke="#faf3e8" stroke-width="2">
+          <title>${keys[i]}: ${values[i]} tx</title>
+        </circle>`;
+      });
+
+      svg.innerHTML = `
+        <defs>
+          <linearGradient id="area-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#c8903c" stop-opacity="0.18"/>
+            <stop offset="100%" stop-color="#c8903c" stop-opacity="0.02"/>
+          </linearGradient>
+        </defs>
+        ${gridLines}
+        ${yLabels}
+        ${xLabels}
+        <path d="${areaPath}" fill="url(#area-grad)"/>
+        <path d="${linePath}" fill="none" stroke="#c8903c" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+        ${dots}
+      `;
+    } catch {
+      const svg = document.getElementById("activity-chart");
+      if (svg) svg.innerHTML = `<text x="50%" y="50%" text-anchor="middle" fill="#9a7455" font-size="13" font-family="Inter,sans-serif">Could not load chart data</text>`;
+    }
+  }
 </script>
 
 </body>
