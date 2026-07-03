@@ -94,19 +94,18 @@
       align-items: center;
       gap: 2px;
       margin-left: 20px;
-      flex: 1;
     }
     .nav-links a {
-      padding: 8px 13px;
+      padding: 7px 11px;
       border-radius: 11px;
-      font-size: 14px;
+      font-size: 13.5px;
       font-weight: 700;
       color: var(--text-muted);
       transition: color .12s, background .12s;
     }
     .nav-links a:hover { color: var(--text); background: rgba(28,13,5,.05); }
 
-    .nav-right { display: flex; gap: 9px; }
+    .nav-right { display: flex; gap: 9px; margin-left: auto; }
 
     .btn {
       display: inline-flex;
@@ -201,7 +200,7 @@
     /* ── Hero ───────────────────────────────────────────── */
     .hero {
       display: grid;
-      grid-template-columns: 1fr minmax(230px, 320px);
+      grid-template-columns: 1fr minmax(280px, 380px);
       gap: clamp(32px, 5vw, 72px);
       align-items: center;
     }
@@ -280,9 +279,9 @@
     .phone-wrap { display: flex; justify-content: center; }
     .phone-frame {
       position: relative;
-      height: clamp(400px, 58vh, 510px);
+      height: clamp(480px, 70vh, 640px);
       width: auto;
-      max-width: 255px;
+      max-width: 300px;
       aspect-ratio: 9/18;
       border: 2px solid rgba(28,13,5,.14);
       border-radius: 40px;
@@ -657,7 +656,7 @@
       .menu-toggle { display: inline-flex; }
       .hero { grid-template-columns: 1fr; }
       .phone-wrap { order: -1; }
-      .phone-frame { height: auto; width: 100%; max-width: 210px; }
+      .phone-frame { height: auto; width: 100%; max-width: 240px; }
       .steps-grid  { grid-template-columns: 1fr; }
       .products-grid { grid-template-columns: 1fr; }
       .corridor-grid { grid-template-columns: 1fr 1fr; }
