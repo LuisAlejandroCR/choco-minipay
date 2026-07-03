@@ -1,18 +1,254 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Choco Terms</title>
-    <link rel="stylesheet" href="/legal.css" />
-  </head>
-  <body>
-    <main>
-      <div class="brand"><img src="/icon.svg" alt="" /></div>
-      <h1>Choco Terms</h1>
-      <p>Choco is an experimental hackathon app. Use tiny amounts until the router, keeper, quote, and notification services have been audited and monitored.</p>
-      <p>Choco only checks wallet funds and resolves recipient contacts to prepare user-approved wallet actions. Contacts are not stored by Choco.</p>
-      <p>Network fees and exchange rates should be reviewed before every wallet action.</p>
-    </main>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Choco Terms of Service — non-custodial remittance tool on Celo Mainnet." />
+  <link rel="icon" href="/icon.svg" />
+  <title>Terms of Service — Choco</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg:           #faf3e8;
+      --bg-surface:   #f3e8d4;
+      --border:       rgba(28,13,5,.09);
+      --border-mid:   rgba(28,13,5,.14);
+      --border-strong:rgba(28,13,5,.2);
+      --text:         #180c04;
+      --text-muted:   #5a3c27;
+      --text-dim:     #9a7455;
+      --accent:       #c8903c;
+      --accent-deep:  #7a4e1e;
+      --cta-bg:       #1c0d05;
+      --cta-fg:       #fdf3e4;
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+      --r-sm: 14px;
+      --r:    22px;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      color: var(--text);
+      background:
+        radial-gradient(ellipse at 88% 18%, rgba(200,144,60,.07) 0%, transparent 42%),
+        #faf3e8;
+    }
+    a { color: var(--accent-deep); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    p { margin: 0 0 1em; }
+    h1, h2, h3 { margin: 0; }
+
+    .site-nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; gap: 12px;
+      padding: 0 clamp(16px,4vw,56px);
+      height: 68px;
+      background: rgba(250,243,232,.9);
+      border-bottom: 1px solid var(--border-mid);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+    .brand {
+      display: inline-flex; align-items: center; gap: 10px;
+      font-size: 21px; font-weight: 900; color: var(--text);
+      letter-spacing: -.025em; flex-shrink: 0; text-decoration: none;
+    }
+    .brand img { width: 34px; height: 34px; border-radius: 50%; background: rgba(28,13,5,.07); box-shadow: 0 0 0 1px var(--border-mid); }
+    .nav-right { display: flex; gap: 9px; margin-left: auto; }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 6px; padding: 0 19px; min-height: 41px;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--r-sm);
+      font: 700 14px/1 var(--font); color: var(--text-muted);
+      background: transparent; cursor: pointer;
+      transition: background .12s, border-color .12s, color .12s;
+      text-decoration: none;
+    }
+    .btn:hover { background: rgba(28,13,5,.05); color: var(--text); }
+    .btn.primary { color: var(--cta-fg); background: var(--cta-bg); border-color: var(--cta-bg); }
+    .btn.primary:hover { background: #2c1409; border-color: #2c1409; }
+
+    .page-hero {
+      padding: clamp(48px,8vw,96px) clamp(16px,4vw,56px) clamp(32px,5vw,56px);
+      max-width: 1200px; margin: 0 auto;
+    }
+    .page-label {
+      font-size: 11px; font-weight: 900; letter-spacing: .14em;
+      text-transform: uppercase; color: var(--accent); margin-bottom: 14px;
+    }
+    .page-hero h1 {
+      font-size: clamp(32px,5vw,54px); line-height: 1.04;
+      font-weight: 900; letter-spacing: -.035em; margin-bottom: 12px;
+    }
+    .page-meta { font-size: 14px; color: var(--text-dim); }
+
+    .content {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 0 clamp(16px,4vw,56px) clamp(60px,10vw,100px);
+    }
+    .content h2 {
+      font-size: 20px; font-weight: 800; letter-spacing: -.02em;
+      color: var(--text); margin: 2em 0 .6em;
+      padding-top: 1.5em;
+      border-top: 1px solid var(--border);
+    }
+    .content h2:first-child { margin-top: 0; border-top: none; padding-top: 0; }
+    .content p, .content li {
+      font-size: 16px; line-height: 1.7; color: var(--text-muted);
+    }
+    .content ul { padding-left: 1.4em; margin: 0 0 1em; }
+    .content li { margin-bottom: .35em; }
+    .content strong { color: var(--text); font-weight: 700; }
+    .highlight-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-mid);
+      border-radius: var(--r);
+      padding: 20px 24px;
+      margin: 1.5em 0;
+    }
+    .highlight-box p { margin: 0; }
+    .warn-box {
+      background: rgba(200,144,60,.08);
+      border: 1px solid rgba(200,144,60,.3);
+      border-radius: var(--r);
+      padding: 20px 24px;
+      margin: 1.5em 0;
+    }
+    .warn-box p { margin: 0; }
+
+    .site-footer {
+      border-top: 1px solid var(--border-mid);
+      padding: 32px clamp(16px,4vw,56px);
+    }
+    .footer-inner {
+      max-width: 1200px; margin: 0 auto;
+      display: flex; flex-wrap: wrap; align-items: center; gap: 16px;
+    }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 12px 20px; margin-left: auto; }
+    .footer-links a { font-size: 13px; color: var(--text-dim); text-decoration: none; }
+    .footer-links a:hover { color: var(--text); }
+    .footer-note { font-size: 13px; color: var(--text-dim); width: 100%; }
+  </style>
+</head>
+<body>
+
+<nav class="site-nav" aria-label="Choco navigation">
+  <a class="brand" href="/"><img src="/icon.svg" alt="" />Choco</a>
+  <div class="nav-right">
+    <a class="btn" href="/demo.html">View demo</a>
+    <a class="btn primary" href="/app">Open app</a>
+  </div>
+</nav>
+
+<div class="page-hero">
+  <p class="page-label">Legal</p>
+  <h1>Terms of Service</h1>
+  <p class="page-meta">Effective date: July 2, 2026 &nbsp;·&nbsp; Choco / usechoco.app</p>
+</div>
+
+<main class="content">
+
+  <div class="warn-box">
+    <p><strong>Important:</strong> Choco is a self-custody software tool. It does not hold your funds or control your wallet. You are solely responsible for keeping your recovery phrase and private keys safe. Use small amounts until you are comfortable with the flow.</p>
+  </div>
+
+  <h2>1. Acceptance</h2>
+  <p>By accessing or using Choco at usechoco.app or inside MiniPay, you agree to these Terms of Service ("Terms"). If you do not agree, do not use the service. These Terms form a binding agreement between you and <strong>Choco SAS</strong> (Colombia).</p>
+
+  <h2>2. What Choco is</h2>
+  <p>Choco is a non-custodial stablecoin remittance tool built on the Celo blockchain. It helps you:</p>
+  <ul>
+    <li>Prepare USDC-to-KESm transfer actions for your wallet to sign</li>
+    <li>Set up recurring monthly schedules for cross-border transfers</li>
+    <li>View on-chain receipts of executed transfers</li>
+  </ul>
+  <p>Choco prepares and proposes blockchain transactions. Your wallet (MiniPay, Privy, or any Celo-compatible wallet) must sign and approve every action. Choco cannot move funds without your explicit wallet signature.</p>
+
+  <h2>3. Non-custodial; no money transmission</h2>
+  <p>Choco does not:</p>
+  <ul>
+    <li>Hold, store, or control your USDC or any other tokens</li>
+    <li>Hold or transmit fiat currency</li>
+    <li>Act as a money services business, exchange, or financial intermediary</li>
+  </ul>
+  <p>ChocoGateway, our on-chain contract, temporarily holds a single locked run's USDC during a scheduled transfer window. This lock is user-initiated, wallet-approved, and can be reclaimed by the user at any time via the "Reclaim funds" action.</p>
+
+  <h2>4. Eligibility</h2>
+  <ul>
+    <li>You must be at least 18 years old.</li>
+    <li>You must be legally permitted to use non-custodial blockchain tools in your jurisdiction.</li>
+    <li>You must not be located in or a national of a country subject to comprehensive sanctions (OFAC SDN list, UN Security Council sanctions, EU restrictive measures).</li>
+  </ul>
+
+  <h2>5. Your responsibilities</h2>
+  <ul>
+    <li><strong>Keep your keys safe.</strong> Choco cannot recover a lost wallet. Never share your seed phrase.</li>
+    <li><strong>Verify before signing.</strong> Review the recipient address, amount, and fee shown in your wallet before approving any transaction.</li>
+    <li><strong>Recipient accuracy.</strong> Blockchain transfers are irreversible. Ensure recipient addresses are correct before signing.</li>
+    <li><strong>Compliance.</strong> You are responsible for your own tax reporting and compliance obligations in your jurisdiction.</li>
+  </ul>
+
+  <h2>6. Exchange rates and fees</h2>
+  <p>The USDC-to-KESm exchange rate is determined at execution time by Mento Protocol's on-chain exchange — an autonomous smart contract. Choco does not set or guarantee exchange rates. A small protocol fee is deducted by ChocoGateway at settlement time. Rates and fees are disclosed in the app before you sign any transaction.</p>
+
+  <h2>7. Experimental software</h2>
+  <div class="highlight-box">
+    <p>Choco's contracts are deployed and live on Celo Mainnet, but the software is early-stage. Smart contracts may contain bugs. The keeper automation may experience downtime. Exchange routes may fail due to on-chain conditions. Use amounts you are comfortable risking while the software matures.</p>
+  </div>
+
+  <h2>8. No financial advice</h2>
+  <p>Nothing in Choco or these Terms constitutes financial, investment, legal, or tax advice. Choco is a software tool only. Consult a qualified professional for financial guidance.</p>
+
+  <h2>9. Open-source contracts</h2>
+  <p>ChocoLedger and ChocoGateway are open-source under the Apache 2.0 license. Contract code is verifiable on Celoscan. The app source code is available on GitHub. We encourage independent review.</p>
+
+  <h2>10. Prohibited uses</h2>
+  <p>You may not use Choco to:</p>
+  <ul>
+    <li>Launder money, evade sanctions, or finance illegal activity</li>
+    <li>Impersonate another person or provide false information</li>
+    <li>Attempt to manipulate or exploit smart contract logic</li>
+    <li>Violate any applicable law or regulation</li>
+  </ul>
+
+  <h2>11. Limitation of liability</h2>
+  <p>To the maximum extent permitted by law, Choco SAS is not liable for:</p>
+  <ul>
+    <li>Loss of funds resulting from your wallet being compromised</li>
+    <li>Incorrect recipient addresses you entered and signed</li>
+    <li>Smart contract bugs or unexpected on-chain behavior</li>
+    <li>Delays or failures in the Celo network or third-party infrastructure</li>
+    <li>Exchange rate movements between quote and execution</li>
+  </ul>
+  <p>In any case, Choco SAS's aggregate liability to you shall not exceed the amount of protocol fees you paid in the 30 days preceding the claim.</p>
+
+  <h2>12. Governing law and disputes</h2>
+  <p>These Terms are governed by the laws of the Republic of Colombia. Any dispute that cannot be resolved informally shall be submitted to the courts of Bogotá, Colombia, which shall have exclusive jurisdiction.</p>
+
+  <h2>13. Changes to these Terms</h2>
+  <p>We may update these Terms as the product evolves. Material changes will be reflected in an updated effective date. Continued use after an update constitutes acceptance of the revised Terms.</p>
+
+  <h2>14. Contact</h2>
+  <p>Questions? Email <a href="mailto:support@usechoco.app">support@usechoco.app</a> or visit the <a href="/contact-us.html">contact page</a>.</p>
+
+</main>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <a class="brand" href="/"><img src="/icon.svg" alt="Choco" />Choco</a>
+    <nav class="footer-links" aria-label="Footer navigation">
+      <a href="/demo.html">Demo</a>
+      <a href="/contact-us.html">Contact</a>
+      <a href="/privacy.html">Privacy</a>
+      <a href="/terms.html">Terms</a>
+      <a href="/stats.html">Stats</a>
+    </nav>
+    <p class="footer-note">Built on Celo Mainnet · Non-custodial · Apache 2.0</p>
+  </div>
+</footer>
+
+</body>
 </html>
