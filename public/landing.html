@@ -307,7 +307,10 @@
       letter-spacing: .06em;
       backdrop-filter: blur(8px);
       white-space: nowrap;
+      cursor: pointer; font-family: inherit;
+      transition: background .15s, border-color .15s;
     }
+    .phone-label:hover { background: rgba(200,144,60,.22); border-color: rgba(200,144,60,.6); }
 
     /* â”€â”€ Products â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     .products-grid {
@@ -731,8 +734,8 @@
 
       <div class="phone-wrap">
         <div class="phone-frame">
-          <iframe src="/demo.html?embed" title="Choco live demo" loading="lazy"></iframe>
-          <span class="phone-label">Live demo &#x2192;</span>
+          <iframe id="phone-iframe" src="/demo.html?embed" title="Choco live demo" loading="lazy"></iframe>
+          <button type="button" class="phone-label" onclick="(function(){var f=document.getElementById('phone-iframe');f.src='/demo.html?embed&t='+Date.now();})()">Run demo &#x25B6;</button>
         </div>
       </div>
 

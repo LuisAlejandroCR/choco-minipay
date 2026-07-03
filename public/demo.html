@@ -142,12 +142,12 @@
     .info-card.result-card b { color: var(--accent-deep); }
 
     /* ── Phone frame ─────────────────────────────────────────────── */
-    .phone-wrap { display: flex; justify-content: center; }
+    .phone-wrap { display: flex; justify-content: center; align-items: flex-start; }
     .phone-frame {
       position: relative;
-      height: clamp(520px,72vh,720px);
-      width: auto; max-width: 340px;
-      aspect-ratio: 9/18;
+      width: min(355px, 92%);
+      height: auto;
+      aspect-ratio: 9/19.5;
       border: 2px solid rgba(28,13,5,.14);
       border-radius: 40px; overflow: hidden;
       background: #1a0e0a;
@@ -164,7 +164,10 @@
       border-radius: 99px; color: var(--accent-warm);
       font-size: 12px; font-weight: 700; letter-spacing: .06em;
       backdrop-filter: blur(8px); white-space: nowrap;
+      cursor: pointer; font-family: inherit;
+      transition: background .15s, border-color .15s;
     }
+    .phone-label:hover { background: rgba(200,144,60,.22); border-color: rgba(200,144,60,.6); }
 
     /* ── Footer ──────────────────────────────────────────────────── */
     .site-footer {
@@ -215,8 +218,8 @@
       <h1>Choco for<br/><em>MiniPay.</em></h1>
       <p>Text or voice a command. Your wallet signs once. Choco turns it into a USDC &rarr; KESm transfer or monthly schedule on Celo Mainnet &mdash; with an on-chain receipt every time.</p>
       <div class="demo-ctas">
-        <a class="btn primary" href="/app">Open Choco app</a>
-        <a class="btn" href="/">Learn more</a>
+        <button class="btn primary" type="button" onclick="(function(){var f=document.getElementById('demo-iframe');f.src='/demo.html?embed&t='+Date.now();})()">Run demo &#x25B6;</button>
+        <a class="btn" href="/app">Open app</a>
       </div>
       <div class="info-grid">
         <div class="info-card result-card">
@@ -243,7 +246,7 @@
     <div class="phone-wrap">
       <div class="phone-frame">
         <iframe id="demo-iframe" title="Choco live demo" loading="lazy" allow="camera;microphone"></iframe>
-        <span class="phone-label">Live demo &rarr;</span>
+        <button type="button" class="phone-label" onclick="(function(){var f=document.getElementById('demo-iframe');f.src='/demo.html?embed&t='+Date.now();})()">Run demo &#x25B6;</button>
       </div>
     </div>
 
