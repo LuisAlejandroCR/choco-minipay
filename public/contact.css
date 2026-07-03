@@ -310,6 +310,41 @@ textarea {
   line-height: 1.45;
 }
 
+.quick-contact {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.quick-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 52px;
+  border-radius: 20px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 850;
+  text-decoration: none;
+  border: 1px solid;
+  transition: opacity .12s, transform .1s;
+}
+
+.quick-btn:hover { opacity: .84; transform: translateY(-1px); }
+
+.quick-btn.whatsapp {
+  color: #d4f5d4;
+  background: rgba(37, 211, 102, 0.13);
+  border-color: rgba(37, 211, 102, 0.32);
+}
+
+.quick-btn.telegram {
+  color: #bfe4ff;
+  background: rgba(41, 170, 225, 0.13);
+  border-color: rgba(41, 170, 225, 0.32);
+}
+
 .footer-links {
   display: flex;
   flex-wrap: wrap;
