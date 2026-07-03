@@ -6,12 +6,14 @@ import { useAppStatus } from "./modules/app/useAppStatus.js";
 import { useTransfer } from "./modules/transfer/useTransfer.js";
 import { useContactResolution } from "./modules/contacts/useContactResolution.js";
 import { SUPABASE_READY } from "./lib/contacts.js";
-import { INITIAL_SCREEN, WORLD_MAP_URL } from "./config/runtime.js";
+import { WORLD_MAP_URL } from "./config/runtime.js";
 import { DEFAULT_COMMANDS, defaultPlan } from "./data/chocoScenario.js";
-import { getWalletStatusLabel, resolveVisibleScreen } from "./lib/access-control.js";
+import { getWalletStatusLabel } from "./lib/access-control.js";
 import { APP_CONFIG } from "./lib/app-config.js";
 import { getTransactionExplorerUrl } from "./lib/transactions.js";
 import { usePullToRefresh } from "./modules/ui/usePullToRefresh.js";
+import { useAppRouter } from "./modules/app/useAppRouter.js";
+import { useAppPlanActions } from "./modules/app/useAppPlanActions.js";
 import { PullToRefreshIndicator } from "./components/PullToRefreshIndicator.jsx";
 import {
   SPLASH_DURATION_MS,
@@ -19,14 +21,7 @@ import {
   findRecentSimilarTransfer,
   findSimilarPlan,
 } from "./utils/planUtils.js";
-import {
-  ADDRESSES,
-  cancelScheduleViaRegistry,
-  isMiniPay,
-  pauseScheduleViaRegistry,
-  readStablecoinBalances,
-  resumeScheduleViaRegistry,
-} from "./lib/celo.js";
+import { ADDRESSES, isMiniPay, readStablecoinBalances } from "./lib/celo.js";
 import { BottomNav } from "./components/BottomNav.jsx";
 import { ContactPicker } from "./components/ContactPicker.jsx";
 import { PitchScreen } from "./components/PitchScreen.jsx";
@@ -41,19 +36,18 @@ import { ReceiptDetailScreen } from "./screens/ReceiptDetailScreen.jsx";
 import { PlanDetailScreen } from "./screens/PlanDetailScreen.jsx";
 import { PlanEditorScreen } from "./screens/PlanEditorScreen.jsx";
 import { DeletePlanScreen } from "./screens/DeletePlanScreen.jsx";
-import { isEscrowConfigured, readLockedRun, refundScheduleRun } from "./chain/escrow.js";
+import { readLockedRun } from "./chain/escrow.js";
 import { useScheduleNotices } from "./modules/notifications/useScheduleNotices.js";
 import { ProcessingScreen } from "./screens/ProcessingScreen.jsx";
 import { DuplicateGuardScreen } from "./screens/DuplicateGuardScreen.jsx";
 import { ReviewScreen } from "./screens/ReviewScreen.jsx";
 import { TransactionSuccessScreen } from "./screens/TransactionSuccessScreen.jsx";
 import { CorridorPickerScreen } from "./screens/CorridorPickerScreen.jsx";
-import { humaniseConnectError, humanisePlanError, mergeTransactionDetails, pickById } from "./utils/appHelpers.js";
+import { humaniseConnectError, mergeTransactionDetails, pickById } from "./utils/appHelpers.js";
 import { RAMP_READY, openRampOnramp } from "./lib/ramp.js";
 
 export default function App({ privyAuth = null }) {
   // --- Core app state ---
-  const [screen, setScreen] = useState(INITIAL_SCREEN);
   const [command, setCommand] = useState(DEFAULT_COMMANDS.schedule);
   const [selectedPlanId, setSelectedPlanId] = useState("");
   const [selectedPlanFallback, setSelectedPlanFallback] = useState(null);
@@ -73,7 +67,7 @@ export default function App({ privyAuth = null }) {
   // walletCanSign is reserved for operations that require signing (review confirm button, actionReady).
   const walletHasAddress = wallet.isReady;
   const { plans, transactions, loading: ledgerLoading, error: ledgerError, refresh: refreshLedger, refreshFresh: refreshLedgerFresh, patchPlan, removePlan } = useChocoLedger(wallet.address);
-  const visibleScreen = resolveVisibleScreen(screen, walletHasAddress);
+  const { screen, setScreen, visibleScreen, goTo } = useAppRouter(walletHasAddress);
 
   // --- Helpers (defined before feature hooks; closures capture hook values at call time) ---
   async function refreshBalances(address = wallet.address) {
@@ -110,10 +104,6 @@ export default function App({ privyAuth = null }) {
       window.removeEventListener("focus", onVisible);
     };
   }, [wallet.address]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  function goTo(nextScreen) {
-    setScreen(resolveVisibleScreen(nextScreen, walletHasAddress));
-  }
 
   // --- Derived plan values (must be computed before feature hooks that consume them) ---
   const demoRecipientAddress = ADDRESSES.demoRecipient || "";
@@ -201,6 +191,17 @@ export default function App({ privyAuth = null }) {
     [selectedTransactionFallback, transfer.lastReceipt, selectedTransactionId, transactions],
   );
   const scheduleNotices = useScheduleNotices(plans, wallet.address);
+  const { togglePlanPaused, confirmDeletePlan, reclaimPlanFunds } = useAppPlanActions({
+    wallet,
+    appStatus,
+    activePlan,
+    removePlan,
+    patchPlan,
+    refreshLedgerFresh,
+    refreshBalances,
+    goTo,
+    onPlanDeleted: () => { setSelectedPlanId(""); setSelectedPlanFallback(null); },
+  });
   const actionReady = Boolean(
     walletCanSign &&
     contacts.recipientAddress &&
@@ -358,96 +359,6 @@ export default function App({ privyAuth = null }) {
     }
     goTo("review");
   }
-
-  async function confirmDeletePlan() {
-    if (!activePlan) {
-      goTo("plans");
-      return;
-    }
-    const planToDelete = activePlan;
-    try {
-      appStatus.setStatus("pending");
-      // Reclaim any escrow-locked next run first so the user gets their reserved USDC back.
-      if (isEscrowConfigured() && wallet.address) {
-        try {
-          const locked = await readLockedRun({ owner: wallet.address, scheduleId: planToDelete.onchainId });
-          if (locked > 0n) {
-            appStatus.setMessage("Returning your locked funds...");
-            await refundScheduleRun({ account: wallet.address, scheduleId: planToDelete.onchainId });
-          }
-        } catch (refundError) {
-          console.warn("Escrow refund skipped:", refundError?.message || refundError);
-        }
-      }
-      appStatus.setMessage("Cancelling schedule...");
-      await cancelScheduleViaRegistry({ account: wallet.address, id: planToDelete.onchainId });
-      appStatus.setStatus("idle");
-      // Optimistic remove: plan disappears immediately, background refresh confirms on-chain state.
-      removePlan(planToDelete.onchainId);
-      setSelectedPlanId("");
-      setSelectedPlanFallback(null);
-      goTo("plans");
-      window.setTimeout(() => { void refreshLedgerFresh(); void refreshBalances(wallet.address); }, 2000);
-    } catch (error) {
-      appStatus.setStatus("error");
-      appStatus.setMessage(humanisePlanError(error));
-    }
-  }
-
-  // Standalone "reclaim" — return a plan's set-aside USDC to the wallet WITHOUT cancelling the plan, so a
-  // user can always get held funds back (audit H-2). The plan stays active-but-unfunded; the app prompts
-  // to re-fund the next run.
-  async function reclaimPlanFunds() {
-    if (!activePlan || !wallet.address) { goTo("plans"); return; }
-    const plan = activePlan;
-    try {
-      appStatus.setStatus("pending");
-      appStatus.setMessage("Returning your set-aside funds...");
-      const locked = await readLockedRun({ owner: wallet.address, scheduleId: plan.onchainId });
-      if (locked === 0n) {
-        appStatus.setStatus("error");
-        appStatus.setMessage("Nothing is set aside for this plan right now.");
-        return;
-      }
-      await refundScheduleRun({ account: wallet.address, scheduleId: plan.onchainId });
-      appStatus.setStatus("idle");
-      appStatus.setMessage("");
-      window.setTimeout(() => { void refreshLedgerFresh(); void refreshBalances(wallet.address); }, 2000);
-    } catch (error) {
-      appStatus.setStatus("error");
-      appStatus.setMessage(humanisePlanError(error));
-    }
-  }
-
-  async function togglePlanPaused() {
-    if (!activePlan) {
-      goTo("plans");
-      return;
-    }
-    const planToToggle = activePlan;
-    const isPaused = planToToggle.status === "Paused" || planToToggle.active === false;
-    try {
-      appStatus.setStatus("pending");
-      appStatus.setMessage(isPaused ? "Resuming plan..." : "Pausing plan...");
-      if (isPaused) {
-        await resumeScheduleViaRegistry({ account: wallet.address, id: planToToggle.onchainId });
-      } else {
-        await pauseScheduleViaRegistry({ account: wallet.address, id: planToToggle.onchainId });
-      }
-      appStatus.setStatus("idle");
-      // Optimistic patch: status flips instantly without waiting for the full 11s refresh.
-      patchPlan(planToToggle.onchainId, isPaused
-        ? { status: "Active", active: true }
-        : { status: "Paused", active: false });
-      goTo("plans");
-      // Background refresh to sync any other changes; cache cleared so it reads fresh.
-      window.setTimeout(() => { void refreshLedgerFresh(); }, 2000);
-    } catch (error) {
-      appStatus.setStatus("error");
-      appStatus.setMessage(humanisePlanError(error));
-    }
-  }
-
 
   return (
     <main className="stage">
