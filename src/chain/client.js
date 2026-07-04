@@ -118,6 +118,30 @@ export function makeWalletClient(account) {
   return createWalletClient({ account, chain: celo, transport: custom(provider) });
 }
 
+// Attempt to switch to Celo, adding the network if the wallet doesn't know it yet (EIP-3085).
+export async function switchToCeloChain(provider = getActiveEthereumProvider()) {
+  if (!provider) throw new Error("No wallet provider.");
+  try {
+    await provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: CELO_MAINNET.chainIdHex }] });
+  } catch (switchErr) {
+    // 4902 = chain not yet registered in the wallet — add it, then switch.
+    if (switchErr?.code === 4902 || switchErr?.code === -32603) {
+      await provider.request({
+        method: "wallet_addEthereumChain",
+        params: [{
+          chainId: CELO_MAINNET.chainIdHex,
+          chainName: "Celo Mainnet",
+          nativeCurrency: { name: "CELO", symbol: "CELO", decimals: 18 },
+          rpcUrls: [CELO_MAINNET.rpcUrl],
+          blockExplorerUrls: ["https://celoscan.io"],
+        }],
+      });
+    } else {
+      throw switchErr;
+    }
+  }
+}
+
 export async function connectInjectedWallet() {
   const provider = getActiveEthereumProvider();
   if (!provider) throw new Error("Open Choco in MiniPay or a Celo wallet browser.");
@@ -126,9 +150,9 @@ export async function connectInjectedWallet() {
 
   if (String(chainId).toLowerCase() !== CELO_MAINNET.chainIdHex.toLowerCase()) {
     try {
-      await provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: CELO_MAINNET.chainIdHex }] });
+      await switchToCeloChain(provider);
     } catch {
-      throw new Error("Switch your wallet to Celo Mainnet before continuing.");
+      // Don't block connection — return the account anyway so App can show ChainGateScreen.
     }
   }
 

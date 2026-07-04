@@ -46,6 +46,7 @@ import { CorridorPickerScreen } from "./screens/CorridorPickerScreen.jsx";
 import { WithdrawToBankScreen } from "./screens/WithdrawToBankScreen.jsx";
 import { AfricaCorridorScreen } from "./screens/AfricaCorridorScreen.jsx";
 import { KotaniPayoutScreen } from "./screens/KotaniPayoutScreen.jsx";
+import { ChainGateScreen } from "./screens/ChainGateScreen.jsx";
 import { humaniseConnectError, mergeTransactionDetails, pickById } from "./utils/appHelpers.js";
 import { RAMP_READY, openRampOnramp } from "./lib/ramp.js";
 import { BRIDGE_READY } from "./lib/bridge.js";
@@ -277,15 +278,20 @@ export default function App({ privyAuth = null }) {
     void attachPrivyWallet(privyAuth.embeddedWallet);
   }, [privyAuth?.ready, privyAuth?.authenticated, !!privyAuth?.embeddedWallet, wallet.isReady]); // eslint-disable-line
 
-  // Safety net: if a SIGNING wallet becomes ready while the gate is still showing (e.g. the
-  // user connected a browser extension through Privy's modal, which the embedded-wallet bridge
-  // above deliberately ignores), move on — the gate has nothing left for the user to press.
-  // Gated on canSign, not isReady: read-only (pasted-address) users must still be able to open
-  // the gate to upgrade to a real wallet.
+  // Safety net: if a SIGNING wallet becomes ready while the gate is still showing, move on.
+  // Intercept for wrong chain: browser wallets on non-Celo networks go to chainGate first.
+  // Gated on canSign (not isReady) so read-only users can still upgrade at the gate.
   useEffect(() => {
     if (screen !== "walletGate" || !walletCanSign) return;
+    if (!isMiniPay() && !wallet.onCelo) { setScreen("chainGate"); return; }
     setScreen(isMiniPay() ? "plan" : "corridorPicker");
-  }, [screen, walletCanSign]);
+  }, [screen, walletCanSign, wallet.onCelo]);
+
+  // After a successful chain switch on chainGate, forward to the corridor picker.
+  useEffect(() => {
+    if (screen !== "chainGate" || !wallet.onCelo || !walletCanSign) return;
+    setScreen("corridorPicker");
+  }, [screen, wallet.onCelo, walletCanSign]);
 
   // --- Event handlers ---
   async function connectWallet() {
@@ -517,6 +523,14 @@ export default function App({ privyAuth = null }) {
               onHome={() => setScreen("plan")}
               onEmailLogin={privyAuth ? handleEmailLogin : null}
               emailAuth={privyAuth}
+            />
+          )}
+          {visibleScreen === "chainGate" && (
+            <ChainGateScreen
+              chainId={wallet.chainId}
+              switching={wallet.status === "opening-wallet"}
+              error={wallet.error}
+              onSwitch={() => wallet.switchToCelo()}
             />
           )}
           {visibleScreen === "corridorPicker" && (

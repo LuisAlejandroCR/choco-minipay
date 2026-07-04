@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ACTIVE_CELO_NETWORK } from "../../config/runtime.js";
 import { connectInjectedWallet, getActiveEthereumProvider, isMiniPay, setActiveEthereumProvider, shortAddress } from "../../lib/celo.js";
+import { switchToCeloChain } from "../../chain/client.js";
 import { humaniseConnectError } from "../../utils/appHelpers.js";
 
 export function formatWalletAddress(address) {
@@ -21,10 +22,12 @@ export function useMiniPayWallet() {
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
   const [isReadOnly, setIsReadOnly] = useState(false);
+  const [chainId, setChainId] = useState(0);
   const hasProvider = hasEthereumProvider();
   const mobile = isMobileBrowser();
   const miniPay = isMiniPay();
   const canSign = Boolean(address && hasProvider && !isReadOnly);
+  const onCelo = miniPay || chainId === 0 || chainId === ACTIVE_CELO_NETWORK.chainId;
 
   useEffect(() => {
     if (!hasProvider) return undefined;
@@ -46,10 +49,11 @@ export function useMiniPayWallet() {
       setError("");
     }
 
-    function handleChainChanged() {
+    function handleChainChanged(newChainId) {
+      setChainId(newChainId ? Number(newChainId) : 0);
       setAddress("");
       setStatus("idle");
-      setError("Reconnect your wallet.");
+      setError("");
     }
 
     const provider = getActiveEthereumProvider();
@@ -73,6 +77,8 @@ export function useMiniPayWallet() {
     isReady: Boolean(address),
     isTestnet: false,
     needsMobileWallet: mobile && !hasProvider,
+    chainId,
+    onCelo,
     network: {
       ...ACTIVE_CELO_NETWORK,
       badge: "Mainnet",
@@ -85,13 +91,19 @@ export function useMiniPayWallet() {
       : status === "loading" || status === "opening-wallet"
         ? "Opening wallet"
         : error || "Connect wallet",
-  }), [address, error, hasProvider, isReadOnly, canSign, miniPay, mobile, status]);
+  }), [address, error, hasProvider, isReadOnly, canSign, miniPay, mobile, chainId, onCelo, status]);
 
   async function verifyWallet() {
     try {
       setStatus("opening-wallet");
       setError("");
       const nextAddress = await connectInjectedWallet();
+      // Read chain after connect so onCelo reflects current state before App routes.
+      const provider = getActiveEthereumProvider();
+      if (provider) {
+        const raw = await provider.request({ method: "eth_chainId" }).catch(() => "");
+        if (raw) setChainId(Number(raw));
+      }
       setAddress(nextAddress);
       setIsReadOnly(false);
       setStatus("ready");
@@ -101,6 +113,22 @@ export function useMiniPayWallet() {
       // Rendered on WalletGateScreen and in the connect-button label — keep it friendly.
       setError(humaniseConnectError(nextError));
       throw nextError;
+    }
+  }
+
+  async function switchToCelo() {
+    const provider = getActiveEthereumProvider();
+    if (!provider) return;
+    try {
+      setStatus("opening-wallet");
+      setError("");
+      await switchToCeloChain(provider);
+      const raw = await provider.request({ method: "eth_chainId" }).catch(() => "");
+      if (raw) setChainId(Number(raw));
+      setStatus("ready");
+    } catch (e) {
+      setStatus("error");
+      setError(humaniseConnectError(e));
     }
   }
 
@@ -185,6 +213,7 @@ export function useMiniPayWallet() {
   return {
     ...wallet,
     verifyWallet,
+    switchToCelo,
     connectPrivyWallet,
     connectPrivyProvider,
     connectManual,

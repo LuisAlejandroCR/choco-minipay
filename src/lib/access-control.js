@@ -9,6 +9,10 @@ export const VERIFIED_WALLET_SCREENS = new Set([
   "duplicateGuard",
   "review",
   "withdrawToBank",
+  "chainGate",
+  "corridorPicker",
+  "africaPicker",
+  "kotaniPayout",
 ]);
 
 export function requiresVerifiedWallet(screen) {
