@@ -7,9 +7,11 @@ import {
   getKycStatus,
   getOrCreateLiquidationAddress,
 } from "../lib/bridge.js";
+import { ORIONX_CORRIDORS, ORIONX_READY } from "../lib/orionx.js";
 
 // step: "pick" → "kyc" → "bank" → "address"
-export function WithdrawToBankScreen({ walletAddress, onBack }) {
+// onOrionxCorridor — when set, Chile/Peru cards are enabled and call this with the corridor object.
+export function WithdrawToBankScreen({ walletAddress, onBack, onOrionxCorridor = null }) {
   const [step, setStep] = useState("pick");
   const [corridor, setCorridor] = useState(null);
   const [email, setEmail] = useState("");
@@ -122,6 +124,28 @@ export function WithdrawToBankScreen({ walletAddress, onBack }) {
                 }
               </button>
             ))}
+            {ORIONX_CORRIDORS.map((c) => {
+              const enabled = ORIONX_READY && Boolean(onOrionxCorridor);
+              return (
+                <button
+                  key={c.code}
+                  className="wtb-card"
+                  type="button"
+                  disabled={!enabled}
+                  onClick={enabled ? () => onOrionxCorridor(c) : undefined}
+                >
+                  <span className="wtb-flag">{c.flag}</span>
+                  <div className="wtb-card-body">
+                    <strong>{c.label}</strong>
+                    <span>{c.currency} · {c.rail}</span>
+                  </div>
+                  {enabled
+                    ? <span className="wtb-arrow">→</span>
+                    : <span className="wtb-badge-beta">Soon</span>
+                  }
+                </button>
+              );
+            })}
           </div>
           <button className="wtb-back-link" type="button" onClick={onBack}>
             ← Back

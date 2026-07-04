@@ -46,11 +46,13 @@ import { CorridorPickerScreen } from "./screens/CorridorPickerScreen.jsx";
 import { WithdrawToBankScreen } from "./screens/WithdrawToBankScreen.jsx";
 import { AfricaCorridorScreen } from "./screens/AfricaCorridorScreen.jsx";
 import { KotaniPayoutScreen } from "./screens/KotaniPayoutScreen.jsx";
+import { OrionxPayoutScreen } from "./screens/OrionxPayoutScreen.jsx";
 import { ChainGateScreen } from "./screens/ChainGateScreen.jsx";
 import { humaniseConnectError, mergeTransactionDetails, pickById } from "./utils/appHelpers.js";
 import { RAMP_READY, openRampOnramp } from "./lib/ramp.js";
 import { BRIDGE_READY } from "./lib/bridge.js";
 import { KOTANI_READY } from "./lib/kotani.js";
+import { ORIONX_READY } from "./lib/orionx.js";
 
 export default function App({ privyAuth = null }) {
   // --- Core app state ---
@@ -63,6 +65,7 @@ export default function App({ privyAuth = null }) {
   const [deliveryMode, setDeliveryMode] = useState("schedule");
   const [activeInfoPanel, setActiveInfoPanel] = useState(null);
   const [kotaniCorridor, setKotaniCorridor] = useState(null);
+  const [orionxCorridor, setOrionxCorridor] = useState(null);
   const [resolvedPreviewPlan, setResolvedPreviewPlan] = useState(null);
   const [balances, setBalances] = useState([]);
   const [showDemoPrompt, setShowDemoPrompt] = useState(APP_CONFIG.ui.showDemoPrompt);
@@ -559,6 +562,13 @@ export default function App({ privyAuth = null }) {
             <WithdrawToBankScreen
               walletAddress={wallet.address}
               onBack={() => goTo("corridorPicker")}
+              onOrionxCorridor={ORIONX_READY ? (c) => { setOrionxCorridor(c); setScreen("orionxPayout"); } : null}
+            />
+          )}
+          {visibleScreen === "orionxPayout" && orionxCorridor && (
+            <OrionxPayoutScreen
+              corridor={orionxCorridor}
+              onBack={() => setScreen("withdrawToBank")}
             />
           )}
           {visibleScreen === "demoTour" && (

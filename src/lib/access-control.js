@@ -13,6 +13,7 @@ export const VERIFIED_WALLET_SCREENS = new Set([
   "corridorPicker",
   "africaPicker",
   "kotaniPayout",
+  "orionxPayout",
 ]);
 
 export function requiresVerifiedWallet(screen) {
