@@ -45,9 +45,11 @@ import { TransactionSuccessScreen } from "./screens/TransactionSuccessScreen.jsx
 import { CorridorPickerScreen } from "./screens/CorridorPickerScreen.jsx";
 import { WithdrawToBankScreen } from "./screens/WithdrawToBankScreen.jsx";
 import { AfricaCorridorScreen } from "./screens/AfricaCorridorScreen.jsx";
+import { KotaniPayoutScreen } from "./screens/KotaniPayoutScreen.jsx";
 import { humaniseConnectError, mergeTransactionDetails, pickById } from "./utils/appHelpers.js";
 import { RAMP_READY, openRampOnramp } from "./lib/ramp.js";
 import { BRIDGE_READY } from "./lib/bridge.js";
+import { KOTANI_READY } from "./lib/kotani.js";
 
 export default function App({ privyAuth = null }) {
   // --- Core app state ---
@@ -59,6 +61,7 @@ export default function App({ privyAuth = null }) {
   const [reviewMode, setReviewMode] = useState("create");
   const [deliveryMode, setDeliveryMode] = useState("schedule");
   const [activeInfoPanel, setActiveInfoPanel] = useState(null);
+  const [kotaniCorridor, setKotaniCorridor] = useState(null);
   const [resolvedPreviewPlan, setResolvedPreviewPlan] = useState(null);
   const [balances, setBalances] = useState([]);
   const [showDemoPrompt, setShowDemoPrompt] = useState(APP_CONFIG.ui.showDemoPrompt);
@@ -526,7 +529,14 @@ export default function App({ privyAuth = null }) {
           {visibleScreen === "africaPicker" && (
             <AfricaCorridorScreen
               onKenya={() => setScreen("plan")}
+              onCorridor={KOTANI_READY ? (c) => { setKotaniCorridor(c); setScreen("kotaniPayout"); } : null}
               onBack={() => setScreen("corridorPicker")}
+            />
+          )}
+          {visibleScreen === "kotaniPayout" && kotaniCorridor && (
+            <KotaniPayoutScreen
+              corridor={kotaniCorridor}
+              onBack={() => setScreen("africaPicker")}
             />
           )}
           {visibleScreen === "withdrawToBank" && (

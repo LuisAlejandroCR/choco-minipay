@@ -22,6 +22,9 @@ export const AFRICA_CORRIDORS = [
     rail: "Bank transfer · mobile money",
     live: KOTANI_READY,
     native: false,
+    recipientType: "phone",
+    recipientLabel: "Mobile number",
+    recipientPlaceholder: "+234 80x xxx xxxx",
   },
   {
     code: "ghs", label: "Ghana", flag: "🇬🇭",
@@ -29,6 +32,9 @@ export const AFRICA_CORRIDORS = [
     rail: "MTN MoMo · bank transfer",
     live: KOTANI_READY,
     native: false,
+    recipientType: "phone",
+    recipientLabel: "MoMo number",
+    recipientPlaceholder: "+233 5x xxx xxxx",
   },
   {
     code: "zar", label: "South Africa", flag: "🇿🇦",
@@ -36,6 +42,11 @@ export const AFRICA_CORRIDORS = [
     rail: "Bank transfer",
     live: KOTANI_READY,
     native: false,
+    recipientType: "bank",
+    recipientLabel: "Account number",
+    recipientPlaceholder: "Bank account number",
+    bankCodeLabel: "Bank code",
+    bankCodePlaceholder: "e.g. ABSA, FNB, CAPITEC",
   },
 ];
 
