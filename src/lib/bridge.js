@@ -32,17 +32,21 @@ export const LATAM_CORRIDORS = [
   },
 ];
 
-// customerId is persisted per wallet so repeat users skip KYC.
+// customerId is kept in sessionStorage (cleared on tab close) rather than localStorage.
+// localStorage would let an XSS steal the id across sessions and call /api/bridge to
+// create a liquidation address pointing to an attacker's bank account.
+// sessionStorage limits the exposure window to the active tab only.
+// KYC approval lives on Bridge's servers — users re-enter their email once per session.
 const cidKey = (wallet) => `choco:bridge:cid:${String(wallet || "").toLowerCase()}`;
 
 export function getStoredCustomerId(walletAddress) {
   if (!walletAddress) return "";
-  try { return localStorage.getItem(cidKey(walletAddress)) || ""; } catch { return ""; }
+  try { return sessionStorage.getItem(cidKey(walletAddress)) || ""; } catch { return ""; }
 }
 
 export function saveCustomerId(walletAddress, customerId) {
   if (!walletAddress || !customerId) return;
-  try { localStorage.setItem(cidKey(walletAddress), customerId); } catch {}
+  try { sessionStorage.setItem(cidKey(walletAddress), customerId); } catch {}
 }
 
 async function post(action, body, customerId = "") {

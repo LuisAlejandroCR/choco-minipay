@@ -25,5 +25,6 @@ contracts/V2_BACKLOG.md
 Thumbs.db
 .agents/
 ops/
-contracts/verify/*.json 
+contracts/verify/*.json
+supabase/.temp/
 .claude
