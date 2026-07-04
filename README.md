@@ -18,14 +18,29 @@ Choco is not a bank and does not hold private keys. Send-now transfers move only
 
 ## Roadmap
 
+### Active corridors
+
+| Corridor | Status | Provider | Activation |
+|---|---|---|---|
+| USDC → KESm (Kenya) | **Live** | ChocoGateway on Celo Mainnet | — |
+| USDC → NGN (Nigeria) | Scaffolded — "Soon" badge | Kotani Pay | `VITE_KOTANI_ENABLED=true` + `KOTANI_API_KEY` in Vercel |
+| USDC → GHS (Ghana) | Scaffolded — "Soon" badge | Kotani Pay | same |
+| USDC → ZAR (South Africa) | Scaffolded — "Soon" badge | Kotani Pay | same |
+| USDC → BRL via Pix (Brazil) | Code complete | Bridge (Stripe) | `BRIDGE_API_KEY` + `VITE_BRIDGE_ENABLED=true` in Vercel; Bridge KYB (~1–2 weeks) |
+| USDC → MXN via SPEI (Mexico) | Code complete | Bridge (Stripe) | same |
+| USDC → COP via Bre-B (Colombia) | Code complete — beta rail | Bridge (Stripe) | same |
+| USDC → CLP (Chile) | Planned | Orionx Business Payments | Apply at orionx.com; stablecoin-to-fiat across CL/PE/CO/MX |
+| USDC → PEN (Peru) | Planned | Orionx Business Payments | same |
+| USDC → USD bank (Ecuador) | Planned | Bridge (Stripe) | Ecuador is dollarized — USDC → USD ACH; groups with Bridge KYB |
+| USDC → ARS (Argentina) | Research — deferred | Wallbit / iTransfr FX | ARS currency controls (cepo) make fiat offramp legally complex; defer until controls ease or strong demand confirmed |
+
+### Platform
+
 | Item | Stage | Notes |
 |---|---|---|
-| Kenya corridor (USDC → KESm) | **Live** | ChocoGateway on Celo Mainnet |
-| Ramp onramp ("Fund wallet") | Code complete | Waiting on Ramp API key ([token-integration](https://ramp.network/token-integration)); `VITE_RAMP_API_KEY` activates it |
-| Bridge LATAM offramp (BRL/PIX, MXN/SPEI, COP/Bre-B) | Code complete | Waiting on Bridge KYB (bridge.xyz); `BRIDGE_API_KEY` + `VITE_BRIDGE_ENABLED=true` activates it |
-| Africa expanded (NGN, GHS, ZAR) | Scaffolded | Waiting on Kotani Pay API key; picker ships with "Soon" badges until `VITE_KOTANI_ENABLED=true` |
-| Multichain outside MiniPay | Planned | Accept USDC on Base/Arbitrum/Polygon for browser (Privy) users and bridge/route into the Celo corridors. MiniPay path stays Celo-only |
-| Evaluate [peer.xyz](https://peer.xyz) | Research | P2P onramp/offramp with ZK verification instead of KYC — could fund wallets from local payment apps with no identity friction. Needs: Celo support, corridor liquidity (COP/KES), and a compliance read on P2P matching |
+| Ramp onramp ("Fund wallet") | Code complete | Waiting on Ramp API key ([ramp.network/token-integration](https://ramp.network/token-integration)); `VITE_RAMP_API_KEY` activates it |
+| Multichain outside MiniPay | Planned | Accept USDC on Base / Arbitrum / Polygon for browser (Privy) users and route into Celo corridors. MiniPay path stays Celo-only |
+| Evaluate [peer.xyz](https://peer.xyz) | Research | P2P on/offramp with ZK verification instead of KYC — no identity friction, local payment app sources. Needs: Celo chain support, corridor liquidity (COP/KES), compliance read on P2P matching in Colombia |
 
 ## How Choco Works
 
