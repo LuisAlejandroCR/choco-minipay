@@ -33,13 +33,15 @@ export const LATAM_CORRIDORS = [
 ];
 
 // customerId is persisted per wallet so repeat users skip KYC.
-const cidKey = (wallet) => `choco:bridge:cid:${wallet.toLowerCase()}`;
+const cidKey = (wallet) => `choco:bridge:cid:${String(wallet || "").toLowerCase()}`;
 
 export function getStoredCustomerId(walletAddress) {
+  if (!walletAddress) return "";
   try { return localStorage.getItem(cidKey(walletAddress)) || ""; } catch { return ""; }
 }
 
 export function saveCustomerId(walletAddress, customerId) {
+  if (!walletAddress || !customerId) return;
   try { localStorage.setItem(cidKey(walletAddress), customerId); } catch {}
 }
 

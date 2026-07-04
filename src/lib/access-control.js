@@ -8,6 +8,7 @@ export const VERIFIED_WALLET_SCREENS = new Set([
   "checkpoint",
   "duplicateGuard",
   "review",
+  "withdrawToBank",
 ]);
 
 export function requiresVerifiedWallet(screen) {
