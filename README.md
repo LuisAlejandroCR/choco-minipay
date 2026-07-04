@@ -16,6 +16,17 @@ Choco is not a bank and does not hold private keys. Send-now transfers move only
 | Fee | 0.25% protocol fee in the gateway contract |
 | Recognition | 2nd place, [Celo Colombia Hackathon](https://hackathon.celocolombia.org/resultados?token=99e4149611fb48ee8cbfe2de) |
 
+## Roadmap
+
+| Item | Stage | Notes |
+|---|---|---|
+| Kenya corridor (USDC → KESm) | **Live** | ChocoGateway on Celo Mainnet |
+| Ramp onramp ("Fund wallet") | Code complete | Waiting on Ramp API key ([token-integration](https://ramp.network/token-integration)); `VITE_RAMP_API_KEY` activates it |
+| Bridge LATAM offramp (BRL/PIX, MXN/SPEI, COP/Bre-B) | Code complete | Waiting on Bridge KYB (bridge.xyz); `BRIDGE_API_KEY` + `VITE_BRIDGE_ENABLED=true` activates it |
+| Africa expanded (NGN, GHS, ZAR) | Scaffolded | Waiting on Kotani Pay API key; picker ships with "Soon" badges until `VITE_KOTANI_ENABLED=true` |
+| Multichain outside MiniPay | Planned | Accept USDC on Base/Arbitrum/Polygon for browser (Privy) users and bridge/route into the Celo corridors. MiniPay path stays Celo-only |
+| Evaluate [peer.xyz](https://peer.xyz) | Research | P2P onramp/offramp with ZK verification instead of KYC — could fund wallets from local payment apps with no identity friction. Needs: Celo support, corridor liquidity (COP/KES), and a compliance read on P2P matching |
+
 ## How Choco Works
 
 1. User opens Choco in MiniPay or a Celo wallet browser.

@@ -12,7 +12,9 @@ jobs:
       - name: Trigger schedule worker
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
-          WORKER_URL: ${{ vars.CHOCO_WORKER_URL || 'https://choco-minipay.vercel.app/api/run-due-schedules' }}
+          # choco-minipay.vercel.app now 301s to usechoco.app (Safe Browsing fix) and curl
+          # does not follow redirects here — the worker must be hit on the production domain.
+          WORKER_URL: ${{ vars.CHOCO_WORKER_URL || 'https://usechoco.app/api/run-due-schedules' }}
         run: |
           if [ -z "${CRON_SECRET}" ]; then
             echo "::warning::CRON_SECRET is empty in GitHub Actions. If Vercel has CRON_SECRET set, the worker returns 401."
