@@ -39,7 +39,35 @@ export const AFRICA_CORRIDORS = [
   },
 ];
 
-// Placeholder until the Kotani API key arrives and /api/kotani exists.
-export async function initiateKotaniPayout() {
-  throw new Error("This corridor is not live yet. Kenya transfers work today.");
+// ── Client functions — call the /api/kotani proxy (server holds the API key) ──
+
+// Returns { rate, localAmount, fee } for a USDC → local currency quote.
+// currency: "ngn" | "ghs" | "zar"   amountUsdc: number or string
+export async function getKotaniQuote(currency, amountUsdc) {
+  const r = await fetch(`/api/kotani?action=quote&currency=${currency}&amount=${amountUsdc}`);
+  const data = await r.json();
+  if (!data.ok) throw new Error(data.error || "Quote failed.");
+  return data;
+}
+
+// Initiates a payout. Returns { reference, depositAddress, expiresAt }.
+// recipient: { phone } for mobile money, or { accountNumber, bankCode, name } for bank transfer.
+export async function initiateKotaniPayout(currency, amountUsdc, recipient) {
+  const r = await fetch("/api/kotani?action=payout", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ currency, amountUsdc: String(amountUsdc), recipient }),
+  });
+  const data = await r.json();
+  if (!data.ok) throw new Error(data.error || "Payout initiation failed.");
+  return data;
+}
+
+// Polls payout status by reference. Returns { status, localAmount }.
+// status: "pending" | "processing" | "completed" | "failed"
+export async function getKotaniStatus(reference) {
+  const r = await fetch(`/api/kotani?action=status&reference=${encodeURIComponent(reference)}`);
+  const data = await r.json();
+  if (!data.ok) throw new Error(data.error || "Status check failed.");
+  return data;
 }
