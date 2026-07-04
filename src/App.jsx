@@ -44,6 +44,7 @@ import { ReviewScreen } from "./screens/ReviewScreen.jsx";
 import { TransactionSuccessScreen } from "./screens/TransactionSuccessScreen.jsx";
 import { CorridorPickerScreen } from "./screens/CorridorPickerScreen.jsx";
 import { WithdrawToBankScreen } from "./screens/WithdrawToBankScreen.jsx";
+import { AfricaCorridorScreen } from "./screens/AfricaCorridorScreen.jsx";
 import { humaniseConnectError, mergeTransactionDetails, pickById } from "./utils/appHelpers.js";
 import { RAMP_READY, openRampOnramp } from "./lib/ramp.js";
 import { BRIDGE_READY } from "./lib/bridge.js";
@@ -273,13 +274,15 @@ export default function App({ privyAuth = null }) {
     void attachPrivyWallet(privyAuth.embeddedWallet);
   }, [privyAuth?.ready, privyAuth?.authenticated, !!privyAuth?.embeddedWallet, wallet.isReady]); // eslint-disable-line
 
-  // Safety net: if the wallet becomes ready while the gate is still showing (e.g. the user
-  // connected a browser extension through Privy's modal, which the embedded-wallet bridge
+  // Safety net: if a SIGNING wallet becomes ready while the gate is still showing (e.g. the
+  // user connected a browser extension through Privy's modal, which the embedded-wallet bridge
   // above deliberately ignores), move on — the gate has nothing left for the user to press.
+  // Gated on canSign, not isReady: read-only (pasted-address) users must still be able to open
+  // the gate to upgrade to a real wallet.
   useEffect(() => {
-    if (screen !== "walletGate" || !walletHasAddress) return;
+    if (screen !== "walletGate" || !walletCanSign) return;
     setScreen(isMiniPay() ? "plan" : "corridorPicker");
-  }, [screen, walletHasAddress]);
+  }, [screen, walletCanSign]);
 
   // --- Event handlers ---
   async function connectWallet() {
@@ -300,8 +303,10 @@ export default function App({ privyAuth = null }) {
 
   // "Sign in with email" — also the retry path after a page refresh. Privy restores the
   // session (authenticated=true) but its login() THROWS when called while already logged in,
-  // which used to make the button silently do nothing. Reconnect the restored wallet instead,
-  // or reset the stale session when the embedded wallet never arrived.
+  // which used to make the button silently do nothing. Reconnect the restored wallet instead.
+  // When the OTP is done but the embedded wallet hasn't landed yet ("tap the button again"),
+  // retry wallet creation IN PLACE — logging out here would destroy the in-flight session and
+  // trap the user in an OTP → logout → OTP loop.
   async function handleEmailLogin() {
     if (!privyAuth) return;
     if (privyAuth.authenticated && privyAuth.embeddedWallet) {
@@ -309,7 +314,19 @@ export default function App({ privyAuth = null }) {
       return;
     }
     if (privyAuth.authenticated && !privyAuth.embeddedWallet) {
-      try { await privyAuth.logout(); } catch { /* stale session — proceed to login anyway */ }
+      try {
+        await privyAuth.createWallet?.();
+        // Success: useWallets updates → the bridge effect attaches it and navigates.
+      } catch (error) {
+        // "already has an embedded wallet" = provisioning race — the wallet will surface
+        // through useWallets momentarily; do nothing. Anything else: the session is truly
+        // stale, so reset it and reopen the login modal as the last resort.
+        if (!/already has|already exists/i.test(error?.message || "")) {
+          try { await privyAuth.logout(); } catch { /* proceed to login anyway */ }
+          privyAuth.login();
+        }
+      }
+      return;
     }
     privyAuth.login();
   }
@@ -501,9 +518,15 @@ export default function App({ privyAuth = null }) {
           )}
           {visibleScreen === "corridorPicker" && (
             <CorridorPickerScreen
-              onSendToAfrica={() => setScreen("plan")}
+              onSendToAfrica={() => setScreen("africaPicker")}
               onWithdrawToBank={BRIDGE_READY ? () => goTo("withdrawToBank") : null}
               onKeepAsUsdc={() => setScreen("plan")}
+            />
+          )}
+          {visibleScreen === "africaPicker" && (
+            <AfricaCorridorScreen
+              onKenya={() => setScreen("plan")}
+              onBack={() => setScreen("corridorPicker")}
             />
           )}
           {visibleScreen === "withdrawToBank" && (

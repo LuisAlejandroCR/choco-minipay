@@ -45,7 +45,7 @@ function pickEmbeddedWallet(wallets = []) {
 }
 
 function PrivyBridgedApp() {
-  const { ready, authenticated, login, logout } = usePrivy();
+  const { ready, authenticated, login, logout, createWallet } = usePrivy();
   const { wallets } = useWallets();
   const embeddedWallet = useMemo(() => pickEmbeddedWallet(wallets), [wallets]);
 
@@ -56,6 +56,7 @@ function PrivyBridgedApp() {
         authenticated,
         login,           // Privy's own login() — opens the modal directly
         logout,
+        createWallet,    // retry path when the embedded wallet fails to provision after OTP
         embeddedWallet,  // null until OTP completes + wallet is created
       }}
     />
