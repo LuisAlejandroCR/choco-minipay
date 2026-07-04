@@ -1678,6 +1678,16 @@
   transform: scale(0.98);
 }
 
+.wtb-card:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.wtb-card:disabled:hover {
+  border-color: var(--line-soft);
+  background: var(--cocoa-900);
+}
+
 .wtb-flag {
   font-size: 28px;
   flex-shrink: 0;

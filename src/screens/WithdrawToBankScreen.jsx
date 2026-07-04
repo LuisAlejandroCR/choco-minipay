@@ -4,6 +4,7 @@ import {
   LATAM_CORRIDORS,
   getStoredCustomerId,
   createKycLink,
+  getKycStatus,
   getOrCreateLiquidationAddress,
 } from "../lib/bridge.js";
 
@@ -36,6 +37,29 @@ export function WithdrawToBankScreen({ walletAddress, onBack }) {
       setKycUrl(url);
       if (cid) setCustomerId(cid);
       window.open(url, "_blank", "noopener,noreferrer");
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Verify the KYC actually cleared before letting the user enter bank details —
+  // Bridge rejects liquidation-address creation for unapproved customers with a
+  // confusing API error, so surface a plain-language status here instead.
+  async function handleKycDone() {
+    if (!customerId) { setError("Start the verification first."); return; }
+    setLoading(true);
+    setError("");
+    try {
+      const status = await getKycStatus(customerId);
+      if (status === "approved" || status === "active") {
+        setStep("bank");
+      } else if (status === "rejected") {
+        setError("Verification was not approved. Contact support@bridge.xyz for details.");
+      } else {
+        setError("Verification is still processing — this can take a few minutes. Try again shortly.");
+      }
     } catch (e) {
       setError(e.message);
     } finally {
@@ -142,8 +166,8 @@ export function WithdrawToBankScreen({ walletAddress, onBack }) {
                 <p className="wtb-hint">
                   Complete the verification in the new tab, then return here.
                 </p>
-                <button className="wtb-cta-sec" type="button" onClick={() => setStep("bank")}>
-                  I've completed verification →
+                <button className="wtb-cta-sec" type="button" disabled={loading} onClick={handleKycDone}>
+                  {loading ? "Checking…" : "I've completed verification →"}
                 </button>
               </div>
             )}
