@@ -2,6 +2,8 @@
 // ORIONX_API_KEY lives only here; never expose it in VITE_ env vars.
 // Apply at orionx.com/business. Verify endpoint paths against their API docs when the key arrives.
 
+import { allow, clientIp } from "./_ratelimit.js";
+
 const ORIONX_API = "https://api.orionx.com/payments";
 const API_KEY = process.env.ORIONX_API_KEY || "";
 
@@ -28,6 +30,12 @@ export default async function handler(req, res) {
   }
 
   const { action, reference } = req.query || {};
+  const ip = clientIp(req);
+
+  if (!allow(ip, `orionx:${action}`, action === "payout" ? 5 : 20)) {
+    res.status(429).json({ ok: false, error: "Too many requests. Try again in a minute." });
+    return;
+  }
 
   try {
     // GET /api/orionx?action=quote&currency=clp&amount=10

@@ -3,6 +3,8 @@
 // Apply at kotanipay.com. Verify endpoint paths against their docs when the key arrives.
 // Docs: https://docs.kotanipay.com
 
+import { allow, clientIp } from "./_ratelimit.js";
+
 const KOTANI_API = "https://api.kotanipay.com";
 const API_KEY = process.env.KOTANI_API_KEY || "";
 
@@ -29,6 +31,12 @@ export default async function handler(req, res) {
   }
 
   const { action, reference } = req.query || {};
+  const ip = clientIp(req);
+
+  if (!allow(ip, `kotani:${action}`, action === "payout" ? 5 : 20)) {
+    res.status(429).json({ ok: false, error: "Too many requests. Try again in a minute." });
+    return;
+  }
 
   try {
     // GET /api/kotani?action=quote&currency=ngn&amount=10

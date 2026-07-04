@@ -2,8 +2,11 @@
 // BRIDGE_API_KEY lives only here; never expose it in VITE_ env vars.
 // Docs: https://apidocs.bridge.xyz
 
+import { allow, clientIp } from "./_ratelimit.js";
+
 const BRIDGE_API = "https://api.bridge.xyz";
 const API_KEY = process.env.BRIDGE_API_KEY || "";
+const FEE_PERCENT = process.env.BRIDGE_FEE_PERCENT || "0.5";
 
 export const config = { maxDuration: 15 };
 
@@ -28,6 +31,15 @@ export default async function handler(req, res) {
   }
 
   const { action, customerId } = req.query || {};
+  const ip = clientIp(req);
+
+  // Tight limits on write actions; relaxed on reads.
+  const writeLimit = action === "kyc_link" ? 3 : 5;
+  const isWrite = req.method === "POST";
+  if (!allow(ip, `bridge:${action}`, isWrite ? writeLimit : 20)) {
+    res.status(429).json({ ok: false, error: "Too many requests. Try again in a minute." });
+    return;
+  }
 
   try {
     // POST /api/bridge?action=kyc_link
@@ -66,7 +78,7 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           source: { payment_rail: "celo", currency: "usdc" },
           destination: { payment_rail: rail, currency, bank_account: bankAccount },
-          developer_fee_percent: "0.5",
+          developer_fee_percent: FEE_PERCENT,
         }),
       });
       res.json({ ok: true, address: data.address, id: data.id });
