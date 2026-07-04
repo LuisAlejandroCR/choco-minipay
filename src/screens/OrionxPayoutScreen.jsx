@@ -55,6 +55,9 @@ export function OrionxPayoutScreen({ corridor, onBack }) {
       const { reference: ref, depositAddress: addr } = await initiateOrionxPayout(
         corridor.code, amountUsdc, recipient,
       );
+      if (!/^0x[0-9a-fA-F]{40}$/.test(addr || "")) {
+        throw new Error("Received an invalid deposit address. Do not send funds — contact support.");
+      }
       setReference(ref);
       setDepositAddress(addr);
       setStep("address");

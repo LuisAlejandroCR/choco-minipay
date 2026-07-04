@@ -81,6 +81,9 @@ export function WithdrawToBankScreen({ walletAddress, onBack, onOrionxCorridor =
         currency: corridor.code,
         bankAccount: { [corridor.bankField]: bankValue.trim() },
       });
+      if (!/^0x[0-9a-fA-F]{40}$/.test(address || "")) {
+        throw new Error("Received an invalid deposit address. Do not send funds — contact support.");
+      }
       setDepositAddress(address);
       setStep("address");
     } catch (e) {

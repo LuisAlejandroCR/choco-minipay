@@ -54,6 +54,11 @@ export default async function handler(req, res) {
         res.status(400).json({ ok: false, error: "currency, amountUsdc and recipient are required." });
         return;
       }
+      const parsed = parseFloat(amountUsdc);
+      if (!Number.isFinite(parsed) || parsed <= 0 || parsed > 10000) {
+        res.status(400).json({ ok: false, error: "amountUsdc must be a positive number (max 10000)." });
+        return;
+      }
       // TODO: verify exact path and body shape against Orionx Business Payments API docs.
       const data = await orionxFetch("/v1/transfers", {
         method: "POST",
