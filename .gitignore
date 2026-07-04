@@ -18,6 +18,9 @@ pnpm-debug.log*
 contracts/artifacts/
 contracts/cache/
 contracts/typechain-types/
+# Internal security and upgrade docs — not for public repos
+contracts/AUDIT.md
+contracts/V2_BACKLOG.md
 .DS_Store
 Thumbs.db
 .agents/

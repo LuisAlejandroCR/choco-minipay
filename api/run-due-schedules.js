@@ -6,7 +6,9 @@ export const config = {
 
 function isAuthorized(req) {
   const secret = process.env.CRON_SECRET || "";
-  if (!secret) return true;
+  // Require the secret to be configured — an empty secret is NOT a pass-through.
+  // Set CRON_SECRET in Vercel env; the GitHub Actions workflow reads it from secrets.CRON_SECRET.
+  if (!secret) return false;
   const bearer = req.headers.authorization || "";
   const headerSecret = req.headers["x-cron-secret"] || "";
   return bearer === `Bearer ${secret}` || headerSecret === secret;
