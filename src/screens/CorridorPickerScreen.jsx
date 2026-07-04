@@ -1,6 +1,14 @@
-import { Globe, Landmark, Wallet } from "lucide-react";
+import { Globe, Landmark, PlusCircle, Wallet } from "lucide-react";
 
-export function CorridorPickerScreen({ onSendToAfrica, onWithdrawToBank = null, onKeepAsUsdc }) {
+export function CorridorPickerScreen({
+  onSendToAfrica,
+  onWithdrawToBank = null,
+  onKeepAsUsdc,
+  onFundWallet = null,
+  hasUsdc = true,
+}) {
+  const showFundNotice = onFundWallet && !hasUsdc;
+
   return (
     <div className="screen corridor-picker-screen">
       <div className="corridor-picker-inner">
@@ -8,6 +16,15 @@ export function CorridorPickerScreen({ onSendToAfrica, onWithdrawToBank = null, 
           <span className="corridor-kicker">What would you like to do?</span>
           <h2>Choose your destination</h2>
         </div>
+
+        {showFundNotice && (
+          <div className="corridor-fund-notice">
+            <span className="corridor-fund-notice-text">Your wallet has no USDC yet</span>
+            <button className="corridor-fund-btn" type="button" onClick={onFundWallet}>
+              <PlusCircle size={15} /> Fund wallet
+            </button>
+          </div>
+        )}
 
         <div className="corridor-options">
           <button className="corridor-card primary" type="button" onClick={onSendToAfrica}>

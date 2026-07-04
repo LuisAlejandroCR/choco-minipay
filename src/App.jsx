@@ -538,6 +538,8 @@ export default function App({ privyAuth = null }) {
               onSendToAfrica={() => setScreen("africaPicker")}
               onWithdrawToBank={BRIDGE_READY ? () => goTo("withdrawToBank") : null}
               onKeepAsUsdc={() => setScreen("plan")}
+              onFundWallet={RAMP_READY && !wallet.isMiniPay ? () => openRampOnramp(wallet.address) : null}
+              hasUsdc={(balances.find((b) => b.key === "usdc")?.raw ?? 0n) > 0n}
             />
           )}
           {visibleScreen === "africaPicker" && (

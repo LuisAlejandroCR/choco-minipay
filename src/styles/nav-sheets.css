@@ -1581,6 +1581,40 @@
   border-radius: 999px;
 }
 
+/* Corridor picker — zero-balance fund notice */
+.corridor-fund-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(199, 144, 96, 0.10);
+  border: 1px solid rgba(199, 144, 96, 0.22);
+}
+
+.corridor-fund-notice-text {
+  font-size: 13px;
+  color: var(--latte-300, #e6c5a1);
+}
+
+.corridor-fund-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--latte-500, #c99060);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.corridor-fund-btn:hover { color: var(--latte-300, #e6c5a1); }
+
 /* ── Withdraw to Bank (Bridge LATAM offramp) ── */
 .wtb-screen {
   justify-content: flex-start;
