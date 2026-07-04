@@ -246,22 +246,40 @@ export default function App({ privyAuth = null }) {
   // Privy email-wallet bridge: after the OTP succeeds, attach Privy's embedded EIP-1193
   // provider as Choco's active signer. MiniPay's native provider always takes priority.
   // Errors are captured inside connectPrivyWallet → wallet.error (shown on WalletGateScreen).
+  // Double-connects are guarded by a ref, NOT by wallet.status in the deps: status flips to
+  // "opening-wallet" mid-connect, and having it in the deps re-ran the effect whose cleanup
+  // cancelled the .then — the app stayed frozen on the gate until the user tapped Plans/History.
+  const privyConnectingRef = useRef(false);
+  async function attachPrivyWallet(embeddedWallet) {
+    if (privyConnectingRef.current) return;
+    privyConnectingRef.current = true;
+    try {
+      const address = await wallet.connectPrivyWallet(embeddedWallet);
+      if (!address) return;
+      await refreshBalances(address);
+      appStatus.setStatus("review");
+      appStatus.setMessage("Email wallet connected. Choose now or schedule.");
+      setScreen("corridorPicker");
+    } catch {
+      /* wallet.error is already set by connectPrivyWallet */
+    } finally {
+      privyConnectingRef.current = false;
+    }
+  }
   useEffect(() => {
     if (!privyAuth?.ready || !privyAuth.authenticated || !privyAuth.embeddedWallet) return;
     if (isMiniPay()) return;
-    if (wallet.isReady || wallet.status === "opening-wallet") return;
-    let active = true;
-    wallet.connectPrivyWallet(privyAuth.embeddedWallet)
-      .then(async (address) => {
-        if (!active || !address) return;
-        await refreshBalances(address);
-        appStatus.setStatus("review");
-        appStatus.setMessage("Email wallet connected. Choose now or schedule.");
-        setScreen("corridorPicker");
-      })
-      .catch(() => { /* wallet.error is already set by connectPrivyWallet */ });
-    return () => { active = false; };
-  }, [privyAuth?.ready, privyAuth?.authenticated, !!privyAuth?.embeddedWallet, wallet.isReady, wallet.status]); // eslint-disable-line
+    if (wallet.isReady) return;
+    void attachPrivyWallet(privyAuth.embeddedWallet);
+  }, [privyAuth?.ready, privyAuth?.authenticated, !!privyAuth?.embeddedWallet, wallet.isReady]); // eslint-disable-line
+
+  // Safety net: if the wallet becomes ready while the gate is still showing (e.g. the user
+  // connected a browser extension through Privy's modal, which the embedded-wallet bridge
+  // above deliberately ignores), move on — the gate has nothing left for the user to press.
+  useEffect(() => {
+    if (screen !== "walletGate" || !walletHasAddress) return;
+    setScreen(isMiniPay() ? "plan" : "corridorPicker");
+  }, [screen, walletHasAddress]);
 
   // --- Event handlers ---
   async function connectWallet() {
@@ -278,6 +296,22 @@ export default function App({ privyAuth = null }) {
       appStatus.setMessage(humaniseConnectError(error));
       return "";
     }
+  }
+
+  // "Sign in with email" — also the retry path after a page refresh. Privy restores the
+  // session (authenticated=true) but its login() THROWS when called while already logged in,
+  // which used to make the button silently do nothing. Reconnect the restored wallet instead,
+  // or reset the stale session when the embedded wallet never arrived.
+  async function handleEmailLogin() {
+    if (!privyAuth) return;
+    if (privyAuth.authenticated && privyAuth.embeddedWallet) {
+      await attachPrivyWallet(privyAuth.embeddedWallet);
+      return;
+    }
+    if (privyAuth.authenticated && !privyAuth.embeddedWallet) {
+      try { await privyAuth.logout(); } catch { /* stale session — proceed to login anyway */ }
+    }
+    privyAuth.login();
   }
 
   async function handleBuildPlan(nextCommand = "") {
@@ -461,7 +495,7 @@ export default function App({ privyAuth = null }) {
                 if (address) setScreen(isMiniPay() ? "plan" : "corridorPicker");
               }}
               onHome={() => setScreen("plan")}
-              onEmailLogin={privyAuth?.login ?? null}
+              onEmailLogin={privyAuth ? handleEmailLogin : null}
               emailAuth={privyAuth}
             />
           )}
