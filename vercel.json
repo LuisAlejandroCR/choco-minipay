@@ -1,4 +1,11 @@
 {
+  "headers": [
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "choco-minipay.vercel.app" }],
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+    }
+  ],
   "routes": [
     { "src": "^/app/?$", "dest": "/index.html" },
     { "src": "^/$", "dest": "/landing.html" },

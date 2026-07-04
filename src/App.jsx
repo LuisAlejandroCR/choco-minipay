@@ -43,8 +43,10 @@ import { DuplicateGuardScreen } from "./screens/DuplicateGuardScreen.jsx";
 import { ReviewScreen } from "./screens/ReviewScreen.jsx";
 import { TransactionSuccessScreen } from "./screens/TransactionSuccessScreen.jsx";
 import { CorridorPickerScreen } from "./screens/CorridorPickerScreen.jsx";
+import { WithdrawToBankScreen } from "./screens/WithdrawToBankScreen.jsx";
 import { humaniseConnectError, mergeTransactionDetails, pickById } from "./utils/appHelpers.js";
 import { RAMP_READY, openRampOnramp } from "./lib/ramp.js";
+import { BRIDGE_READY } from "./lib/bridge.js";
 
 export default function App({ privyAuth = null }) {
   // --- Core app state ---
@@ -466,8 +468,14 @@ export default function App({ privyAuth = null }) {
           {visibleScreen === "corridorPicker" && (
             <CorridorPickerScreen
               onSendToAfrica={() => setScreen("plan")}
-              onWithdrawToBank={null}
+              onWithdrawToBank={BRIDGE_READY ? () => goTo("withdrawToBank") : null}
               onKeepAsUsdc={() => setScreen("plan")}
+            />
+          )}
+          {visibleScreen === "withdrawToBank" && (
+            <WithdrawToBankScreen
+              walletAddress={wallet.address}
+              onBack={() => goTo("corridorPicker")}
             />
           )}
           {visibleScreen === "demoTour" && (

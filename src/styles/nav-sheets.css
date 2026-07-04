@@ -1580,3 +1580,293 @@
   border: 1px solid var(--line-soft);
   border-radius: 999px;
 }
+
+/* ── Withdraw to Bank (Bridge LATAM offramp) ── */
+.wtb-screen {
+  justify-content: flex-start;
+  padding: 0;
+  overflow-y: auto;
+}
+
+.wtb-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 20px 18px 28px;
+  min-height: 100%;
+}
+
+.wtb-back {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0 0 16px;
+  cursor: pointer;
+}
+
+.wtb-back-link {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 18px 0 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.wtb-header {
+  margin-bottom: 20px;
+}
+
+.wtb-kicker {
+  display: block;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--latte-300);
+  margin-bottom: 6px;
+}
+
+.wtb-header h2 {
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  color: var(--cream);
+  margin: 0 0 8px;
+}
+
+.wtb-sub {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Currency picker cards */
+.wtb-options {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.wtb-card {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  background: var(--cocoa-900);
+  border: 1px solid var(--line-soft);
+  border-radius: 16px;
+  padding: 14px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.wtb-card:hover {
+  border-color: var(--line);
+  background: rgba(28, 16, 10, 0.7);
+}
+
+.wtb-card:active {
+  transform: scale(0.98);
+}
+
+.wtb-flag {
+  font-size: 28px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.wtb-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.wtb-card-body strong {
+  font-size: 15px;
+  font-weight: 850;
+  color: var(--cream);
+}
+
+.wtb-card-body span {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.wtb-arrow {
+  color: var(--latte-500);
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.wtb-badge-beta {
+  flex-shrink: 0;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--latte-500);
+  border: 1px solid rgba(201, 144, 96, 0.35);
+  border-radius: 999px;
+  padding: 3px 8px;
+}
+
+/* Form */
+.wtb-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.wtb-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.wtb-input {
+  width: 100%;
+  background: var(--cocoa-850);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 13px 14px;
+  font-size: 15px;
+  color: var(--cream);
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.wtb-input::placeholder {
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+.wtb-input:focus {
+  border-color: var(--latte-500);
+}
+
+.wtb-error {
+  font-size: 12px;
+  color: #f87171;
+  margin: 0;
+}
+
+.wtb-cta {
+  width: 100%;
+  min-height: 50px;
+  background: var(--latte-500);
+  color: var(--cocoa-900);
+  border: none;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.wtb-cta:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.wtb-cta-sec {
+  width: 100%;
+  min-height: 48px;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--cream);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.wtb-cta-sec:hover {
+  border-color: var(--latte-500);
+}
+
+.wtb-kyc-done {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.wtb-hint {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Deposit address */
+.wtb-address-card {
+  background: var(--cocoa-850);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.wtb-address-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.wtb-address-val {
+  font-size: 12px;
+  font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', monospace;
+  color: var(--cream);
+  word-break: break-all;
+  line-height: 1.5;
+}
+
+.wtb-copy-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(201, 144, 96, 0.12);
+  border: 1px solid rgba(201, 144, 96, 0.28);
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--latte-500);
+  cursor: pointer;
+  align-self: flex-start;
+  transition: background 0.15s;
+}
+
+.wtb-copy-btn:hover {
+  background: rgba(201, 144, 96, 0.2);
+}
+
+.wtb-warning {
+  font-size: 12px;
+  color: var(--muted);
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.2);
+  border-radius: 10px;
+  padding: 10px 13px;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
