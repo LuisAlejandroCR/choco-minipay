@@ -32,7 +32,7 @@ export default async function handler(req, res) {
   const { action, reference } = req.query || {};
   const ip = clientIp(req);
 
-  if (!allow(ip, `orionx:${action}`, action === "payout" ? 5 : 20)) {
+  if (!await allow(ip, `orionx:${action}`, action === "payout" ? 5 : 20)) {
     res.status(429).json({ ok: false, error: "Too many requests. Try again in a minute." });
     return;
   }

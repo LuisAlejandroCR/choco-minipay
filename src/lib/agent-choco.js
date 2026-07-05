@@ -4,27 +4,43 @@ const RECIPIENT_ALIASES = [
   [/\b(mum|mom|mother|mama)\b/i, "Mum"],
   [/\b(dad|father|papa)\b/i, "Dad"],
   [/\b(sister|sis)\b/i, "Sister"],
-  [/\b(aunt|auntie)\b/i, "Auntie"],
   [/\b(brother|bro)\b/i, "Brother"],
+  [/\b(aunt|auntie)\b/i, "Auntie"],
+  [/\b(uncle)\b/i, "Uncle"],
+  [/\b(grandma|grandmother|granny|gran)\b/i, "Grandma"],
+  [/\b(grandpa|grandfather|gramps)\b/i, "Grandpa"],
+  [/\b(wife)\b/i, "Wife"],
+  [/\b(husband)\b/i, "Husband"],
+  [/\b(friend)\b/i, "Friend"],
 ];
 
 const CURRENCY_ALIASES = [
   [/\b(cke|ckes|c-kes|kes|kesm|kenyan shillings?|shillings?)\b/i, APP_CONFIG.assets.destination],
   [/\b(usdc)\b/i, APP_CONFIG.assets.source],
+  // LATAM offramp currencies (voiceNormalize already expands "pesos mexicanos" → "MXN" etc.)
+  [/\bMXN\b/, "MXN"],
+  [/\bCOP\b/, "COP"],
+  [/\bCLP\b/, "CLP"],
+  [/\bBRL\b/, "BRL"],
+  [/\bPEN\b/, "PEN"],
+  // Africa expanded offramp currencies
+  [/\b(ngn|naira)\b/i, "NGN"],
+  [/\b(ghs|cedis?)\b/i, "GHS"],
+  [/\b(zar|rand)\b/i, "ZAR"],
 ];
 
 const RESERVED_RECIPIENT_WORDS = new Set([
-  "cke",
-  "ckes",
-  "c-kes",
+  "brl", "cke", "ckes", "c-kes", "clp", "cop",
   "every",
-  "kes",
-  "kesm",
-  "now",
+  "ghs",
+  "kes", "kesm",
+  "mxn",
+  "ngn", "now",
+  "pen",
   "schedule",
-  "today",
-  "tomorrow",
+  "today", "tomorrow",
   "usdc",
+  "zar",
 ]);
 
 export function normalizeCommand(text) {

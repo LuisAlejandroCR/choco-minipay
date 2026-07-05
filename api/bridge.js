@@ -36,7 +36,7 @@ export default async function handler(req, res) {
   // Tight limits on write actions; relaxed on reads.
   const writeLimit = action === "kyc_link" ? 3 : 5;
   const isWrite = req.method === "POST";
-  if (!allow(ip, `bridge:${action}`, isWrite ? writeLimit : 20)) {
+  if (!await allow(ip, `bridge:${action}`, isWrite ? writeLimit : 20)) {
     res.status(429).json({ ok: false, error: "Too many requests. Try again in a minute." });
     return;
   }

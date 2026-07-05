@@ -15,7 +15,16 @@ import { useEffect, useRef, useState } from "react";
 import { isMiniPay } from "../../lib/celo.js";
 import { normalizeVoiceTranscript } from "./voiceNormalize.js";
 
+// Use device locale so Spanish-speaking users get es-* speech recognition automatically.
+// Constrain to supported languages; fall back to en-US for anything else.
+const SUPPORTED_LANGS = /^(en|es|pt)\b/i;
+function resolveRecognitionLang() {
+  const nav = typeof navigator !== "undefined" ? navigator.language || "" : "";
+  return SUPPORTED_LANGS.test(nav) ? nav : "en-US";
+}
+
 export function useVoiceRecorder({ onTranscript, maxSeconds = 6 }) {
+  const lang = resolveRecognitionLang();
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
@@ -75,14 +84,14 @@ export function useVoiceRecorder({ onTranscript, maxSeconds = 6 }) {
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = "en-US";
+    recognition.lang = lang;
 
     recognition.onresult = (event) => {
       let transcript = "";
       for (let i = 0; i < event.results.length; i++) {
         transcript += event.results[i][0].transcript;
       }
-      onTranscript(normalizeVoiceTranscript(transcript.trim()));
+      onTranscript(normalizeVoiceTranscript(transcript.trim(), lang));
     };
 
     // no-speech fires on silence timeout — not a real failure.
