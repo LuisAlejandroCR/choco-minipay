@@ -147,7 +147,7 @@
       position: relative;
       width: min(355px, 92%);
       height: auto;
-      aspect-ratio: 9/19.5;
+      aspect-ratio: 9/17;
       border: 2px solid rgba(28,13,5,.14);
       border-radius: 40px; overflow: hidden;
       background: #1a0e0a;
@@ -245,7 +245,7 @@
 
     /* ── S2: Agent / Processing ── */
     .sr-proc{display:flex;flex-direction:column;padding:12px 12px 30px;gap:0;overflow:hidden;}
-    .sr-agent-card{flex:1;max-height:460px;background:var(--c9);border:1px solid var(--ls);border-radius:20px;padding:16px;display:flex;flex-direction:column;justify-content:space-between;}
+    .sr-agent-card{background:var(--c9);border:1px solid var(--ls);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:14px;}
     .sr-agent-head{display:flex;align-items:center;gap:10px;}
     .sr-agent-mark{width:30px;height:30px;border-radius:50%;background:var(--sl);display:grid;place-items:center;font-size:13px;font-weight:900;color:#120906;flex-shrink:0;}
     .sr-agent-sub{font-size:9px;font-weight:700;letter-spacing:.08em;color:rgba(255,241,220,.4);}
@@ -297,11 +297,11 @@
     /* ── S4: Receipt + QR ── */
     .sr-receipt{display:flex;flex-direction:column;overflow:hidden;}
     .sr-rds-hdr{
-      flex-shrink:0;padding:10px;
+      flex-shrink:0;padding:10px 14px 12px;
       background:linear-gradient(135deg,rgba(255,241,220,.04) 25%,transparent 25%) 0 0/32px 32px,#1b0f0a;
-      display:flex;gap:11px;align-items:flex-start;border-bottom:1px solid var(--ls);
+      border-bottom:1px solid var(--ls);
     }
-    .sr-rds-hero{flex:1;min-width:0;}
+    .sr-rds-hero{min-width:0;}
     .sr-rds-kicker{font-size:9px;font-weight:700;letter-spacing:.12em;color:var(--sl3);text-transform:uppercase;display:block;margin-bottom:4px;}
     .sr-rds-who{font-size:22px;font-weight:900;color:var(--cr);line-height:1;}
     .sr-rds-amt{font-size:17px;font-weight:700;color:var(--cr);margin-top:3px;}
@@ -309,8 +309,8 @@
     .sr-rds-meta{display:flex;align-items:center;gap:7px;margin-top:6px;}
     .sr-rds-date{font-size:11px;color:rgba(255,241,220,.38);}
     .sr-chip{padding:3px 9px;border-radius:99px;font-size:10px;font-weight:700;background:rgba(139,220,154,.14);color:#a8f0b5;}
-    .sr-qr-wrap{display:flex;flex-direction:column;align-items:center;gap:5px;flex-shrink:0;}
-    .sr-qr{width:72px;height:72px;background:#fff;border-radius:5px;padding:4px;display:block;}
+    .sr-qr-center{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 14px 10px;border-bottom:1px solid var(--ls);}
+    .sr-qr{width:78px;height:78px;background:#fff;border-radius:5px;padding:4px;display:block;}
     .sr-qr-link{font-size:10px;color:var(--sl);display:flex;align-items:center;gap:3px;}
     .sr-fields{padding:4px 14px;display:flex;flex-direction:column;flex:1;max-height:240px;overflow:hidden;}
     .sr-field{display:flex;align-items:center;justify-content:space-between;flex:1;border-bottom:1px solid var(--ls);min-height:44px;}
@@ -320,18 +320,27 @@
     .sr-field-val{font-size:11px;font-weight:600;color:var(--cr);text-align:right;max-width:58%;}
     .sr-rds-cta{flex-shrink:0;margin:6px 14px 14px;min-height:48px;background:var(--sl);color:#120906;border:none;border-radius:15px;font-size:14px;font-weight:900;display:flex;align-items:center;justify-content:center;gap:7px;}
 
-    /* ── S5: History ── */
-    .sr-hist{padding:10px 12px;display:flex;flex-direction:column;gap:7px;overflow:hidden;}
-    .sr-hist-lbl{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,241,220,.28);padding:2px 0 4px;}
-    .sr-hr{display:flex;align-items:center;gap:11px;background:var(--c9);border:1px solid var(--ls);border-radius:15px;padding:11px;animation:sr-fu .35s ease both;}
-    .sr-hr:nth-child(2){animation-delay:.1s;}.sr-hr:nth-child(3){animation-delay:.2s;}.sr-hr:nth-child(4){animation-delay:.3s;}
-    .sr-hr-ico{width:36px;height:36px;border-radius:50%;background:rgba(139,220,154,.1);border:1px solid rgba(139,220,154,.18);display:grid;place-items:center;flex-shrink:0;font-size:13px;font-weight:900;color:#a8f0b5;}
-    .sr-hr-info{flex:1;min-width:0;}
-    .sr-hr-name{font-size:13px;font-weight:700;color:var(--cr);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    .sr-hr-date{font-size:10px;color:rgba(255,241,220,.36);}
-    .sr-hr-right{text-align:right;}
-    .sr-hr-amt{font-size:13px;font-weight:700;color:#a8f0b5;}
-    .sr-hr-sub{font-size:10px;color:rgba(255,241,220,.28);}
+    /* ── S5: Movements ── */
+    .sr-moves{padding:10px 12px 8px;display:flex;flex-direction:column;gap:9px;overflow:hidden;}
+    .sr-moves-kicker{font-size:9px;font-weight:700;letter-spacing:.12em;color:var(--sl3);text-transform:uppercase;display:block;margin-bottom:5px;}
+    .sr-moves-title{font-size:26px;font-weight:900;color:var(--cr);margin:0;letter-spacing:-.04em;line-height:1;}
+    .sr-moves-filters{display:flex;flex-wrap:wrap;gap:5px;}
+    .sr-fpill{border:1px solid rgba(255,241,220,.16);background:transparent;border-radius:99px;padding:5px 13px;font-size:11px;font-weight:700;color:rgba(255,241,220,.46);font-family:inherit;cursor:default;}
+    .sr-fpill.on{background:var(--cr);color:#1b0f0a;border-color:var(--cr);}
+    .sr-moves-search{display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid rgba(255,241,220,.1);border-radius:13px;background:rgba(16,9,6,.5);}
+    .sr-search-ico{font-size:12px;color:rgba(255,241,220,.3);}
+    .sr-search-ph{font-size:12px;color:rgba(255,241,220,.28);}
+    .sr-moves-list{display:flex;flex-direction:column;border:1px solid rgba(255,241,220,.1);border-radius:16px;background:rgba(16,9,6,.36);overflow:hidden;}
+    .sr-mv{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid rgba(255,241,220,.07);animation:sr-fu .35s ease both;}
+    .sr-mv:last-child{border-bottom:none;}
+    .sr-mv:nth-child(1){animation-delay:0s;}.sr-mv:nth-child(2){animation-delay:.12s;}.sr-mv:nth-child(3){animation-delay:.24s;}
+    .sr-mv-ico{width:30px;height:30px;border-radius:50%;background:rgba(139,220,154,.1);border:1px solid rgba(139,220,154,.18);display:grid;place-items:center;flex-shrink:0;font-size:11px;font-weight:900;color:#a8f0b5;}
+    .sr-mv-info{flex:1;min-width:0;}
+    .sr-mv-name{font-size:13px;font-weight:700;color:var(--cr);}
+    .sr-mv-sub{font-size:10px;color:rgba(255,241,220,.36);}
+    .sr-mv-right{text-align:right;flex-shrink:0;}
+    .sr-mv-amt{font-size:13px;font-weight:700;color:#a8f0b5;}
+    .sr-mv-cur{font-size:10px;color:rgba(255,241,220,.28);}
 
     /* Keyframes */
     @keyframes sr-globe{0%,10%{transform:rotate(0) scale(1)}40%{transform:rotate(-8deg) scale(1.01)}70%{transform:rotate(7deg) scale(1.01)}90%,100%{transform:rotate(0) scale(1)}}
@@ -534,10 +543,10 @@
                   <span class="sr-chip">Delivered</span>
                 </div>
               </div>
-              <div class="sr-qr-wrap">
-                <canvas class="sr-qr" id="sr-qr-canvas" width="78" height="78"></canvas>
-                <span class="sr-qr-link">See proof &#x2197;</span>
-              </div>
+            </div>
+            <div class="sr-qr-center">
+              <canvas class="sr-qr" id="sr-qr-canvas" width="78" height="78"></canvas>
+              <span class="sr-qr-link">See proof &#x2197;</span>
             </div>
             <div class="sr-fields">
               <div class="sr-field">
@@ -560,13 +569,27 @@
             <button class="sr-rds-cta">&#x2197;&ensp;Share receipt</button>
           </div>
 
-          <!-- S5: History (3500ms) -->
-          <div class="sr-scene sr-hist" id="sr5" data-dur="3500">
-            <div class="sr-hist-lbl">Recent payments</div>
-            <div class="sr-hr"><div class="sr-hr-ico">&#x2713;</div><div class="sr-hr-info"><div class="sr-hr-name">Mercy</div><div class="sr-hr-date">Today &middot; KES 1,280</div></div><div class="sr-hr-right"><div class="sr-hr-amt">$10</div><div class="sr-hr-sub">USDC</div></div></div>
-            <div class="sr-hr"><div class="sr-hr-ico">&#x2713;</div><div class="sr-hr-info"><div class="sr-hr-name">Monthly to Mercy</div><div class="sr-hr-date">Jul 1 &middot; KES 6,400</div></div><div class="sr-hr-right"><div class="sr-hr-amt">$50</div><div class="sr-hr-sub">USDC</div></div></div>
-            <div class="sr-hr"><div class="sr-hr-ico">&#x2713;</div><div class="sr-hr-info"><div class="sr-hr-name">Mom</div><div class="sr-hr-date">Jun 27 &middot; KES 3,200</div></div><div class="sr-hr-right"><div class="sr-hr-amt">$25</div><div class="sr-hr-sub">USDC</div></div></div>
-            <div class="sr-hr"><div class="sr-hr-ico">&#x2713;</div><div class="sr-hr-info"><div class="sr-hr-name">Monthly to Mercy</div><div class="sr-hr-date">Jun 1 &middot; KES 6,400</div></div><div class="sr-hr-right"><div class="sr-hr-amt">$50</div><div class="sr-hr-sub">USDC</div></div></div>
+          <!-- S5: Movements / Receipts (3500ms) -->
+          <div class="sr-scene sr-moves" id="sr5" data-dur="3500">
+            <div>
+              <span class="sr-moves-kicker">Receipts</span>
+              <h3 class="sr-moves-title">Movements</h3>
+            </div>
+            <div class="sr-moves-filters">
+              <button class="sr-fpill">All</button>
+              <button class="sr-fpill on">Send now</button>
+              <button class="sr-fpill">Plan payments</button>
+              <button class="sr-fpill">Set aside</button>
+            </div>
+            <div class="sr-moves-search">
+              <span class="sr-search-ico">&#x1F50D;</span>
+              <span class="sr-search-ph">Search recipient or amount&hellip;</span>
+            </div>
+            <div class="sr-moves-list">
+              <div class="sr-mv"><div class="sr-mv-ico">&#x2713;</div><div class="sr-mv-info"><div class="sr-mv-name">Mercy</div><div class="sr-mv-sub">Today &middot; KES 1,280</div></div><div class="sr-mv-right"><div class="sr-mv-amt">$10</div><div class="sr-mv-cur">USDC</div></div></div>
+              <div class="sr-mv"><div class="sr-mv-ico">&#x2713;</div><div class="sr-mv-info"><div class="sr-mv-name">Monthly to Mercy</div><div class="sr-mv-sub">Jul 1 &middot; KES 6,400</div></div><div class="sr-mv-right"><div class="sr-mv-amt">$50</div><div class="sr-mv-cur">USDC</div></div></div>
+              <div class="sr-mv"><div class="sr-mv-ico">&#x2713;</div><div class="sr-mv-info"><div class="sr-mv-name">Mom</div><div class="sr-mv-sub">Jun 27 &middot; KES 3,200</div></div><div class="sr-mv-right"><div class="sr-mv-amt">$25</div><div class="sr-mv-cur">USDC</div></div></div>
+            </div>
           </div>
 
           <!-- Progress dots (5 scenes) -->
