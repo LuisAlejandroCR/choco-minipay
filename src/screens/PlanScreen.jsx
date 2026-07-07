@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowRight, CircleDollarSign, Eye, EyeOff, ExternalLink, PlusCircle, ShieldCheck, X } from "lucide-react";
+import { ArrowRight, CircleDollarSign, Copy, CopyCheck, Eye, EyeOff, ExternalLink, PlusCircle, ShieldCheck, X } from "lucide-react";
 import { ChocoMark } from "../components/ChocoMark.jsx";
 import { formatWalletAddress } from "../modules/wallet/useMiniPayWallet.js";
 import { scheduledLocalDateForPlan } from "../lib/schedule-time.js";
@@ -131,11 +131,11 @@ export function PlanScreen({
             {isWalletVerified && (
               <p className="balance-hero-sub">
                 {wallet.isReadOnly ? (
-                  <><button type="button" className="addr-copy" onClick={handleCopyAddress}>{walletShort}</button>{" — connect your wallet to confirm."}</>
+                  <>{walletShort}{" "}<button type="button" className="addr-copy" aria-label="Copy wallet address" onClick={handleCopyAddress}>{copied ? <CopyCheck size={12} /> : <Copy size={12} />}</button>{" — connect your wallet to confirm."}</>
                 ) : nextPlan ? (
                   `Next: ${nextPlan.amount} ${nextPlan.asset} → ${nextPlan.recipient} · ${getTimingLabel(nextPlan)}`
                 ) : (
-                  <><button type="button" className="addr-copy" onClick={handleCopyAddress}>{walletShort}</button>{copied ? " · Copied!" : " · no active plans"}</>
+                  <>{walletShort}{" "}<button type="button" className="addr-copy" aria-label="Copy wallet address" onClick={handleCopyAddress}>{copied ? <CopyCheck size={12} /> : <Copy size={12} />}</button>{" · no active plans"}</>
                 )}
               </p>
             )}
