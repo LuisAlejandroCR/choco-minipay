@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowRight, CircleDollarSign, Copy, CopyCheck, Eye, EyeOff, ExternalLink, PlusCircle, ShieldCheck, X } from "lucide-react";
+import { ArrowRight, CircleDollarSign, Copy, CopyCheck, Eye, EyeOff, ExternalLink, PlusCircle, Share2, ShieldCheck, X } from "lucide-react";
 import { ChocoMark } from "../components/ChocoMark.jsx";
 import { formatWalletAddress } from "../modules/wallet/useMiniPayWallet.js";
 import { scheduledLocalDateForPlan } from "../lib/schedule-time.js";
@@ -72,6 +72,16 @@ export function PlanScreen({
     });
   }
 
+  function handleShareAddress() {
+    if (!wallet.address) return;
+    const text = `Send me USDC on Celo via Choco:\n${wallet.address}`;
+    if (navigator.share) {
+      navigator.share({ title: "Choco wallet", text }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(wallet.address);
+    }
+  }
+
   const isVerifyingWallet = wallet.status === "loading" || wallet.status === "opening-wallet";
   const usdcBalance = balances.find((b) => b.key === "usdc");
   const primaryAmount = usdcBalance?.formatted ?? "0.00";
@@ -131,11 +141,11 @@ export function PlanScreen({
             {isWalletVerified && (
               <p className="balance-hero-sub">
                 {wallet.isReadOnly ? (
-                  <>{walletShort}{" "}<button type="button" className="addr-copy" aria-label="Copy wallet address" onClick={handleCopyAddress}>{copied ? <CopyCheck size={12} /> : <Copy size={12} />}</button>{" — connect your wallet to confirm."}</>
+                  <>{walletShort}{" "}<button type="button" className="addr-copy" aria-label="Copy wallet address" onClick={handleCopyAddress}>{copied ? <CopyCheck size={12} /> : <Copy size={12} />}</button><button type="button" className="addr-copy" aria-label="Share wallet address" onClick={handleShareAddress}><Share2 size={12} /></button>{" — connect your wallet to confirm."}</>
                 ) : nextPlan ? (
                   `Next: ${nextPlan.amount} ${nextPlan.asset} → ${nextPlan.recipient} · ${getTimingLabel(nextPlan)}`
                 ) : (
-                  <>{walletShort}{" "}<button type="button" className="addr-copy" aria-label="Copy wallet address" onClick={handleCopyAddress}>{copied ? <CopyCheck size={12} /> : <Copy size={12} />}</button>{" · no active plans"}</>
+                  <>{walletShort}{" "}<button type="button" className="addr-copy" aria-label="Copy wallet address" onClick={handleCopyAddress}>{copied ? <CopyCheck size={12} /> : <Copy size={12} />}</button><button type="button" className="addr-copy" aria-label="Share wallet address" onClick={handleShareAddress}><Share2 size={12} /></button>{" · no active plans"}</>
                 )}
               </p>
             )}
