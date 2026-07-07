@@ -62,6 +62,15 @@ export function PlanScreen({
   onRunDemo = () => {},
 }) {
   const [hideBalance, setHideBalance] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  function handleCopyAddress() {
+    if (!wallet.address) return;
+    navigator.clipboard.writeText(wallet.address).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
 
   const isVerifyingWallet = wallet.status === "loading" || wallet.status === "opening-wallet";
   const usdcBalance = balances.find((b) => b.key === "usdc");
@@ -72,14 +81,6 @@ export function PlanScreen({
   const upcomingPlans = [...activePlans].sort((a, b) => getNextPlanRunMs(a) - getNextPlanRunMs(b));
   const homePlans = upcomingPlans.slice(0, 2);
   const nextPlan = upcomingPlans[0] || null;
-
-  const heroSub = isWalletVerified
-    ? wallet.isReadOnly
-      ? `${walletShort} — connect your wallet to confirm.`
-      : nextPlan
-        ? `Next: ${nextPlan.amount} ${nextPlan.asset} → ${nextPlan.recipient} · ${getTimingLabel(nextPlan)}`
-        : `${walletShort} · no active plans`
-    : "";
 
   const connectLabel = wallet.needsMobileWallet
     ? "Connect mobile wallet"
@@ -127,7 +128,17 @@ export function PlanScreen({
                 {hideBalance ? <Eye size={16} /> : <EyeOff size={16} />}
               </button>
             </div>
-            {heroSub && <p className="balance-hero-sub">{heroSub}</p>}
+            {isWalletVerified && (
+              <p className="balance-hero-sub">
+                {wallet.isReadOnly ? (
+                  <><button type="button" className="addr-copy" onClick={handleCopyAddress}>{walletShort}</button>{" — connect your wallet to confirm."}</>
+                ) : nextPlan ? (
+                  `Next: ${nextPlan.amount} ${nextPlan.asset} → ${nextPlan.recipient} · ${getTimingLabel(nextPlan)}`
+                ) : (
+                  <><button type="button" className="addr-copy" onClick={handleCopyAddress}>{walletShort}</button>{copied ? " · Copied!" : " · no active plans"}</>
+                )}
+              </p>
+            )}
           </div>
         ) : (
           <div className="balance-copy">

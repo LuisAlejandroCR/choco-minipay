@@ -216,6 +216,18 @@
   line-height: 1.4;
 }
 
+.addr-copy {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 12px;
+  color: var(--latte-300);
+  cursor: pointer;
+  text-decoration: underline dashed;
+  text-underline-offset: 2px;
+}
+
 /* ── Quick action grid — 2 primary actions, no nav duplicates ────────── */
 .home-quick-actions {
   display: grid;
