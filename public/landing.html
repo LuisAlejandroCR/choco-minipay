@@ -7,6 +7,9 @@
   <meta name="theme-color" content="#faf3e8" />
   <link rel="icon" href="/icon.svg" />
   <link rel="canonical" href="https://usechoco.app/" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
   <title>Choco &mdash; Remittances on autopilot</title>
   <script>if (window.ethereum && window.ethereum.isMiniPay) { window.location.replace('/app'); }</script>
   <style>
@@ -292,26 +295,164 @@
         0 10px 28px rgba(28,13,5,.1),
         0 0 0 1px rgba(28,13,5,.06);
     }
-    .phone-frame iframe { width: 100%; height: 100%; border: none; }
-    .phone-label {
-      position: absolute;
-      bottom: 16px;
-      left: 50%;
-      transform: translateX(-50%);
-      padding: 7px 16px;
-      background: rgba(28,13,5,.78);
-      border: 1px solid rgba(200,144,60,.35);
+    /* ── Speed-run demo reel (inlined, no iframe) ───────────────── */
+    .speed-run{
+      position:relative;width:100%;height:100%;background:#120906;overflow:hidden;
+      font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#fff1dc;
+      --sl:#c99060;--sl3:#e6c5a1;--cr:#fff1dc;--c9:#1b0f0a;--c85:#24150e;--c8:#2d1b12;
+      --grn:#8bdc9a;--ls:rgba(255,241,220,.1);--ll:rgba(201,144,96,.22);
+    }
+    .sr-chrome{position:absolute;inset:0 0 auto;z-index:11;height:48px;display:grid;grid-template-columns:40px 1fr 64px;align-items:center;padding:0 14px;background:rgba(18,9,6,.96);backdrop-filter:blur(4px);border-bottom:1px solid var(--ls);box-shadow:0 1px 8px rgba(18,9,6,.4);}
+    .sr-chrome-x{width:28px;height:28px;border-radius:50%;border:1px solid var(--ls);display:grid;place-items:center;font-size:13px;color:rgba(255,241,220,.4);}
+    .sr-chrome-title{text-align:center;font-weight:900;font-size:14px;letter-spacing:.02em;color:var(--cr);}
+    .sr-chrome-icons{display:flex;gap:5px;justify-content:flex-end;}
+    .sr-chrome-icon{width:28px;height:28px;border-radius:50%;border:1px solid var(--ls);display:grid;place-items:center;font-size:12px;color:rgba(255,241,220,.4);}
+    .sr-scene{position:absolute;inset:0;padding-top:48px;opacity:0;pointer-events:none;transition:opacity .34s;}
+    .sr-scene.active{opacity:1;}
+    .sr-rst,.sr-rst *{animation:none!important;transition:none!important;}
+    .sr-dots{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:9;}
+    .sr-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,241,220,.18);transition:background .3s,transform .3s;}
+    .sr-dot.on{background:var(--sl);transform:scale(1.28);}
+    /* S1 */
+    .sr-pitch{display:flex;flex-direction:column;padding:10px 10px 14px;gap:12px;}
+    .sr-pvisual{flex:1;min-height:170px;border-radius:22px;border:1px solid var(--ls);background:linear-gradient(135deg,rgba(255,241,220,.045) 25%,transparent 25%) 0 0/38px 38px,linear-gradient(225deg,rgba(255,241,220,.025) 25%,transparent 25%) 0 0/38px 38px,rgba(16,9,6,.56);display:grid;place-items:center;overflow:hidden;position:relative;}
+    .sr-globe-wrap{width:min(210px,80%);aspect-ratio:1;position:relative;}
+    .sr-globe-core{width:100%;height:100%;border-radius:50%;background:radial-gradient(circle at 33% 23%,rgba(246,232,212,.17),transparent 24%),radial-gradient(circle at 63% 62%,rgba(217,166,121,.11),transparent 38%),linear-gradient(145deg,rgba(246,232,212,.07),rgba(5,3,2,.22)),#2d1b12;border:1.5px solid rgba(246,232,212,.14);box-shadow:inset -24px -18px 40px rgba(5,3,2,.34),inset 16px 12px 28px rgba(246,232,212,.07),0 24px 60px rgba(0,0,0,.3);overflow:hidden;position:relative;animation:sr-globe 14s ease-in-out infinite;}
+    .sr-wmap{position:absolute;width:260%;height:auto;left:-12%;top:-5%;filter:sepia(1) saturate(.78) hue-rotate(342deg) brightness(.76) contrast(1.12);mix-blend-mode:screen;opacity:.8;animation:sr-wmpan 14s ease-in-out infinite;}
+    .sr-mapdot{fill:#fff1dc;stroke:rgba(38,23,15,.9);stroke-width:1.7;}
+    .sr-maplabel{font-family:inherit;font-size:10px;font-weight:900;fill:#fff1dc;stroke:rgba(38,23,15,.84);stroke-width:2.7;paint-order:stroke fill;letter-spacing:.04em;}
+    .sr-usa-label{animation:sr-usa 14s ease-in-out infinite;}
+    .sr-ke-label{animation:sr-ke 14s ease-in-out infinite;}
+    .sr-dbundle{position:absolute;top:22%;left:14%;width:48px;height:48px;animation:sr-money 14s cubic-bezier(.42,0,.24,1) infinite;z-index:4;}
+    .sr-dcoin{width:44px;height:44px;border-radius:50%;background:radial-gradient(circle at 67% 26%,rgba(217,166,121,.4),transparent 20%),#fff1dc;border:2px solid #1b0f0a;color:#1b0f0a;font-size:21px;font-weight:950;display:grid;place-items:center;box-shadow:0 12px 30px rgba(0,0,0,.28);}
+    .sr-vbub{position:absolute;right:-52px;bottom:-2px;width:72px;height:22px;display:flex;align-items:center;gap:4px;padding:3px 7px 3px 4px;border:1px solid rgba(246,232,212,.2);border-radius:999px;background:linear-gradient(90deg,#442918,#1b0f0a);}
+    .sr-vbub-mic{width:15px;height:15px;border-radius:50%;background:rgba(246,232,212,.9);color:#1b0f0a;display:grid;place-items:center;font-size:8px;flex:0 0 auto;}
+    .sr-vbub-wv{height:14px;display:flex;align-items:center;gap:1.5px;flex:1;}
+    .sr-vbub-wv i{display:block;width:1.5px;height:7px;border-radius:999px;background:rgba(246,232,212,.88);animation:sr-vwave 1.1s ease-in-out infinite;}
+    .sr-vbub-wv i:nth-child(2){height:11px;animation-delay:.09s;}.sr-vbub-wv i:nth-child(3){height:14px;animation-delay:.18s;}.sr-vbub-wv i:nth-child(4){height:9px;animation-delay:.27s;}.sr-vbub-wv i:nth-child(5){height:12px;animation-delay:.36s;}
+    .sr-pcopy{padding:0 2px;}
+    .sr-pkicker{font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:var(--sl3);}
+    .sr-ph{font-size:31px;font-weight:900;line-height:.96;letter-spacing:-.05em;margin:7px 0 0;color:var(--cr);}
+    .sr-ph-hl{color:var(--sl3);display:inline-flex;align-items:center;gap:.12em;}
+    .sr-ph-wv{display:inline-flex;align-items:center;gap:.04em;width:.74em;height:.5em;padding:.07em .09em;border:1px solid rgba(230,197,161,.22);border-radius:999px;background:rgba(230,197,161,.08);}
+    .sr-ph-wv i{width:.045em;height:.22em;border-radius:999px;background:currentColor;animation:sr-hw .9s ease-in-out infinite;}
+    .sr-ph-wv i:nth-child(2){height:.35em;animation-delay:.08s;}.sr-ph-wv i:nth-child(3){height:.46em;animation-delay:.16s;}.sr-ph-wv i:nth-child(4){height:.3em;animation-delay:.24s;}.sr-ph-wv i:nth-child(5){height:.22em;animation-delay:.32s;}
+    .sr-pmem{margin:11px 0 0;color:var(--cr);font-size:15px;font-weight:800;line-height:1.18;}
+    .sr-psup{margin:5px 0 0;color:rgba(230,197,161,.68);font-size:12px;}
+    .sr-pcta{width:100%;min-height:50px;background:var(--sl);color:#120906;border:none;border-radius:16px;font-size:15px;font-weight:900;}
+    /* S2 */
+    .sr-proc{display:flex;flex-direction:column;padding:8px 8px 16px;gap:0;overflow:hidden;}
+    .sr-agent-card{background:var(--c9);border:1px solid var(--ls);border-radius:20px;padding:12px;display:flex;flex-direction:column;gap:12px;}
+    .sr-agent-head{display:flex;align-items:center;gap:10px;}
+    .sr-agent-mark{width:30px;height:30px;border-radius:50%;background:var(--sl);display:grid;place-items:center;font-size:13px;font-weight:900;color:#120906;flex-shrink:0;}
+    .sr-agent-sub{font-size:9px;font-weight:700;letter-spacing:.08em;color:rgba(255,241,220,.4);}
+    .sr-agent-name{font-size:13px;font-weight:900;color:var(--cr);}
+    .sr-agent-bubble{align-self:flex-end;background:var(--sl);color:#1b0f0a;padding:8px 14px;border-radius:14px 14px 4px 14px;font-size:13px;font-weight:700;max-width:82%;animation:sr-fu .3s ease .2s both;}
+    .sr-agent-toast{display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border:1px solid rgba(139,220,154,.28);border-radius:99px;background:rgba(139,220,154,.08);font-size:10px;color:#a8f0b5;font-weight:700;letter-spacing:.04em;width:fit-content;animation:sr-fu .3s ease .65s both;}
+    .sr-agent-plan{background:var(--c85);border:1px solid var(--ll);border-radius:14px;padding:12px;animation:sr-fu .3s ease 1s both;}
+    .sr-agent-plan-sub{font-size:10px;color:rgba(255,241,220,.4);}
+    .sr-agent-plan-amt{font-size:20px;font-weight:900;color:var(--cr);margin:3px 0 2px;}
+    .sr-agent-plan-meta{font-size:12px;color:var(--sl3);}
+    .sr-feed{display:flex;flex-direction:column;gap:5px;}
+    .sr-fi{display:flex;align-items:center;gap:9px;animation:sr-fu .3s ease both;}
+    .sr-fi:nth-child(1){animation-delay:1.45s;}.sr-fi:nth-child(2){animation-delay:1.95s;}.sr-fi:nth-child(3){animation-delay:2.45s;}
+    .sr-fi-ico{width:20px;height:20px;border-radius:50%;background:rgba(139,220,154,.14);color:#a8f0b5;display:grid;place-items:center;font-size:11px;flex-shrink:0;}
+    .sr-fi b{display:block;font-size:12px;font-weight:700;color:var(--cr);}
+    .sr-fi span{font-size:10px;color:rgba(255,241,220,.42);}
+    .sr-agent-cta{width:100%;min-height:46px;background:var(--sl);color:#120906;border:none;border-radius:14px;font-size:14px;font-weight:900;animation:sr-fu .3s ease 2.95s both;}
+    /* S3 */
+    .sr-home{padding:8px;display:flex;flex-direction:column;gap:8px;overflow:hidden;}
+    .sr-home-hero{border-radius:22px;padding:13px;background:linear-gradient(135deg,rgba(255,241,220,.05) 25%,transparent 25%) 0 0/36px 36px,linear-gradient(225deg,rgba(255,241,220,.03) 25%,transparent 25%) 0 0/36px 36px,#1b0f0a;display:flex;flex-direction:column;gap:0;}
+    .sr-home-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:11px;}
+    .sr-ico-btn{width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,241,220,.14);background:rgba(16,9,6,.28);display:grid;place-items:center;font-size:16px;}
+    .sr-title-pill{padding:0 18px;height:36px;border-radius:99px;border:1px solid rgba(255,241,220,.14);background:rgba(16,9,6,.28);font-weight:900;font-size:14px;display:inline-flex;align-items:center;color:var(--cr);}
+    .sr-net-pill{display:inline-flex;align-items:center;gap:7px;padding:5px 10px;border-radius:99px;border:1px solid rgba(139,220,154,.3);background:rgba(139,220,154,.08);margin-bottom:9px;width:fit-content;}
+    .sr-net-dot{width:7px;height:7px;border-radius:50%;background:#a8f0b5;}
+    .sr-net-pill span{font-size:10px;font-weight:700;color:#a8f0b5;letter-spacing:.08em;}
+    .sr-bal-lbl{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--sl3);}
+    .sr-bal-amt{font-size:44px;font-weight:400;line-height:.92;letter-spacing:-.07em;color:var(--cr);}
+    .sr-bal-sub{font-size:12px;color:var(--sl3);margin-top:7px;}
+    .sr-start{width:100%;min-height:54px;padding:10px 14px;display:grid;grid-template-columns:36px 1fr 16px;gap:10px;align-items:center;border:1px solid rgba(255,241,220,.1);border-radius:16px;background:rgba(16,9,6,.56);color:var(--cr);text-align:left;}
+    .sr-start-ico{width:32px;height:32px;border-radius:11px;background:rgba(246,232,212,.1);display:grid;place-items:center;font-size:15px;}
+    .sr-start b{display:block;font-size:13px;font-weight:900;}
+    .sr-start small{font-size:11px;color:rgba(255,241,220,.42);}
+    .sr-plans-hd{display:flex;justify-content:space-between;align-items:center;padding:0 2px;}
+    .sr-plans-hd span{font-size:9px;font-weight:700;letter-spacing:.1em;color:rgba(255,241,220,.32);text-transform:uppercase;}
+    .sr-plans-hd a{font-size:11px;color:var(--sl);text-decoration:none;}
+    .sr-pr{display:flex;align-items:center;gap:10px;padding:11px;border:1px solid var(--ls);border-radius:14px;background:rgba(16,9,6,.36);animation:sr-fu .35s ease both;}
+    .sr-pr:nth-child(2){animation-delay:.1s;}
+    .sr-pr-ico{width:32px;height:32px;border-radius:50%;background:var(--c8);display:grid;place-items:center;flex-shrink:0;font-size:12px;}
+    .sr-pr b{display:block;font-size:13px;font-weight:700;color:var(--cr);}
+    .sr-pr span{font-size:11px;color:rgba(255,241,220,.4);}
+    .sr-pr-status{margin-left:auto;font-size:11px;font-weight:700;color:#a8f0b5;white-space:nowrap;}
+    /* S4 */
+    .sr-receipt{display:flex;flex-direction:column;overflow:hidden;}
+    .sr-rds-hdr{flex-shrink:0;padding:10px 14px 12px;background:linear-gradient(135deg,rgba(255,241,220,.04) 25%,transparent 25%) 0 0/32px 32px,#1b0f0a;border-bottom:1px solid var(--ls);}
+    .sr-rds-hero{min-width:0;}
+    .sr-rds-kicker{font-size:9px;font-weight:700;letter-spacing:.12em;color:var(--sl3);text-transform:uppercase;display:block;margin-bottom:4px;}
+    .sr-rds-who{font-size:22px;font-weight:900;color:var(--cr);line-height:1;}
+    .sr-rds-amt{font-size:17px;font-weight:700;color:var(--cr);margin-top:3px;}
+    .sr-rds-amt small{font-size:11px;color:rgba(255,241,220,.48);}
+    .sr-rds-meta{display:flex;align-items:center;gap:7px;margin-top:6px;}
+    .sr-rds-date{font-size:11px;color:rgba(255,241,220,.38);}
+    .sr-chip{padding:3px 9px;border-radius:99px;font-size:10px;font-weight:700;background:rgba(139,220,154,.14);color:#a8f0b5;}
+    .sr-qr-center{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 14px;border-bottom:1px solid var(--ls);}
+    .sr-qr{width:78px;height:78px;background:#fff;border-radius:5px;padding:4px;display:block;}
+    .sr-qr-link{font-size:10px;color:var(--sl);display:flex;align-items:center;gap:3px;}
+    .sr-fields{padding:4px 14px;display:flex;flex-direction:column;flex:1;max-height:240px;overflow:hidden;}
+    .sr-field{display:flex;align-items:center;justify-content:space-between;flex:1;border-bottom:1px solid var(--ls);min-height:44px;}
+    .sr-field:last-child{border-bottom:none;}
+    .sr-field-lbl{display:flex;align-items:center;gap:7px;font-size:11px;color:rgba(255,241,220,.44);}
+    .sr-field-lbl span{font-size:14px;}
+    .sr-field-val{font-size:11px;font-weight:600;color:var(--cr);text-align:right;max-width:58%;}
+    .sr-rds-cta{flex-shrink:0;margin:6px 14px 14px;min-height:48px;background:var(--sl);color:#120906;border:none;border-radius:15px;font-size:14px;font-weight:900;display:flex;align-items:center;justify-content:center;gap:7px;}
+    /* S5 */
+    .sr-moves{padding:10px 10px 8px;display:flex;flex-direction:column;gap:9px;overflow:hidden;}
+    .sr-moves-kicker{font-size:9px;font-weight:700;letter-spacing:.12em;color:var(--sl3);text-transform:uppercase;display:block;margin-bottom:5px;}
+    .sr-moves-title{font-size:26px;font-weight:900;color:var(--cr);margin:0;letter-spacing:-.04em;line-height:1;}
+    .sr-moves-filters{display:flex;flex-wrap:wrap;gap:5px;}
+    .sr-fpill{border:1px solid rgba(255,241,220,.16);background:transparent;border-radius:99px;padding:5px 13px;font-size:11px;font-weight:700;color:rgba(255,241,220,.46);font-family:inherit;cursor:default;}
+    .sr-fpill.on{background:var(--cr);color:#1b0f0a;border-color:var(--cr);}
+    .sr-moves-search{display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid rgba(255,241,220,.1);border-radius:13px;background:rgba(16,9,6,.5);}
+    .sr-search-ico{font-size:12px;color:rgba(255,241,220,.3);}
+    .sr-search-ph{font-size:12px;color:rgba(255,241,220,.28);}
+    .sr-moves-list{display:flex;flex-direction:column;border:1px solid rgba(255,241,220,.1);border-radius:16px;background:rgba(16,9,6,.36);overflow:hidden;}
+    .sr-mv{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid rgba(255,241,220,.07);animation:sr-fu .35s ease both;}
+    .sr-mv:last-child{border-bottom:none;}
+    .sr-mv:nth-child(1){animation-delay:0s;}.sr-mv:nth-child(2){animation-delay:.12s;}.sr-mv:nth-child(3){animation-delay:.24s;}
+    .sr-mv-ico{width:30px;height:30px;border-radius:50%;background:rgba(139,220,154,.1);border:1px solid rgba(139,220,154,.18);display:grid;place-items:center;flex-shrink:0;font-size:11px;font-weight:900;color:#a8f0b5;}
+    .sr-mv-info{flex:1;min-width:0;}
+    .sr-mv-name{font-size:13px;font-weight:700;color:var(--cr);}
+    .sr-mv-sub{font-size:10px;color:rgba(255,241,220,.36);}
+    .sr-mv-right{text-align:right;flex-shrink:0;}
+    .sr-mv-amt{font-size:13px;font-weight:700;color:#a8f0b5;}
+    .sr-mv-cur{font-size:10px;color:rgba(255,241,220,.28);}
+    /* Keyframes */
+    @keyframes sr-globe{0%,10%{transform:rotate(0) scale(1)}40%{transform:rotate(-8deg) scale(1.01)}70%{transform:rotate(7deg) scale(1.01)}90%,100%{transform:rotate(0) scale(1)}}
+    @keyframes sr-wmpan{0%,16%{transform:translateX(0)}68%,88%{transform:translateX(-36%)}96%,100%{transform:translateX(0)}}
+    @keyframes sr-usa{0%,22%{opacity:1}34%,88%{opacity:.13}96%,100%{opacity:1}}
+    @keyframes sr-ke{0%,56%{opacity:.13}68%,88%{opacity:1}96%,100%{opacity:.13}}
+    @keyframes sr-money{0%,14%{left:14%;top:22%;opacity:1;transform:scale(.88)}28%{left:18%;top:28%;opacity:1;transform:scale(.94)}46%{left:28%;top:36%;opacity:1;transform:scale(.97)}62%{left:38%;top:43%;opacity:1;transform:scale(.88)}74%{left:46%;top:48%;opacity:1;transform:scale(.74)}82%{left:50%;top:50%;opacity:0;transform:scale(.26)}86%,100%{left:14%;top:22%;opacity:0;transform:scale(.26)}}
+    @keyframes sr-vwave{0%,100%{transform:scaleY(.55);opacity:.6}46%{transform:scaleY(1.1);opacity:1}}
+    @keyframes sr-hw{0%,100%{transform:scaleY(.56);opacity:.62}50%{transform:scaleY(1.06);opacity:1}}
+    @keyframes sr-fu{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+    .hero-award {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 13px;
+      border: 1px solid rgba(200,144,60,.25);
       border-radius: 99px;
-      color: var(--accent-warm);
       font-size: 12px;
       font-weight: 700;
-      letter-spacing: .06em;
-      backdrop-filter: blur(8px);
-      white-space: nowrap;
-      cursor: pointer; font-family: inherit;
-      transition: background .15s, border-color .15s;
+      color: var(--accent-deep);
+      background: rgba(200,144,60,.06);
+      margin-bottom: 14px;
+      text-decoration: none;
+      transition: background .14s;
     }
-    .phone-label:hover { background: rgba(200,144,60,.22); border-color: rgba(200,144,60,.6); }
+    .hero-award:hover { background: rgba(200,144,60,.13); }
 
     /* â”€â”€ Products â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     .products-grid {
@@ -668,6 +809,24 @@
       .corridor-grid { grid-template-columns: 1fr; }
       .hero-stats { gap: 14px; }
     }
+    /* 2.1 — compact screen: animation fills viewport, copy scrolls below */
+    @media (max-width: 480px) {
+      .hero-section { padding: 0 !important; }
+      .hero { gap: 0; }
+      .phone-wrap { order: -1; width: 100%; justify-content: stretch; }
+      .phone-frame {
+        width: 100% !important;
+        max-width: none !important;
+        height: calc(100svh - 58px) !important;
+        aspect-ratio: unset !important;
+        border-radius: 0 !important;
+        border-left: none !important;
+        border-right: none !important;
+        border-top: none !important;
+        box-shadow: none !important;
+      }
+      .hero-copy { padding: 28px clamp(16px, 5vw, 32px) 40px; }
+    }
   </style>
 </head>
 <body>
@@ -698,12 +857,13 @@
 </div>
 
 <!-- â”€â”€ HERO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
-<section class="section" style="padding-top: clamp(52px, 9vw, 96px);">
+<section class="section hero-section" style="padding-top: clamp(52px, 9vw, 96px);">
   <div class="section-inner">
     <div class="hero">
 
       <div class="hero-copy">
         <span class="hero-kicker">Celo Mainnet &middot; Non-custodial</span>
+        <a class="hero-award" href="https://hackathon.celocolombia.org/resultados?token=99e4149611fb48ee8cbfe2de" target="_blank" rel="noreferrer">&#x1F3C6; Celo Colombia Hackathon &mdash; 2nd place &nearr;</a>
         <h1>Your wallet<br/>sends home<br/><em>every month.</em></h1>
         <p class="hero-sub">Text or voice a command. Your wallet approves once. Choco executes automatically &mdash; with an on-chain receipt every time. No custody. No hidden fees. No middleman.</p>
         <div class="hero-ctas">
@@ -735,7 +895,131 @@
 
       <div class="phone-wrap">
         <div class="phone-frame">
-          <iframe id="phone-iframe" src="/demo.html?embed" title="Choco live demo" loading="lazy"></iframe>
+          <div class="speed-run" id="speed-run">
+            <div class="sr-chrome">
+              <span class="sr-chrome-x">&#x2715;</span>
+              <span class="sr-chrome-title">Choco</span>
+              <div class="sr-chrome-icons">
+                <div class="sr-chrome-icon">&#x1F514;</div>
+                <div class="sr-chrome-icon">?</div>
+              </div>
+            </div>
+            <!-- S1: Globe (4000ms) -->
+            <div class="sr-scene sr-pitch active" id="sr1" data-dur="4000">
+              <div class="sr-pvisual">
+                <div class="sr-globe-wrap">
+                  <div class="sr-globe-core">
+                    <svg class="sr-wmap" viewBox="0 0 360 180" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                      <image href="https://upload.wikimedia.org/wikipedia/commons/5/51/BlankMap-Equirectangular.svg" x="0" y="0" width="360" height="180" preserveAspectRatio="xMidYMid meet"/>
+                      <g class="sr-usa-label"><circle class="sr-mapdot" cx="82" cy="51" r="2.8"/><text class="sr-maplabel" x="87" y="49">USA</text></g>
+                      <g class="sr-ke-label"><circle class="sr-mapdot" cx="218" cy="90" r="2.8"/><text class="sr-maplabel" x="223" y="88">Kenya</text></g>
+                    </svg>
+                  </div>
+                  <div class="sr-dbundle">
+                    <div class="sr-dcoin">$</div>
+                    <div class="sr-vbub">
+                      <div class="sr-vbub-mic">&#x1F3A4;</div>
+                      <div class="sr-vbub-wv"><i></i><i></i><i></i><i></i><i></i></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="sr-pcopy">
+                <span class="sr-pkicker">Voice Remittance</span>
+                <h2 class="sr-ph">Send USA to <span class="sr-ph-hl">Kenya&nbsp;<span class="sr-ph-wv"><i></i><i></i><i></i><i></i><i></i></span></span><br>by voice.</h2>
+                <p class="sr-pmem">Plan once. Send now or on schedule.</p>
+                <p class="sr-psup">Choco handles the rest</p>
+              </div>
+              <button class="sr-pcta">Continue</button>
+            </div>
+            <!-- S2: Agent (4500ms) -->
+            <div class="sr-scene sr-proc" id="sr2" data-dur="4500">
+              <div class="sr-agent-card">
+                <div class="sr-agent-head">
+                  <div class="sr-agent-mark">&#x25CF;</div>
+                  <div><div class="sr-agent-sub">CHOCO AGENT AI RUN</div><div class="sr-agent-name">Mini App</div></div>
+                </div>
+                <div class="sr-agent-bubble">&ldquo;Send $10 to Mercy&rdquo;</div>
+                <div class="sr-agent-toast">&#x2713;&ensp;Send-now intent detected</div>
+                <div class="sr-agent-plan">
+                  <div class="sr-agent-plan-sub">TRANSFER PLAN</div>
+                  <div class="sr-agent-plan-amt">$10 <small style="font-size:13px;opacity:.5">USDC</small></div>
+                  <div class="sr-agent-plan-meta">to Mercy &middot; One-time send</div>
+                </div>
+                <div class="sr-feed">
+                  <div class="sr-fi"><div class="sr-fi-ico">&#x2713;</div><div><b>Intent detected</b><span>Voice command parsed</span></div></div>
+                  <div class="sr-fi"><div class="sr-fi-ico">&#x21BB;</div><div><b>Route prepared</b><span>USDC &#x2192; KESm via Mento</span></div></div>
+                  <div class="sr-fi"><div class="sr-fi-ico">&#x2713;</div><div><b>Guardrails clear</b><span>Within daily limits</span></div></div>
+                </div>
+                <button class="sr-agent-cta">Looks right &#x2713;</button>
+              </div>
+            </div>
+            <!-- S3: Home (3500ms) -->
+            <div class="sr-scene sr-home" id="sr3" data-dur="3500">
+              <div class="sr-home-hero">
+                <div class="sr-home-top">
+                  <div class="sr-ico-btn">&#x2261;</div>
+                  <div class="sr-title-pill">Choco</div>
+                  <div class="sr-ico-btn">&#x1F6E1;</div>
+                </div>
+                <div class="sr-net-pill"><div class="sr-net-dot"></div><span>Celo Mainnet</span></div>
+                <div class="sr-bal-lbl">USDC balance</div>
+                <div class="sr-bal-amt">45.20</div>
+                <div class="sr-bal-sub">Next: $50 USDC &#x2192; Mercy &middot; Aug 1</div>
+              </div>
+              <div class="sr-start">
+                <div class="sr-start-ico">&#x24C2;</div>
+                <div><b>New transfer</b><small>Type or speak a command</small></div>
+                <span style="color:rgba(255,241,220,.3)">&#x203A;</span>
+              </div>
+              <div class="sr-plans-hd"><span>Active schedules</span><a href="#">See all</a></div>
+              <div class="sr-pr"><div class="sr-pr-ico">&#x25CF;</div><div><b>Monthly to Mercy</b><span>$50 USDC &middot; 1st of month</span></div><div class="sr-pr-status">Active</div></div>
+              <div class="sr-pr"><div class="sr-pr-ico">&#x25CF;</div><div><b>Weekly to Mom</b><span>$25 USDC &middot; Every Friday</span></div><div class="sr-pr-status">Active</div></div>
+            </div>
+            <!-- S4: Receipt + QR (4000ms) -->
+            <div class="sr-scene sr-receipt" id="sr4" data-dur="4000">
+              <div class="sr-rds-hdr">
+                <div class="sr-rds-hero">
+                  <span class="sr-rds-kicker">Choco receipt</span>
+                  <div class="sr-rds-who">Mercy</div>
+                  <div class="sr-rds-amt">1,280 <small>KESm</small></div>
+                  <div class="sr-rds-meta"><span class="sr-rds-date">Today</span><span class="sr-chip">Delivered</span></div>
+                </div>
+              </div>
+              <div class="sr-qr-center">
+                <canvas class="sr-qr" id="sr-qr-canvas" width="78" height="78"></canvas>
+                <span class="sr-qr-link">See proof &#x2197;</span>
+              </div>
+              <div class="sr-fields">
+                <div class="sr-field"><div class="sr-field-lbl"><span>&#x1F464;</span>Recipient</div><div class="sr-field-val">Mercy</div></div>
+                <div class="sr-field"><div class="sr-field-lbl"><span>&#x1F4C5;</span>Timing</div><div class="sr-field-val">Today &middot; One-time</div></div>
+                <div class="sr-field"><div class="sr-field-lbl"><span>&#x2713;</span>Settlement</div><div class="sr-field-val">On-chain confirmed</div></div>
+                <div class="sr-field"><div class="sr-field-lbl"><span>&#x21C6;</span>Route</div><div class="sr-field-val">USDC &#x2192; KESm via Mento</div></div>
+              </div>
+              <button class="sr-rds-cta">&#x2197;&ensp;Share receipt</button>
+            </div>
+            <!-- S5: Movements (3500ms) -->
+            <div class="sr-scene sr-moves" id="sr5" data-dur="3500">
+              <div><span class="sr-moves-kicker">Receipts</span><h3 class="sr-moves-title">Movements</h3></div>
+              <div class="sr-moves-filters">
+                <button class="sr-fpill">All</button>
+                <button class="sr-fpill on">Send now</button>
+                <button class="sr-fpill">Plan payments</button>
+                <button class="sr-fpill">Set aside</button>
+              </div>
+              <div class="sr-moves-search"><span class="sr-search-ico">&#x1F50D;</span><span class="sr-search-ph">Search recipient or amount&hellip;</span></div>
+              <div class="sr-moves-list">
+                <div class="sr-mv"><div class="sr-mv-ico">&#x2713;</div><div class="sr-mv-info"><div class="sr-mv-name">Mercy</div><div class="sr-mv-sub">Today &middot; KES 1,280</div></div><div class="sr-mv-right"><div class="sr-mv-amt">$10</div><div class="sr-mv-cur">USDC</div></div></div>
+                <div class="sr-mv"><div class="sr-mv-ico">&#x2713;</div><div class="sr-mv-info"><div class="sr-mv-name">Monthly to Mercy</div><div class="sr-mv-sub">Jul 1 &middot; KES 6,400</div></div><div class="sr-mv-right"><div class="sr-mv-amt">$50</div><div class="sr-mv-cur">USDC</div></div></div>
+                <div class="sr-mv"><div class="sr-mv-ico">&#x2713;</div><div class="sr-mv-info"><div class="sr-mv-name">Mom</div><div class="sr-mv-sub">Jun 27 &middot; KES 3,200</div></div><div class="sr-mv-right"><div class="sr-mv-amt">$25</div><div class="sr-mv-cur">USDC</div></div></div>
+              </div>
+            </div>
+            <!-- Progress dots -->
+            <div class="sr-dots">
+              <span class="sr-dot on"></span><span class="sr-dot"></span>
+              <span class="sr-dot"></span><span class="sr-dot"></span><span class="sr-dot"></span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -966,7 +1250,6 @@
       <a href="#products">Products</a>
       <a href="#solutions">Solutions</a>
       <a href="#how">How it works</a>
-      <a href="/demo.html">Demo</a>
       <a href="/contact-us.html">Contact</a>
       <a href="/privacy.html">Privacy</a>
       <a href="/terms.html">Terms</a>
@@ -977,6 +1260,41 @@
 </footer>
 
 <script>
+  /* ── Speed-run controller ─────────────────────────────────────── */
+  (function () {
+    var ids = ['sr1','sr2','sr3','sr4','sr5'];
+    var cur = 0, tmr = null;
+    function drawQR() {
+      var canvas = document.getElementById('sr-qr-canvas');
+      if (!canvas) return;
+      var ctx = canvas.getContext('2d'), n = 13, w = canvas.width, cell = Math.floor(w / n), pad = Math.floor((w - cell * n) / 2);
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, w);
+      var p = [[1,1,1,1,1,1,1,0,0,0,1,0,1],[1,0,0,0,0,0,1,0,1,1,0,1,0],[1,0,1,1,1,0,1,0,1,0,1,0,1],[1,0,1,1,1,0,1,0,0,1,0,0,0],[1,0,1,1,1,0,1,0,1,1,0,1,1],[1,0,0,0,0,0,1,0,0,0,1,0,1],[1,1,1,1,1,1,1,0,1,0,0,1,0],[0,0,0,0,0,0,0,0,1,1,0,0,1],[1,1,0,1,0,1,1,1,1,0,1,0,1],[0,0,1,0,1,0,0,1,0,1,0,1,0],[1,0,0,1,0,0,1,0,1,1,1,0,0],[0,1,1,0,1,1,0,1,0,0,0,1,1],[1,0,1,1,0,0,1,0,1,0,1,0,1]];
+      ctx.fillStyle = '#1b0f0a';
+      p.forEach(function(row, i) { row.forEach(function(v, j) { if (v) ctx.fillRect(pad + j * cell, pad + i * cell, cell - 0.5, cell - 0.5); }); });
+    }
+    function reset(el) { el.classList.add('sr-rst'); el.offsetHeight; el.classList.remove('sr-rst'); }
+    function show(i) {
+      document.querySelectorAll('.sr-scene').forEach(function(s) { s.classList.remove('active'); });
+      document.querySelectorAll('.sr-dot').forEach(function(d, j) { d.classList.toggle('on', j === i); });
+      var s = document.getElementById(ids[i]);
+      if (!s) return;
+      reset(s);
+      if (ids[i] === 'sr4') drawQR();
+      s.classList.add('active');
+    }
+    function next() {
+      cur = (cur + 1) % ids.length;
+      show(cur);
+      var el = document.getElementById(ids[cur]);
+      tmr = setTimeout(next, parseInt((el && el.dataset.dur) || 3500));
+    }
+    window.chocoDemo = {
+      run: function() { clearTimeout(tmr); cur = 0; show(0); var el = document.getElementById(ids[0]); tmr = setTimeout(next, parseInt((el && el.dataset.dur) || 3500)); }
+    };
+    document.addEventListener('DOMContentLoaded', function() { chocoDemo.run(); });
+  })();
+
   /* â”€â”€ Solution picker â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   const solutions = {
     diaspora: {
