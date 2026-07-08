@@ -980,3 +980,44 @@
   transform: scale(0.985);
 }
 
+.home-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lang-switcher {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid rgba(246, 232, 212, 0.16);
+  border-radius: 999px;
+  background: rgba(16, 9, 6, 0.28);
+}
+
+.lang-switcher button {
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0;
+  border: none !important;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--latte-300);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.lang-switcher button.active {
+  background: rgba(246, 232, 212, 0.18);
+  color: var(--cream);
+}
+
+.lang-switcher button:hover:not(.active) {
+  color: var(--cream);
+  opacity: 0.8;
+}
+

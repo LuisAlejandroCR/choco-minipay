@@ -1,12 +1,15 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ArrowRight, CircleDollarSign, Copy, CopyCheck, Eye, EyeOff, ExternalLink, PlusCircle, Share2, ShieldCheck, X } from "lucide-react";
 import { ChocoMark } from "../components/ChocoMark.jsx";
+import { LanguageSwitcher } from "../components/LanguageSwitcher.jsx";
 import { formatWalletAddress } from "../modules/wallet/useMiniPayWallet.js";
 import { scheduledLocalDateForPlan } from "../lib/schedule-time.js";
 import { getPlanExecutionState, getTimingLabel, recipientLabel } from "../utils/planUtils.js";
 import { demoPromptContent } from "../content/demoFlow.js";
 
 function DemoPrompt({ liveDemoUrl, onDismiss, onRunDemo }) {
+  const { t } = useTranslation();
   return (
     <div className="demo-overlay" role="dialog" aria-modal="true" aria-labelledby="demo-prompt-title">
       <div className="demo-card">
@@ -14,15 +17,15 @@ function DemoPrompt({ liveDemoUrl, onDismiss, onRunDemo }) {
         <button className="demo-close" type="button" aria-label="Skip demo prompt" onClick={onDismiss}>
           <X size={18} />
         </button>
-        <h2 id="demo-prompt-title">{demoPromptContent.title}</h2>
-        <p>{demoPromptContent.copy}</p>
+        <h2 id="demo-prompt-title">{t("demo.try_choco", { seconds: DEMO_TOTAL_SECONDS })}</h2>
+        <p>{t("demo.copy")}</p>
         <a className="demo-live-link" href={liveDemoUrl} target="_blank" rel="noreferrer">
-          {demoPromptContent.liveDemoLabel}
+          {t("demo.live_demo")}
           <ExternalLink size={15} />
         </a>
         <div className="demo-actions">
-          <button type="button" onClick={onRunDemo}>Run demo</button>
-          <button type="button" onClick={onDismiss}>Skip</button>
+          <button type="button" onClick={onRunDemo}>{t("demo.run")}</button>
+          <button type="button" onClick={onDismiss}>{t("demo.skip")}</button>
         </div>
       </div>
     </div>
@@ -61,6 +64,7 @@ export function PlanScreen({
   onDismissDemo = () => {},
   onRunDemo = () => {},
 }) {
+  const { t } = useTranslation();
   const [hideBalance, setHideBalance] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -93,17 +97,17 @@ export function PlanScreen({
   const nextPlan = upcomingPlans[0] || null;
 
   const connectLabel = wallet.needsMobileWallet
-    ? "Connect mobile wallet"
+    ? t("home.connect_mobile")
     : !wallet.hasProvider
-      ? "Connect browser wallet"
+      ? t("home.connect_browser")
       : isVerifyingWallet
-        ? "Verifying wallet…"
-        : "Verify wallet";
+        ? t("home.verifying")
+        : t("home.verify");
 
   const connectHelp = wallet.needsMobileWallet
-    ? "Open in MiniPay or wallet browser"
+    ? t("home.open_minipay")
     : !wallet.hasProvider
-      ? "Install or enable MetaMask"
+      ? t("home.install_metamask")
       : walletStatusLabel;
 
   return (
@@ -115,16 +119,19 @@ export function PlanScreen({
         <div className="home-actions">
           <button type="button" aria-label="Profile"><ChocoMark size="tiny" /></button>
           <span className="home-title-pill">Choco</span>
-          <button type="button" aria-label="Support"><ShieldCheck size={20} /></button>
+          <div className="home-actions-right">
+            <LanguageSwitcher />
+            <button type="button" aria-label="Support"><ShieldCheck size={20} /></button>
+          </div>
         </div>
         <div className={`home-network-pill ${wallet.isTestnet ? "" : "ready"}`}>
-          <span>Network</span>
+          <span>{t("home.network")}</span>
           <b>{wallet.network.label}</b>
         </div>
 
         {isWalletVerified ? (
           <div className="balance-hero">
-            <span className="balance-hero-label">USDC balance</span>
+            <span className="balance-hero-label">{t("home.balance_label")}</span>
             <div className="balance-hero-row">
               <strong className="balance-hero-amount">
                 {hideBalance ? "••••••" : primaryAmount}
@@ -141,20 +148,20 @@ export function PlanScreen({
             {isWalletVerified && (
               <p className="balance-hero-sub">
                 {wallet.isReadOnly ? (
-                  <>{walletShort}{" "}<button type="button" className="addr-copy" aria-label="Copy wallet address" onClick={handleCopyAddress}>{copied ? <CopyCheck size={12} /> : <Copy size={12} />}</button><button type="button" className="addr-copy" aria-label="Share wallet address" onClick={handleShareAddress}><Share2 size={12} /></button>{" — connect your wallet to confirm."}</>
+                  <>{walletShort}{" "}<button type="button" className="addr-copy" aria-label={t("home.copy_address")} onClick={handleCopyAddress}>{copied ? <CopyCheck size={12} /> : <Copy size={12} />}</button><button type="button" className="addr-copy" aria-label={t("home.share_address")} onClick={handleShareAddress}><Share2 size={12} /></button>{" — "}{t("home.connect_read_only")}</>
                 ) : nextPlan ? (
                   `Next: ${nextPlan.amount} ${nextPlan.asset} → ${nextPlan.recipient} · ${getTimingLabel(nextPlan)}`
                 ) : (
-                  <>{walletShort}{" "}<button type="button" className="addr-copy" aria-label="Copy wallet address" onClick={handleCopyAddress}>{copied ? <CopyCheck size={12} /> : <Copy size={12} />}</button><button type="button" className="addr-copy" aria-label="Share wallet address" onClick={handleShareAddress}><Share2 size={12} /></button>{" · no active plans"}</>
+                  <>{walletShort}{" "}<button type="button" className="addr-copy" aria-label={t("home.copy_address")} onClick={handleCopyAddress}>{copied ? <CopyCheck size={12} /> : <Copy size={12} />}</button><button type="button" className="addr-copy" aria-label={t("home.share_address")} onClick={handleShareAddress}><Share2 size={12} /></button>{" · "}{t("home.no_plans")}</>
                 )}
               </p>
             )}
           </div>
         ) : (
           <div className="balance-copy">
-            <span>Wallet access</span>
-            <strong>Locked</strong>
-            <p>Confirm your wallet to unlock sends, schedules, and receipts.</p>
+            <span>{t("home.wallet_access")}</span>
+            <strong>{t("home.locked")}</strong>
+            <p>{t("home.wallet_locked_copy")}</p>
           </div>
         )}
       </div>
@@ -169,8 +176,8 @@ export function PlanScreen({
           {isWalletVerified ? <CircleDollarSign size={20} /> : <ShieldCheck size={20} />}
         </span>
         <span>
-          <b>{isWalletVerified ? "New transfer" : connectLabel}</b>
-          <small>{isWalletVerified ? "Text or voice, then wallet confirms" : connectHelp}</small>
+          <b>{isWalletVerified ? t("home.new_transfer") : connectLabel}</b>
+          <small>{isWalletVerified ? t("home.new_transfer_sub") : connectHelp}</small>
         </span>
         <ArrowRight size={21} />
       </button>
@@ -181,13 +188,13 @@ export function PlanScreen({
           onClick={onFundWallet}
         >
           <PlusCircle size={18} />
-          <span>Add USDC with a card</span>
+          <span>{t("home.fund_wallet")}</span>
         </button>
       )}
       {isWalletVerified && plans.length > 0 && (
         <div className="section-heading">
-          <span>Plans</span>
-          <button type="button" onClick={onPlans}>See all</button>
+          <span>{t("home.plans")}</span>
+          <button type="button" onClick={onPlans}>{t("home.see_all")}</button>
         </div>
       )}
       </div>

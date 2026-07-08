@@ -809,6 +809,36 @@
       .corridor-grid { grid-template-columns: 1fr; }
       .hero-stats { gap: 14px; }
     }
+
+    /* ── Language switcher ──────────────────────────────────────── */
+    .nav-lang-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 1px;
+      padding: 3px;
+      border: 1px solid var(--border-strong);
+      border-radius: 999px;
+      background: transparent;
+    }
+    .nav-lang-pill button {
+      min-width: 28px;
+      min-height: 28px;
+      padding: 0;
+      border: none;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--text-muted);
+      font: 700 10px/1 var(--font);
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: background 0.14s, color 0.14s;
+    }
+    .nav-lang-pill button.active {
+      background: var(--cta-bg);
+      color: var(--cta-fg);
+    }
+    .nav-lang-pill button:hover:not(.active) { color: var(--text); }
+
     /* 2.1 — compact screen: animation fills viewport, copy scrolls below */
     @media (max-width: 480px) {
       .hero-section { padding: 0 !important; }
@@ -843,17 +873,27 @@
     <a href="#how">How it works</a>
   </div>
   <div class="nav-right">
-    <a class="btn" href="/contact-us.html">Contact</a>
-    <a class="btn primary" href="/app">Launch app &rarr;</a>
+    <div class="nav-lang-pill" role="group" aria-label="Language">
+      <button onclick="landSetLang('en')" data-lang="en" class="active">EN</button>
+      <button onclick="landSetLang('es')" data-lang="es">ES</button>
+      <button onclick="landSetLang('pt')" data-lang="pt">PT</button>
+    </div>
+    <a class="btn" href="/contact-us.html" data-i18n-id="nav-contact">Contact</a>
+    <a class="btn primary" href="/app" data-i18n-id="nav-launch">Launch app &rarr;</a>
   </div>
   <button class="menu-toggle" aria-label="Open menu" onclick="document.querySelector('.mobile-nav').classList.toggle('open')">&#9776;</button>
 </nav>
 <div class="mobile-nav" role="navigation" aria-label="Mobile menu">
-  <a href="#products" onclick="this.closest('.mobile-nav').classList.remove('open')">Products</a>
-  <a href="#solutions" onclick="this.closest('.mobile-nav').classList.remove('open')">Solutions</a>
-  <a href="#how" onclick="this.closest('.mobile-nav').classList.remove('open')">How it works</a>
-  <a class="btn" href="/contact-us.html">Contact</a>
-  <a class="btn primary" href="/app">Launch app &rarr;</a>
+  <a href="#products" onclick="this.closest('.mobile-nav').classList.remove('open')" data-i18n-id="mnav-products">Products</a>
+  <a href="#solutions" onclick="this.closest('.mobile-nav').classList.remove('open')" data-i18n-id="mnav-solutions">Solutions</a>
+  <a href="#how" onclick="this.closest('.mobile-nav').classList.remove('open')" data-i18n-id="mnav-how">How it works</a>
+  <div class="nav-lang-pill" role="group" aria-label="Language" style="margin: 4px 0;">
+    <button onclick="landSetLang('en')" data-lang="en" class="active">EN</button>
+    <button onclick="landSetLang('es')" data-lang="es">ES</button>
+    <button onclick="landSetLang('pt')" data-lang="pt">PT</button>
+  </div>
+  <a class="btn" href="/contact-us.html" data-i18n-id="mnav-contact">Contact</a>
+  <a class="btn primary" href="/app" data-i18n-id="mnav-launch">Launch app &rarr;</a>
 </div>
 
 <!-- â”€â”€ HERO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
@@ -864,7 +904,7 @@
       <div class="hero-copy">
         <span class="hero-kicker">Celo Mainnet &middot; Non-custodial</span>
         <a class="hero-award" href="https://hackathon.celocolombia.org/resultados?token=99e4149611fb48ee8cbfe2de" target="_blank" rel="noreferrer">&#x1F3C6; Celo Colombia Hackathon &mdash; 2nd place &nearr;</a>
-        <h1>Your wallet<br/>sends home<br/><em>every month.</em></h1>
+        <h1 id="hero-h1">Your wallet<br/>sends home<br/><em>every month.</em></h1>
         <p class="hero-sub">Text or voice a command. Your wallet approves once. Choco executes automatically &mdash; with an on-chain receipt every time. No custody. No hidden fees. No middleman.</p>
         <div class="hero-ctas">
           <a class="btn primary" href="/app">Open Choco</a>
@@ -926,7 +966,7 @@
               </div>
               <div class="sr-pcopy">
                 <span class="sr-pkicker">Voice Remittance</span>
-                <h2 class="sr-ph">Send USA to <span class="sr-ph-hl">Kenya&nbsp;<span class="sr-ph-wv"><i></i><i></i><i></i><i></i><i></i></span></span><br>by voice.</h2>
+                <h2 class="sr-ph" id="sr-ph-h2">Send USA to <span class="sr-ph-hl">Kenya&nbsp;<span class="sr-ph-wv"><i></i><i></i><i></i><i></i><i></i></span></span><br>by voice.</h2>
                 <p class="sr-pmem">Plan once. Send now or on schedule.</p>
                 <p class="sr-psup">Choco handles the rest</p>
               </div>
@@ -1221,7 +1261,7 @@
         <div class="corridor-flag">&#x1F30D;</div>
         <h3>More</h3>
         <p>Chile, Peru, Ecuador, Argentina &mdash; on the roadmap</p>
-        <span class="corridor-badge soon">Roadmap</span>
+        <span class="corridor-badge soon roadmap">Roadmap</span>
       </div>
     </div>
   </div>
@@ -1326,12 +1366,375 @@
   function selectSolution(el, key) {
     document.querySelectorAll(".solution-item").forEach(i => i.classList.remove("active"));
     el.classList.add("active");
-    const s = solutions[key];
+    const d = (window.LAND_I18N && window.LAND_I18N[window._landLang || 'en'] || {}).solutions;
+    const s = (d && d[key]) ? d[key] : solutions[key];
     document.getElementById("sc-kicker").textContent = s.kicker;
     document.getElementById("sc-title").textContent  = s.title;
     document.getElementById("sc-body").textContent   = s.body;
     document.getElementById("sc-pills").innerHTML    = s.pills.map(p => `<span class="solution-pill">${p}</span>`).join("");
   }
+</script>
+
+<script>
+/* ── Landing page i18n ──────────────────────────────────────────── */
+(function () {
+  window.LAND_I18N = {
+    en: {
+      nav: { products: "Products", solutions: "Solutions", how: "How it works", contact: "Contact", launch: "Launch app →" },
+      hero: {
+        h1: "Your wallet<br/>sends home<br/><em>every month.</em>",
+        sub: "Text or voice a command. Your wallet approves once. Choco executes automatically — with an on-chain receipt every time. No custody. No hidden fees. No middleman.",
+        open: "Open Choco", how: "How it works",
+        stat_custody: "Custody fee", stat_block: "Celo block time", stat_receipt: "Every receipt", stat_native: "Native support",
+      },
+      sr: {
+        kicker: "Voice Remittance",
+        h2: 'Send USA to <span class="sr-ph-hl">Kenya <span class="sr-ph-wv"><i></i><i></i><i></i><i></i><i></i></span></span><br>by voice.',
+        mem: "Plan once. Send now or on schedule.", sup: "Choco handles the rest", cta1: "Continue",
+        agent_toast: "✓ Send-now intent detected", plan_meta: "to Mercy · One-time send",
+        cta2: "Looks right ✓",
+        bal_lbl: "USDC balance", start_title: "New transfer", start_sub: "Type or speak a command",
+        plans_hd: "Active schedules", see_all: "See all",
+        rds_kicker: "Choco receipt", chip_delivered: "Delivered", qr_link: "See proof ↗",
+        mv_kicker: "Receipts", mv_title: "Movements", mv_all: "All", mv_send_now: "Send now", mv_plan_payments: "Plan payments", mv_set_aside: "Set aside",
+      },
+      products: {
+        label: "Products", title: "Three ways to move money with Choco.",
+        sub: "Every product runs on Celo Mainnet. Your wallet stays in control the entire time.",
+        p1_title: "Send Now", p1_body: "Text or speak a transfer command. Choco prepares the USDC → KESm route. Your wallet signs — funds arrive in under a minute.", p1_tag: "Live on Celo",
+        p2_title: "Monthly Schedules", p2_body: "Set a recurring plan once. Fund the next run when you’re ready. Choco executes on your chosen day, every month — no re-approval needed.", p2_tag: "Live on Celo",
+        p3_title: "On-chain Receipts", p3_body: "Every send, every schedule run produces a verifiable receipt stored in ChocoLedger. Auditable forever, on Celo Mainnet.", p3_tag: "Live on Celo",
+      },
+      solutions: {
+        label: "Solutions", title: "Built for people who send money across borders.",
+        s1_title: "The diaspora", s1_body: "You’re abroad, family is home. Set a monthly plan once, fund it, and Choco handles every transfer — no app, no login, just your wallet.",
+        s2_title: "Remote workers", s2_body: "Get paid in USDC, send local currency to family. Skip P2P markets and their liquidity surprises. Bridge and Mento handle the conversion — reliably.",
+        s3_title: "MiniPay users", s3_body: "Already have MiniPay? Choco works natively inside it — no wallet import, no new app. Your 16M-user wallet just got a scheduling engine.",
+        s4_title: "Developers", s4_body: "Open-source contracts and keeper. Extend Choco to new corridors, add liquidity providers, or fork it. ChocoGateway + ChocoLedger on Celo Mainnet.",
+        diaspora: { kicker: "The diaspora", title: "Money reaches home. You stay in control.", body: "One approval, twelve sends. Your wallet holds the USDC until each monthly run. No custody, no middleman, on-chain receipt for every payment.", pills: ["USDC → KESm", "Monthly schedule", "MiniPay native"] },
+        workers: { kicker: "Remote workers", title: "Get paid in USDC. Send local anywhere.", body: "Skip P2P markets that run dry at 6 AM. Mento’s on-chain exchange and Bridge’s institutional rails handle conversion — reliably, every time.", pills: ["On-chain FX", "No P2P liquidity risk", "Bridge rails"] },
+        minipay: { kicker: "MiniPay users", title: "Your 16M-wallet app just got a scheduling engine.", body: "Choco lives inside MiniPay. No new app, no wallet import. Tap, speak, confirm — your MiniPay wallet signs the schedule.", pills: ["MiniPay native", "No extra wallet", "USDC & USDm"] },
+        dev: { kicker: "Developers", title: "Fork it. Extend it. Add your corridor.", body: "Open-source ChocoGateway + ChocoLedger on Celo Mainnet. Apache 2.0. Add liquidity providers, new payment rails, or build your own remittance product on top.", pills: ["Apache 2.0", "ChocoGateway", "ChocoLedger"] },
+      },
+      how: {
+        label: "How it works", title: "Three steps. One wallet approval.",
+        s1_title: "Command", s1_body: "Text or speak your intent — amount, recipient, schedule. Agent Choco parses it and prepares the on-chain action.",
+        s2_title: "Confirm", s2_body: "Review the route, fee, and schedule in your wallet. Sign once. Your USDC stays in your wallet until the run date.",
+        s3_title: "Receipt", s3_body: "Choco executes on schedule. KESm arrives at the recipient. An on-chain receipt is written to ChocoLedger — permanent, verifiable, yours.",
+      },
+      why: {
+        label: "Why Choco", title: "Not P2P. Not custodial. Not fragile.",
+        sub: "Most remittance apps hold your money or rely on P2P liquidity that disappears at the worst moment. Choco is different by design.",
+        w1_title: "Your keys, always", w1_body: "Choco is non-custodial. ChocoGateway holds a single locked run — not your whole balance. You can reclaim at any time. No one else holds your funds.",
+        w2_title: "On-chain liquidity, not P2P", w2_body: "KESm is settled via Mento’s on-chain exchange — not a Binance P2P order or a partner’s fiat wallet. No “liquidity unavailable” errors at 6 AM.",
+        w3_title: "Every receipt is permanent", w3_body: "ChocoLedger stores every schedule, run, and settlement on Celo Mainnet. Not in your inbox — on a blockchain anyone can verify, forever.",
+        w4_title: "Multi-corridor, coming fast", w4_body: "Kenya (KESm) is live. Nigeria, Ghana, Colombia (Bre-B), Brazil (Pix), and Mexico (SPEI) are next — backed by Bridge, Kotani Pay, and Mento.",
+      },
+      corridors: { label: "Corridors", title: "Live now. More launching soon.", live: "Live", soon: "Coming soon", roadmap: "Roadmap" },
+      cta: { h2: "Start your first schedule today.", body: "Open Choco in MiniPay or with your email. Text a command. Send your first cross-border payment in under 60 seconds.", open: "Open Choco", contact: "Talk to us" },
+      footer: { products: "Products", solutions: "Solutions", how: "How it works", contact: "Contact", privacy: "Privacy", terms: "Terms", stats: "Stats", note: "Built on Celo Mainnet · Non-custodial" },
+    },
+    es: {
+      nav: { products: "Productos", solutions: "Soluciones", how: "Cómo funciona", contact: "Contacto", launch: "Abrir app →" },
+      hero: {
+        h1: "Tu billetera<br/>envía a casa<br/><em>cada mes.</em>",
+        sub: "Escribe o di un comando. Tu billetera aprueba una vez. Choco ejecuta automáticamente — con un recibo en cadena cada vez. Sin custodia. Sin comisiones ocultas. Sin intermediarios.",
+        open: "Abrir Choco", how: "Cómo funciona",
+        stat_custody: "Comisión de custodia", stat_block: "Tiempo de bloque Celo", stat_receipt: "Cada recibo", stat_native: "Soporte nativo",
+      },
+      sr: {
+        kicker: "Remesa por voz",
+        h2: 'Envía EE.UU. a <span class="sr-ph-hl">Kenia <span class="sr-ph-wv"><i></i><i></i><i></i><i></i><i></i></span></span><br>por voz.',
+        mem: "Programa una vez. Envía ahora o automáticamente.", sup: "Choco se encarga del resto", cta1: "Continuar",
+        agent_toast: "✓ Intención de envío detectada", plan_meta: "para Mercy · Envío único",
+        cta2: "Se ve bien ✓",
+        bal_lbl: "Saldo USDC", start_title: "Nueva transferencia", start_sub: "Escribe o habla un comando",
+        plans_hd: "Planes activos", see_all: "Ver todos",
+        rds_kicker: "Recibo Choco", chip_delivered: "Entregado", qr_link: "Ver comprobante ↗",
+        mv_kicker: "Recibos", mv_title: "Movimientos", mv_all: "Todos", mv_send_now: "Enviar ahora", mv_plan_payments: "Planes", mv_set_aside: "Reservar",
+      },
+      products: {
+        label: "Productos", title: "Tres formas de mover dinero con Choco.",
+        sub: "Todos los productos corren en Celo Mainnet. Tu billetera mantiene el control en todo momento.",
+        p1_title: "Enviar ahora", p1_body: "Escribe o habla un comando. Choco prepara la ruta USDC → KESm. Tu billetera firma — los fondos llegan en menos de un minuto.", p1_tag: "En vivo en Celo",
+        p2_title: "Planes mensuales", p2_body: "Crea un plan recurrente una vez. Fináncialo cuando estés listo. Choco ejecuta el día elegido, cada mes — sin re-aprobación.", p2_tag: "En vivo en Celo",
+        p3_title: "Recibos en cadena", p3_body: "Cada envío genera un recibo verificable guardado en ChocoLedger. Auditable para siempre, en Celo Mainnet.", p3_tag: "En vivo en Celo",
+      },
+      solutions: {
+        label: "Soluciones", title: "Hecho para personas que envían dinero al exterior.",
+        s1_title: "La diáspora", s1_body: "Estás en el exterior, tu familia está en casa. Crea un plan mensual, fináncialo, y Choco gestiona cada transferencia — sin app, sin login, solo tu billetera.",
+        s2_title: "Trabajadores remotos", s2_body: "Cobras en USDC, envías moneda local a tu familia. Evita los mercados P2P y sus sorpresas de liquidez. Bridge y Mento gestionan la conversión — de forma confiable.",
+        s3_title: "Usuarios de MiniPay", s3_body: "¿Ya tienes MiniPay? Choco funciona nativamente dentro de él — sin importar billetera, sin nueva app. Tu billetera de 16M usuarios ahora tiene motor de programación.",
+        s4_title: "Desarrolladores", s4_body: "Contratos y keeper open-source. Extiende Choco a nuevos corredores, añade proveedores de liquidez o fórkalo. ChocoGateway + ChocoLedger en Celo Mainnet.",
+        diaspora: { kicker: "La diáspora", title: "El dinero llega a casa. Tú mantienes el control.", body: "Una aprobación, doce envíos. Tu billetera guarda el USDC hasta cada ejecución mensual. Sin custodia, sin intermediario, recibo en cadena en cada pago.", pills: ["USDC → KESm", "Plan mensual", "Nativo en MiniPay"] },
+        workers: { kicker: "Trabajadores remotos", title: "Cobras en USDC. Envías localmente a cualquier lugar.", body: "Evita los mercados P2P que se agotan a las 6 AM. El exchange en cadena de Mento y los rieles de Bridge gestionan la conversión — con fiabilidad, siempre.", pills: ["FX en cadena", "Sin riesgo P2P", "Rieles Bridge"] },
+        minipay: { kicker: "Usuarios de MiniPay", title: "Tu app de 16M billeteras ahora tiene motor de programación.", body: "Choco vive dentro de MiniPay. Sin nueva app, sin importar billetera. Toca, habla, confirma — tu billetera MiniPay firma el plan.", pills: ["Nativo MiniPay", "Sin billetera extra", "USDC & USDm"] },
+        dev: { kicker: "Desarrolladores", title: "Fórkalo. Extiéndelo. Añade tu corredor.", body: "ChocoGateway + ChocoLedger open-source en Celo Mainnet. Apache 2.0. Añade proveedores de liquidez, nuevos rieles de pago o construye tu propio producto de remesas.", pills: ["Apache 2.0", "ChocoGateway", "ChocoLedger"] },
+      },
+      how: {
+        label: "Cómo funciona", title: "Tres pasos. Una aprobación de billetera.",
+        s1_title: "Comando", s1_body: "Escribe o habla tu intención — monto, destinatario, horario. El Agente Choco lo analiza y prepara la acción en cadena.",
+        s2_title: "Confirmar", s2_body: "Revisa la ruta, la comisión y el horario en tu billetera. Firma una vez. Tu USDC permanece en tu billetera hasta la fecha de ejecución.",
+        s3_title: "Recibo", s3_body: "Choco ejecuta según lo programado. KESm llega al destinatario. Se escribe un recibo en cadena en ChocoLedger — permanente, verificable, tuyo.",
+      },
+      why: {
+        label: "Por qué Choco", title: "No es P2P. No es custodial. No es frágil.",
+        sub: "La mayoría de las apps de remesas guardan tu dinero o dependen de liquidez P2P que desaparece en el peor momento. Choco es diferente por diseño.",
+        w1_title: "Tus claves, siempre", w1_body: "Choco es no custodial. ChocoGateway solo guarda un run bloqueado — no tu saldo completo. Puedes reclamarlo en cualquier momento. Nadie más tiene tus fondos.",
+        w2_title: "Liquidez en cadena, no P2P", w2_body: "KESm se liquida a través del exchange en cadena de Mento — no una orden P2P de Binance. Sin errores de “liquidez no disponible” a las 6 AM.",
+        w3_title: "Cada recibo es permanente", w3_body: "ChocoLedger guarda cada plan, ejecución y liquidación en Celo Mainnet. No en tu bandeja — en una blockchain que cualquiera puede verificar, para siempre.",
+        w4_title: "Multi-corredor, llegando pronto", w4_body: "Kenia (KESm) está en vivo. Nigeria, Ghana, Colombia (Bre-B), Brasil (Pix) y México (SPEI) son los siguientes — respaldados por Bridge, Kotani Pay y Mento.",
+      },
+      corridors: { label: "Corredores", title: "En vivo ahora. Más próximamente.", live: "En vivo", soon: "Próximamente", roadmap: "Hoja de ruta" },
+      cta: { h2: "Inicia tu primer plan hoy.", body: "Abre Choco en MiniPay o con tu correo. Escribe un comando. Envía tu primer pago transfronterizo en menos de 60 segundos.", open: "Abrir Choco", contact: "Habla con nosotros" },
+      footer: { products: "Productos", solutions: "Soluciones", how: "Cómo funciona", contact: "Contacto", privacy: "Privacidad", terms: "Términos", stats: "Estadísticas", note: "Construido en Celo Mainnet · No custodial" },
+    },
+    pt: {
+      nav: { products: "Produtos", solutions: "Soluções", how: "Como funciona", contact: "Contato", launch: "Abrir app →" },
+      hero: {
+        h1: "Sua carteira<br/>envia para casa<br/><em>todo mês.</em>",
+        sub: "Escreva ou fale um comando. Sua carteira aprova uma vez. Choco executa automaticamente — com um comprovante na blockchain toda vez. Sem custódia. Sem taxas ocultas. Sem intermediários.",
+        open: "Abrir Choco", how: "Como funciona",
+        stat_custody: "Taxa de custódia", stat_block: "Tempo de bloco Celo", stat_receipt: "Cada comprovante", stat_native: "Suporte nativo",
+      },
+      sr: {
+        kicker: "Remessa por voz",
+        h2: 'Envie EUA para <span class="sr-ph-hl">Quênia <span class="sr-ph-wv"><i></i><i></i><i></i><i></i><i></i></span></span><br>por voz.',
+        mem: "Programe uma vez. Envie agora ou automaticamente.", sup: "Choco cuida do resto", cta1: "Continuar",
+        agent_toast: "✓ Intenção de envio detectada", plan_meta: "para Mercy · Envio único",
+        cta2: "Parece certo ✓",
+        bal_lbl: "Saldo USDC", start_title: "Nova transferência", start_sub: "Escreva ou fale um comando",
+        plans_hd: "Planos ativos", see_all: "Ver todos",
+        rds_kicker: "Comprovante Choco", chip_delivered: "Entregue", qr_link: "Ver comprovante ↗",
+        mv_kicker: "Comprovantes", mv_title: "Movimentos", mv_all: "Todos", mv_send_now: "Enviar agora", mv_plan_payments: "Planos", mv_set_aside: "Reservar",
+      },
+      products: {
+        label: "Produtos", title: "Três formas de mover dinheiro com Choco.",
+        sub: "Todos os produtos rodam na Celo Mainnet. Sua carteira mantém o controle o tempo todo.",
+        p1_title: "Enviar agora", p1_body: "Escreva ou fale um comando. Choco prepara a rota USDC → KESm. Sua carteira assina — os fundos chegam em menos de um minuto.", p1_tag: "Ao vivo na Celo",
+        p2_title: "Planos mensais", p2_body: "Crie um plano recorrente uma vez. Financie o próximo envio quando estiver pronto. Choco executa no dia escolhido, todo mês — sem nova aprovação.", p2_tag: "Ao vivo na Celo",
+        p3_title: "Comprovantes na blockchain", p3_body: "Cada envio gera um comprovante verificável armazenado no ChocoLedger. Auditável para sempre, na Celo Mainnet.", p3_tag: "Ao vivo na Celo",
+      },
+      solutions: {
+        label: "Soluções", title: "Feito para pessoas que enviam dinheiro para o exterior.",
+        s1_title: "A diáspora", s1_body: "Você está no exterior, a família está em casa. Crie um plano mensal, financie-o, e o Choco cuida de cada transferência — sem app, sem login, só sua carteira.",
+        s2_title: "Trabalhadores remotos", s2_body: "Receba em USDC, envie moeda local para a família. Evite mercados P2P e suas surpresas de liquidez. Bridge e Mento cuidam da conversão — com confiabilidade.",
+        s3_title: "Usuários do MiniPay", s3_body: "Já tem MiniPay? Choco funciona nativamente dentro dele — sem importar carteira, sem novo app. Sua carteira de 16M usuários agora tem motor de agendamento.",
+        s4_title: "Desenvolvedores", s4_body: "Contratos e keeper open-source. Expanda o Choco para novos corredores, adicione provedores de liquidez ou faça um fork. ChocoGateway + ChocoLedger na Celo Mainnet.",
+        diaspora: { kicker: "A diáspora", title: "O dinheiro chega em casa. Você mantém o controle.", body: "Uma aprovação, doze envios. Sua carteira guarda o USDC até cada execução mensal. Sem custódia, sem intermediário, comprovante na blockchain em cada pagamento.", pills: ["USDC → KESm", "Plano mensal", "Nativo no MiniPay"] },
+        workers: { kicker: "Trabalhadores remotos", title: "Receba em USDC. Envie localmente para qualquer lugar.", body: "Evite mercados P2P que secam às 6h. A exchange onchain da Mento e os trilhos da Bridge cuidam da conversão — com confiabilidade, sempre.", pills: ["FX onchain", "Sem risco P2P", "Trilhos Bridge"] },
+        minipay: { kicker: "Usuários do MiniPay", title: "Seu app de 16M carteiras agora tem motor de agendamento.", body: "Choco vive dentro do MiniPay. Sem novo app, sem importar carteira. Toque, fale, confirme — sua carteira MiniPay assina o plano.", pills: ["Nativo MiniPay", "Sem carteira extra", "USDC & USDm"] },
+        dev: { kicker: "Desenvolvedores", title: "Faça um fork. Expanda. Adicione seu corredor.", body: "ChocoGateway + ChocoLedger open-source na Celo Mainnet. Apache 2.0. Adicione provedores de liquidez, novos trilhos de pagamento ou construa seu próprio produto de remessa.", pills: ["Apache 2.0", "ChocoGateway", "ChocoLedger"] },
+      },
+      how: {
+        label: "Como funciona", title: "Três etapas. Uma aprovação de carteira.",
+        s1_title: "Comando", s1_body: "Escreva ou fale sua intenção — valor, destinatário, agendamento. O Agente Choco analisa e prepara a ação onchain.",
+        s2_title: "Confirmar", s2_body: "Revise a rota, a taxa e o agendamento na sua carteira. Assine uma vez. Seu USDC fica na sua carteira até a data de execução.",
+        s3_title: "Comprovante", s3_body: "Choco executa conforme programado. KESm chega ao destinatário. Um comprovante onchain é registrado no ChocoLedger — permanente, verificável, seu.",
+      },
+      why: {
+        label: "Por que Choco", title: "Não é P2P. Não é custodial. Não é frágil.",
+        sub: "A maioria dos apps de remessa guarda seu dinheiro ou depende de liquidez P2P que some no pior momento. Choco é diferente por design.",
+        w1_title: "Suas chaves, sempre", w1_body: "Choco é não custodial. O ChocoGateway guarda apenas um run bloqueado — não todo o seu saldo. Você pode resgatar a qualquer momento. Ninguém mais tem seus fundos.",
+        w2_title: "Liquidez onchain, não P2P", w2_body: "KESm é liquidado via exchange onchain da Mento — não uma ordem P2P da Binance. Sem erros de “liquidez indisponível” às 6h.",
+        w3_title: "Cada comprovante é permanente", w3_body: "O ChocoLedger registra cada plano, execução e liquidação na Celo Mainnet. Não na sua caixa de entrada — em uma blockchain que qualquer um pode verificar, para sempre.",
+        w4_title: "Multi-corredor, chegando em breve", w4_body: "Quênia (KESm) está ao vivo. Nigéria, Gana, Colômbia (Bre-B), Brasil (Pix) e México (SPEI) são os próximos — com Bridge, Kotani Pay e Mento.",
+      },
+      corridors: { label: "Corredores", title: "Ao vivo agora. Mais em breve.", live: "Ao vivo", soon: "Em breve", roadmap: "Roadmap" },
+      cta: { h2: "Inicie seu primeiro plano hoje.", body: "Abra o Choco no MiniPay ou com seu e-mail. Digite um comando. Envie seu primeiro pagamento internacional em menos de 60 segundos.", open: "Abrir Choco", contact: "Fale conosco" },
+      footer: { products: "Produtos", solutions: "Soluções", how: "Como funciona", contact: "Contato", privacy: "Privacidade", terms: "Termos", stats: "Estatísticas", note: "Construído na Celo Mainnet · Não custodial" },
+    },
+  };
+
+  window._landLang = 'en';
+
+  function applyAll() {
+    var d = window.LAND_I18N[window._landLang] || window.LAND_I18N.en;
+    function set(sel, val) { document.querySelectorAll(sel).forEach(function(el) { el.textContent = val; }); }
+    function html(id, val) { var el = document.getElementById(id); if (el) el.innerHTML = val; }
+
+    // Nav
+    set('.nav-links a[href="#products"]', d.nav.products);
+    set('.nav-links a[href="#solutions"]', d.nav.solutions);
+    set('.nav-links a[href="#how"]', d.nav.how);
+    set('[data-i18n-id="nav-contact"],[data-i18n-id="mnav-contact"]', d.nav.contact);
+    set('[data-i18n-id="nav-launch"],[data-i18n-id="mnav-launch"]', d.nav.launch);
+    set('[data-i18n-id="mnav-products"]', d.nav.products);
+    set('[data-i18n-id="mnav-solutions"]', d.nav.solutions);
+    set('[data-i18n-id="mnav-how"]', d.nav.how);
+
+    // Hero
+    html('hero-h1', d.hero.h1);
+    set('.hero-sub', d.hero.sub);
+    set('.hero-ctas .btn.primary', d.hero.open);
+    set('.hero-ctas .btn:not(.primary)', d.hero.how);
+    var stats = document.querySelectorAll('.hero-stats .stat span');
+    if (stats[0]) stats[0].textContent = d.hero.stat_custody;
+    if (stats[1]) stats[1].textContent = d.hero.stat_block;
+    if (stats[2]) stats[2].textContent = d.hero.stat_receipt;
+    if (stats[3]) stats[3].textContent = d.hero.stat_native;
+
+    // Speed-run S1
+    set('.sr-pkicker', d.sr.kicker);
+    html('sr-ph-h2', d.sr.h2);
+    set('.sr-pmem', d.sr.mem);
+    set('.sr-psup', d.sr.sup);
+    set('.sr-pcta', d.sr.cta1);
+
+    // Speed-run S2
+    set('.sr-agent-toast', d.sr.agent_toast);
+    set('.sr-agent-plan-meta', d.sr.plan_meta);
+    set('.sr-agent-cta', d.sr.cta2);
+
+    // Speed-run S3
+    set('.sr-bal-lbl', d.sr.bal_lbl);
+    var startDiv = document.querySelector('#sr3 .sr-start');
+    if (startDiv) {
+      var b = startDiv.querySelector('b'); if (b) b.textContent = d.sr.start_title;
+      var sm = startDiv.querySelector('small'); if (sm) sm.textContent = d.sr.start_sub;
+    }
+    set('.sr-plans-hd span', d.sr.plans_hd);
+    set('.sr-plans-hd a', d.sr.see_all);
+
+    // Speed-run S4
+    set('.sr-rds-kicker', d.sr.rds_kicker);
+    set('.sr-chip', d.sr.chip_delivered);
+    set('.sr-qr-link', d.sr.qr_link);
+
+    // Speed-run S5
+    set('.sr-moves-kicker', d.sr.mv_kicker);
+    set('.sr-moves-title', d.sr.mv_title);
+    var fpills = document.querySelectorAll('.sr-fpill');
+    if (fpills[0]) fpills[0].textContent = d.sr.mv_all;
+    if (fpills[1]) fpills[1].textContent = d.sr.mv_send_now;
+    if (fpills[2]) fpills[2].textContent = d.sr.mv_plan_payments;
+    if (fpills[3]) fpills[3].textContent = d.sr.mv_set_aside;
+
+    // Products
+    set('#products .section-label', d.products.label);
+    set('#products .section-title', d.products.title);
+    set('#products .section-sub', d.products.sub);
+    var pcards = document.querySelectorAll('#products .product-card');
+    [[d.products.p1_title, d.products.p1_body, d.products.p1_tag],
+     [d.products.p2_title, d.products.p2_body, d.products.p2_tag],
+     [d.products.p3_title, d.products.p3_body, d.products.p3_tag]].forEach(function(vals, i) {
+      var c = pcards[i]; if (!c) return;
+      var h3 = c.querySelector('h3'); if (h3) h3.textContent = vals[0];
+      var p = c.querySelector('p'); if (p) p.textContent = vals[1];
+      var tag = c.querySelector('.product-tag'); if (tag) tag.textContent = vals[2];
+    });
+
+    // Solutions list items
+    set('#solutions .section-label', d.solutions.label);
+    set('#solutions .section-title', d.solutions.title);
+    var sitems = document.querySelectorAll('#solutions .solution-item');
+    [[d.solutions.s1_title, d.solutions.s1_body],
+     [d.solutions.s2_title, d.solutions.s2_body],
+     [d.solutions.s3_title, d.solutions.s3_body],
+     [d.solutions.s4_title, d.solutions.s4_body]].forEach(function(vals, i) {
+      var si = sitems[i]; if (!si) return;
+      var h3 = si.querySelector('h3'); if (h3) h3.textContent = vals[0];
+      var p = si.querySelector('p'); if (p) p.textContent = vals[1];
+    });
+    // Re-render active solution card
+    var activeSI = document.querySelector('#solutions .solution-item.active');
+    if (activeSI) {
+      var m = (activeSI.getAttribute('onclick') || '').match(/selectSolution\(this,'(\w+)'\)/);
+      if (m && m[1] && d.solutions[m[1]]) {
+        var sol = d.solutions[m[1]];
+        var kEl = document.getElementById('sc-kicker'); if (kEl) kEl.textContent = sol.kicker;
+        var tEl = document.getElementById('sc-title'); if (tEl) tEl.textContent = sol.title;
+        var bEl = document.getElementById('sc-body'); if (bEl) bEl.textContent = sol.body;
+        var pEl = document.getElementById('sc-pills'); if (pEl) pEl.innerHTML = sol.pills.map(function(p) { return '<span class="solution-pill">'+p+'</span>'; }).join('');
+      }
+    }
+
+    // How it works
+    set('#how .section-label', d.how.label);
+    set('#how .section-title', d.how.title);
+    var steps = document.querySelectorAll('#how .step');
+    [[d.how.s1_title, d.how.s1_body],
+     [d.how.s2_title, d.how.s2_body],
+     [d.how.s3_title, d.how.s3_body]].forEach(function(vals, i) {
+      var st = steps[i]; if (!st) return;
+      var h3 = st.querySelector('h3'); if (h3) h3.textContent = vals[0];
+      var p = st.querySelector('p'); if (p) p.textContent = vals[1];
+    });
+
+    // Why Choco (anchored on .why-grid)
+    var whyInner = document.querySelector('.why-grid') && document.querySelector('.why-grid').closest('.section-inner');
+    if (whyInner) {
+      var wl = whyInner.querySelector('.section-label'); if (wl) wl.textContent = d.why.label;
+      var wt = whyInner.querySelector('.section-title'); if (wt) wt.textContent = d.why.title;
+      var ws = whyInner.querySelector('.section-sub'); if (ws) ws.textContent = d.why.sub;
+      var wcards = whyInner.querySelectorAll('.why-card');
+      [[d.why.w1_title, d.why.w1_body],
+       [d.why.w2_title, d.why.w2_body],
+       [d.why.w3_title, d.why.w3_body],
+       [d.why.w4_title, d.why.w4_body]].forEach(function(vals, i) {
+        var wc = wcards[i]; if (!wc) return;
+        var h3 = wc.querySelector('h3'); if (h3) h3.textContent = vals[0];
+        var p = wc.querySelector('p'); if (p) p.textContent = vals[1];
+      });
+    }
+
+    // Corridors
+    set('#corridors .section-label', d.corridors.label);
+    set('#corridors .section-title', d.corridors.title);
+    document.querySelectorAll('#corridors .corridor-badge').forEach(function(el) {
+      if (el.classList.contains('roadmap')) el.textContent = d.corridors.roadmap;
+      else if (el.classList.contains('soon')) el.textContent = d.corridors.soon;
+      else el.textContent = d.corridors.live;
+    });
+
+    // CTA banner
+    set('.cta-banner h2', d.cta.h2);
+    set('.cta-banner p', d.cta.body);
+    set('.cta-banner .btn.primary', d.cta.open);
+    set('.cta-banner .btn:not(.primary)', d.cta.contact);
+
+    // Footer
+    var fl = document.querySelector('.footer-links');
+    if (fl) {
+      fl.querySelectorAll('a').forEach(function(a) {
+        var href = a.getAttribute('href');
+        if (href === '#products') a.textContent = d.footer.products;
+        else if (href === '#solutions') a.textContent = d.footer.solutions;
+        else if (href === '#how') a.textContent = d.footer.how;
+        else if (href === '/contact-us.html') a.textContent = d.footer.contact;
+        else if (href === '/privacy.html') a.textContent = d.footer.privacy;
+        else if (href === '/terms.html') a.textContent = d.footer.terms;
+        else if (href === '/stats.html') a.textContent = d.footer.stats;
+      });
+    }
+    set('.footer-note', d.footer.note);
+
+    // Lang pill active state
+    document.querySelectorAll('.nav-lang-pill button[data-lang]').forEach(function(btn) {
+      btn.classList.toggle('active', btn.getAttribute('data-lang') === window._landLang);
+    });
+  }
+
+  window.landSetLang = function(lang) {
+    if (!window.LAND_I18N[lang]) return;
+    window._landLang = lang;
+    try { localStorage.setItem('choco_lang', lang); } catch(e) {}
+    applyAll();
+  };
+
+  function detect() {
+    try { var s = localStorage.getItem('choco_lang'); if (s && window.LAND_I18N[s]) return s; } catch(e) {}
+    var nav = (navigator.language || '').toLowerCase();
+    if (nav.startsWith('pt')) return 'pt';
+    if (nav.startsWith('es')) return 'es';
+    return 'en';
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    window._landLang = detect();
+    applyAll();
+  });
+})();
 </script>
 </body>
 </html>

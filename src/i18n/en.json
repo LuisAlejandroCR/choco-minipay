@@ -1,0 +1,81 @@
+{
+  "splash": {
+    "built_by": "Built by Choco",
+    "tagline": "Remittance concierge for MiniPay"
+  },
+  "corridor": {
+    "kicker": "What would you like to do?",
+    "title": "Choose your destination",
+    "no_usdc": "Your wallet has no USDC yet",
+    "fund_wallet": "Fund wallet",
+    "send_africa": "Send money to Africa",
+    "send_africa_countries": "Kenya · Nigeria · Ghana · South Africa",
+    "withdraw_bank": "Withdraw to my bank",
+    "withdraw_bank_countries": "Colombia · Brazil · Mexico",
+    "keep_usdc": "Keep as USDC",
+    "keep_usdc_sub": "Hold your balance in digital dollars",
+    "soon": "Soon"
+  },
+  "home": {
+    "new_transfer": "New transfer",
+    "new_transfer_sub": "Text or voice, then wallet confirms",
+    "balance_label": "USDC balance",
+    "no_plans": "no active plans",
+    "plans": "Plans",
+    "see_all": "See all",
+    "connect_mobile": "Connect mobile wallet",
+    "connect_browser": "Connect browser wallet",
+    "verifying": "Verifying wallet…",
+    "verify": "Verify wallet",
+    "open_minipay": "Open in MiniPay or wallet browser",
+    "install_metamask": "Install or enable MetaMask",
+    "locked": "Locked",
+    "wallet_access": "Wallet access",
+    "wallet_locked_copy": "Confirm your wallet to unlock sends, schedules, and receipts.",
+    "connect_read_only": "connect your wallet to confirm.",
+    "fund_wallet": "Add USDC with a card",
+    "copy_address": "Copy wallet address",
+    "share_address": "Share wallet address",
+    "network": "Network"
+  },
+  "editor": {
+    "new_transfer": "New transfer",
+    "edit_plan": "Edit plan",
+    "send_money": "Send money",
+    "schedule_transfer": "Schedule transfer",
+    "tell_choco": "Tell Choco with text or voice.",
+    "when": "When?",
+    "placeholder_now": "Say or type \"Send 5 to mom\"",
+    "placeholder_schedule": "Say or type \"Send 5 to mom every 1st\"",
+    "voice_blocked": "Microphone access is required for voice.",
+    "discard": "Discard recording",
+    "pause": "Pause recording",
+    "resume": "Resume recording",
+    "use_voice": "Use voice note"
+  },
+  "demo": {
+    "try_choco": "Try Choco in {{seconds}} seconds",
+    "copy": "A guided tour shows transfers, schedules, receipts, and sharing. Skip anytime.",
+    "live_demo": "Open live demo",
+    "run": "Run demo",
+    "skip": "Skip",
+    "steps": [
+      { "title": "Home starts the transfer", "copy": "One entry point keeps the app simple. Voice or text can send now or schedule." },
+      { "title": "Choose timing", "copy": "Pick send now or schedule. Choco uses the same command box for both." },
+      { "title": "Choco checks repeats", "copy": "If a similar plan or send already exists, Choco asks before continuing." },
+      { "title": "Plans stay light", "copy": "Details show the essentials: amount, timing, route, retries, and actions." },
+      { "title": "Movements verify proof", "copy": "Receipts start short, then expand into QR, from, to, date, and hash." },
+      { "title": "Share when needed", "copy": "Share the receipt or open the explorer link when family asks for proof." }
+    ]
+  },
+  "pitch": {
+    "kicker": "Voice remittance",
+    "origin": "USA",
+    "destination": "Kenya",
+    "headline_prefix": "Send USA to Kenya by",
+    "headline_emphasis": "voice",
+    "memory": "Plan once. Send now or on schedule.",
+    "support": "Choco handles the rest",
+    "cta": "Continue"
+  }
+}

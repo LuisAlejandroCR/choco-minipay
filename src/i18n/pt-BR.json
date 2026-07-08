@@ -1,0 +1,81 @@
+{
+  "splash": {
+    "built_by": "Criado pelo Choco",
+    "tagline": "Remessas automáticas no MiniPay"
+  },
+  "corridor": {
+    "kicker": "O que você quer fazer?",
+    "title": "Escolha seu destino",
+    "no_usdc": "Sua carteira ainda não tem USDC",
+    "fund_wallet": "Carregar carteira",
+    "send_africa": "Enviar dinheiro para a África",
+    "send_africa_countries": "Quênia · Nigéria · Gana · África do Sul",
+    "withdraw_bank": "Sacar para meu banco",
+    "withdraw_bank_countries": "Colômbia · Brasil · México",
+    "keep_usdc": "Manter como USDC",
+    "keep_usdc_sub": "Guarde seu saldo em dólares digitais",
+    "soon": "Em breve"
+  },
+  "home": {
+    "new_transfer": "Nova transferência",
+    "new_transfer_sub": "Texto ou voz, depois confirme na carteira",
+    "balance_label": "Saldo USDC",
+    "no_plans": "sem planos ativos",
+    "plans": "Planos",
+    "see_all": "Ver todos",
+    "connect_mobile": "Conectar carteira móvel",
+    "connect_browser": "Conectar carteira do navegador",
+    "verifying": "Verificando carteira…",
+    "verify": "Verificar carteira",
+    "open_minipay": "Abra no MiniPay ou navegador de carteira",
+    "install_metamask": "Instale ou ative o MetaMask",
+    "locked": "Bloqueada",
+    "wallet_access": "Acesso à carteira",
+    "wallet_locked_copy": "Confirme sua carteira para desbloquear envios, agendamentos e recibos.",
+    "connect_read_only": "conecte sua carteira para confirmar.",
+    "fund_wallet": "Adicionar USDC com cartão",
+    "copy_address": "Copiar endereço",
+    "share_address": "Compartilhar endereço",
+    "network": "Rede"
+  },
+  "editor": {
+    "new_transfer": "Nova transferência",
+    "edit_plan": "Editar plano",
+    "send_money": "Enviar dinheiro",
+    "schedule_transfer": "Agendar transferência",
+    "tell_choco": "Diga ao Choco com texto ou voz.",
+    "when": "Quando?",
+    "placeholder_now": "Diga ou escreva \"Enviar 5 para mãe\"",
+    "placeholder_schedule": "Diga ou escreva \"Enviar 5 para mãe todo dia 1\"",
+    "voice_blocked": "É necessário acesso ao microfone para usar voz.",
+    "discard": "Descartar gravação",
+    "pause": "Pausar gravação",
+    "resume": "Retomar gravação",
+    "use_voice": "Usar nota de voz"
+  },
+  "demo": {
+    "try_choco": "Experimente o Choco em {{seconds}} segundos",
+    "copy": "Um tour mostra transferências, planos, recibos e compartilhamento. Pule a qualquer momento.",
+    "live_demo": "Abrir demo ao vivo",
+    "run": "Ver demo",
+    "skip": "Pular",
+    "steps": [
+      { "title": "Início inicia a transferência", "copy": "Um ponto de entrada mantém o app simples. Voz ou texto para enviar agora ou agendar." },
+      { "title": "Escolha o momento", "copy": "Escolha enviar agora ou agendar. O Choco usa a mesma caixa para os dois." },
+      { "title": "Choco verifica duplicatas", "copy": "Se um plano semelhante já existe, o Choco pergunta antes de continuar." },
+      { "title": "Os planos são simples", "copy": "Os detalhes mostram o essencial: valor, horário, rota, tentativas e ações." },
+      { "title": "Movimentos verificam o recibo", "copy": "Os recibos começam resumidos e se expandem com QR, origem, destino, data e hash." },
+      { "title": "Compartilhe quando precisar", "copy": "Compartilhe o recibo ou abra o link do explorador quando sua família pedir prova." }
+    ]
+  },
+  "pitch": {
+    "kicker": "Remessa por voz",
+    "origin": "EUA",
+    "destination": "Quênia",
+    "headline_prefix": "Envie dos EUA para o Quênia por",
+    "headline_emphasis": "voz",
+    "memory": "Programe uma vez. Envie agora ou automaticamente.",
+    "support": "O Choco cuida do resto",
+    "cta": "Continuar"
+  }
+}

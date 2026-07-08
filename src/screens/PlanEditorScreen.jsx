@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ArrowRight, CalendarDays, CircleDollarSign, Mic, Trash2, X } from "lucide-react";
 import { ChocoMark } from "../components/ChocoMark.jsx";
 import { useVoiceRecorder } from "../modules/voice/useVoiceRecorder.js";
@@ -40,14 +41,15 @@ export function PlanEditorScreen({
     clearVoiceError,
   } = useVoiceRecorder({ onTranscript: setCommand });
 
+  const { t } = useTranslation();
   const [voiceWarn, setVoiceWarn] = useState(false);
   const warnTimer = useRef(null);
   const hasText = command.trim().length > 0;
   const title = mode === "update"
-    ? "Update plan"
+    ? t("editor.edit_plan")
     : deliveryMode === "now"
-      ? "Send money"
-      : "Schedule transfer";
+      ? t("editor.send_money")
+      : t("editor.schedule_transfer");
   const agentDetection = agentIntent?.agent || agentIntent || {};
   const missing = agentIntent?.missing || agentDetection.missing || [];
   const confidence = Math.round((agentIntent?.confidence || agentDetection.confidence || 0) * 100);
@@ -60,8 +62,8 @@ export function PlanEditorScreen({
   const timingSummary = timingMode === "now" ? "now" : `every ${ordinalDay(timingDay)}`;
   const readySummary = `${recipientLabel || "Recipient"} - ${Number(amountValue || 0).toLocaleString("en-US")} ${currencyCode || "asset"} - ${timingSummary}`;
   const composerPlaceholder = deliveryMode === "schedule"
-    ? 'Say or type "Send 5 to mom every 1st"'
-    : 'Say or type "Send 5 to mom"';
+    ? t("editor.placeholder_schedule")
+    : t("editor.placeholder_now");
 
   // Auto-advance to review when Agent Choco has everything and is confident (>80%), so the user
   // doesn't have to tap again. Debounced, fires once per instruction, and never while recording.
@@ -105,14 +107,14 @@ export function PlanEditorScreen({
       <section className="editor-card">
         <ChocoMark size="small" />
         <div>
-          <span>{mode === "update" ? "Edit plan" : "New transfer"}</span>
+          <span>{mode === "update" ? t("editor.edit_plan") : t("editor.new_transfer")}</span>
           <h2>{title}</h2>
-          <p>Tell Choco with text or voice.</p>
+          <p>{t("editor.tell_choco")}</p>
         </div>
       </section>
 
       <section className="timing-choice" aria-label="Transfer timing">
-        <span className="timing-label">When?</span>
+        <span className="timing-label">{t("editor.when")}</span>
         <div className="timing-toggle">
           {Object.entries(deliveryModes).map(([modeId, item]) => (
             <button
@@ -132,7 +134,7 @@ export function PlanEditorScreen({
       <section className="composer" aria-label="Command composer">
         {isRecording ? (
           <div className="voice-recorder" aria-live="polite">
-            <button className="recorder-delete" type="button" aria-label="Discard recording" onClick={cancelRecording}>
+            <button className="recorder-delete" type="button" aria-label={t("editor.discard")} onClick={cancelRecording}>
               <Trash2 size={18} />
             </button>
             <span className={`record-dot ${isPaused ? "paused" : ""}`} />
@@ -143,12 +145,12 @@ export function PlanEditorScreen({
             <button
               className={`pause-mark ${isPaused ? "paused" : ""}`}
               type="button"
-              aria-label={isPaused ? "Resume recording" : "Pause recording"}
+              aria-label={isPaused ? t("editor.resume") : t("editor.pause")}
               onClick={togglePause}
             >
               <i /><i />
             </button>
-            <button className="recorder-send" type="button" aria-label="Use voice note" onClick={submitRecording}>
+            <button className="recorder-send" type="button" aria-label={t("editor.use_voice")} onClick={submitRecording}>
               <ArrowRight size={24} strokeWidth={3} />
             </button>
           </div>
