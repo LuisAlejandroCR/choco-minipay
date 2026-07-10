@@ -6,7 +6,7 @@ import { LanguageSwitcher } from "../components/LanguageSwitcher.jsx";
 import { formatWalletAddress } from "../modules/wallet/useMiniPayWallet.js";
 import { scheduledLocalDateForPlan } from "../lib/schedule-time.js";
 import { getPlanExecutionState, getTimingLabel, recipientLabel } from "../utils/planUtils.js";
-import { demoPromptContent } from "../content/demoFlow.js";
+import { demoPromptContent, DEMO_TOTAL_SECONDS } from "../content/demoFlow.js";
 
 function DemoPrompt({ liveDemoUrl, onDismiss, onRunDemo }) {
   const { t } = useTranslation();
